@@ -341,8 +341,8 @@
           <TextBlock Classes="muted" Text="Double-click a file in Explorer to open it."
                      FontSize="12" HorizontalAlignment="Center" />
         </StackPanel>
-        <ae:TextEditor IsVisible="{Binding Documents.HasActiveDocument}"
-                       Text="{Binding Documents.ActiveDocument.Text, Mode=TwoWay}"
+        <ae:TextEditor x:Name="DocumentEditor"
+                       IsVisible="{Binding Documents.HasActiveDocument}"
                        ShowLineNumbers="True"
                        FontFamily="Menlo, Cascadia Code, Consolas, monospace"
                        FontSize="13"
