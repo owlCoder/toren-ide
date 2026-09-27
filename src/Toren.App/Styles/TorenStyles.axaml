@@ -7,6 +7,7 @@
     <SolidColorBrush x:Key="TorenSurfaceBrush">#171B21</SolidColorBrush>
     <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#1D232B</SolidColorBrush>
     <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#242C36</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenChromeBrush">#14191F</SolidColorBrush>
     <SolidColorBrush x:Key="TorenBorderBrush">#2C3540</SolidColorBrush>
     <SolidColorBrush x:Key="TorenBorderStrongBrush">#3A4654</SolidColorBrush>
     <SolidColorBrush x:Key="TorenTextBrush">#E8ECF2</SolidColorBrush>
@@ -15,6 +16,7 @@
     <SolidColorBrush x:Key="TorenAccentBrush">#38BDF8</SolidColorBrush>
     <SolidColorBrush x:Key="TorenAccentMutedBrush">#103448</SolidColorBrush>
     <SolidColorBrush x:Key="TorenSuccessBrush">#55D187</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenDangerHoverBrush">#B42336</SolidColorBrush>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -28,11 +30,23 @@
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
   </Style>
 
+  <Style Selector="Border.title-bar">
+    <Setter Property="Background" Value="{DynamicResource TorenChromeBrush}" />
+  </Style>
+
+  <Style Selector="Border.activity-rail">
+    <Setter Property="Background" Value="{DynamicResource TorenChromeBrush}" />
+  </Style>
+
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Border.card.compact-card">
+    <Setter Property="CornerRadius" Value="7" />
   </Style>
 
   <Style Selector="Button.toolbar-button">
@@ -58,12 +72,36 @@
     <Setter Property="Padding" Value="12,7" />
   </Style>
 
+  <Style Selector="Button.window-control">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Width" Value="42" />
+    <Setter Property="Height" Value="48" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="Button.window-control:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+
+  <Style Selector="Button.window-control.close:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TorenDangerHoverBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
   <Style Selector="Button.activity-button">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="2,0,0,0" />
-    <Setter Property="Width" Value="50" />
+    <Setter Property="Width" Value="48" />
     <Setter Property="Height" Value="48" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="FontSize" Value="18" />
@@ -78,6 +116,16 @@
   <Style Selector="Button.activity-button:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+
+  <Style Selector="Button.activity-button:disabled">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.38" />
+  </Style>
+
+  <Style Selector="Button.activity-button:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
   <Style Selector="TextBlock.tool-title">
