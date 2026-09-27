@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Toren.Language.CSharp.Contracts;
@@ -12,10 +13,12 @@ public sealed class RoslynCSharpSyntaxService : ICSharpSyntaxService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sourceText);
-        return Task.Run(() => Analyze(sourceText, cancellationToken), cancellationToken);
+        return Task.Run<IReadOnlyList<CSharpDiagnostic>>(
+            () => Analyze(sourceText, cancellationToken),
+            cancellationToken);
     }
 
-    private static IReadOnlyList<CSharpDiagnostic> Analyze(
+    private static CSharpDiagnostic[] Analyze(
         string sourceText,
         CancellationToken cancellationToken)
     {
@@ -32,7 +35,7 @@ public sealed class RoslynCSharpSyntaxService : ICSharpSyntaxService
         var span = diagnostic.Location.GetLineSpan().Span;
         return new CSharpDiagnostic(
             diagnostic.Id,
-            diagnostic.GetMessage(),
+            diagnostic.GetMessage(CultureInfo.InvariantCulture),
             diagnostic.Severity switch
             {
                 DiagnosticSeverity.Error => CSharpDiagnosticSeverity.Error,
