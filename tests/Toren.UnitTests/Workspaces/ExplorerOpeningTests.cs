@@ -57,16 +57,41 @@ public sealed class ExplorerOpeningTests
         });
     }
 
+    [Test]
+    public async Task InitializeRestoresDocumentSessionAndActiveTab()
+    {
+        var firstPath = Path.Combine(Path.GetTempPath(), "Program.cs");
+        var secondPath = Path.Combine(Path.GetTempPath(), "Settings.json");
+        var session = new FakeDocumentSessionStore(
+            new DocumentSessionState([firstPath, secondPath], firstPath));
+        var viewModel = CreateViewModel(
+            new FakeWorkspaceTreeService(),
+            new FakeRecentWorkspaceStore([]),
+            new FakeDotNetSdkResolver(),
+            session);
+
+        await viewModel.InitializeAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.Documents.OpenDocuments, Has.Count.EqualTo(2));
+            Assert.That(viewModel.Documents.ActiveDocument?.Path, Is.EqualTo(Path.GetFullPath(firstPath)));
+            Assert.That(viewModel.IsWelcomeSelected, Is.False);
+        });
+    }
+
     private static MainWindowViewModel CreateViewModel(
         IWorkspaceTreeService tree,
         IRecentWorkspaceStore recent,
-        IDotNetSdkResolver sdkResolver) =>
+        IDotNetSdkResolver sdkResolver,
+        IDocumentSessionStore? documentSessionStore = null) =>
         new(
             new FakeDotNetEnvironmentService(),
             sdkResolver,
             new WorkspaceClassifier(),
             tree,
             recent,
+            documentSessionStore ?? new FakeDocumentSessionStore(new DocumentSessionState([], null)),
             new DocumentHostViewModel(new FakeTextDocumentStore()));
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService
@@ -125,11 +150,22 @@ public sealed class ExplorerOpeningTests
             string path,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success(
-                new TextDocumentContent(path, string.Empty, TextDocumentEncoding.Utf8)));
+                new TextDocumentContent(Path.GetFullPath(path), string.Empty, TextDocumentEncoding.Utf8)));
 
         public Task<Result<TextDocumentContent>> SaveAsync(
             TextDocumentContent document,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success(document));
+    }
+
+    private sealed class FakeDocumentSessionStore(DocumentSessionState session) : IDocumentSessionStore
+    {
+        public Task<Result<DocumentSessionState>> LoadAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(session));
+
+        public Task<Result<DocumentSessionState>> SaveAsync(
+            DocumentSessionState state,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(state));
     }
 }

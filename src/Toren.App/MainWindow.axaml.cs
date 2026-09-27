@@ -25,6 +25,8 @@ internal sealed partial class MainWindow : Window
 
     private readonly MainWindowViewModel _viewModel;
     private bool _synchronizingEditorText;
+    private bool _sessionCloseInProgress;
+    private bool _sessionPersistedForClose;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -48,15 +50,31 @@ internal sealed partial class MainWindow : Window
         await _viewModel.InitializeAsync().ConfigureAwait(true);
     }
 
-    private void MainWindow_OnClosing(object? sender, WindowClosingEventArgs eventArgs)
+    private async void MainWindow_OnClosing(object? sender, WindowClosingEventArgs eventArgs)
     {
-        if (!_viewModel.Documents.HasDirtyDocuments)
+        if (_viewModel.Documents.HasDirtyDocuments)
+        {
+            eventArgs.Cancel = true;
+            _viewModel.SetStatus("Save all modified documents before closing Toren IDE.");
+            return;
+        }
+
+        if (_sessionPersistedForClose)
         {
             return;
         }
 
         eventArgs.Cancel = true;
-        _viewModel.SetStatus("Save all modified documents before closing Toren IDE.");
+        if (_sessionCloseInProgress)
+        {
+            return;
+        }
+
+        _sessionCloseInProgress = true;
+        await _viewModel.PersistDocumentSessionAsync().ConfigureAwait(true);
+        _sessionPersistedForClose = true;
+        _sessionCloseInProgress = false;
+        Close();
     }
 
     private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)

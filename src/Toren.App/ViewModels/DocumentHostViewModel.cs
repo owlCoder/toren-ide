@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.App.Documents.Contracts;
+using Toren.App.Documents.Models;
 using Toren.Core.Results;
 
 namespace Toren.App.ViewModels;
@@ -47,6 +48,42 @@ public sealed partial class DocumentHostViewModel(ITextDocumentStore documentSto
         Activate(document);
         return Result.Success(document);
     }
+
+    public async Task<int> RestoreSessionAsync(
+        DocumentSessionState session,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(session.OpenDocumentPaths);
+
+        var restoredCount = 0;
+        foreach (var path in session.OpenDocumentPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var opened = await OpenAsync(path, cancellationToken).ConfigureAwait(true);
+            if (opened.IsSuccess)
+            {
+                restoredCount++;
+            }
+        }
+
+        if (session.ActiveDocumentPath is not null)
+        {
+            var active = OpenDocuments.FirstOrDefault(document =>
+                document.Path.Equals(session.ActiveDocumentPath, StringComparison.Ordinal));
+            if (active is not null)
+            {
+                Activate(active);
+            }
+        }
+
+        return restoredCount;
+    }
+
+    public DocumentSessionState CaptureSession() =>
+        new(
+            OpenDocuments.Select(document => document.Path).ToArray(),
+            ActiveDocument?.Path);
 
     public void Activate(OpenDocumentViewModel document)
     {

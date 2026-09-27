@@ -72,6 +72,28 @@ public sealed class DocumentHostViewModelTests
         });
     }
 
+    [Test]
+    public async Task RestoreSessionReopensTabsAndRestoresActiveDocument()
+    {
+        var host = new DocumentHostViewModel(new FakeTextDocumentStore());
+        var firstPath = Path.Combine(Path.GetTempPath(), "Program.cs");
+        var secondPath = Path.Combine(Path.GetTempPath(), "appsettings.json");
+
+        var restored = await host.RestoreSessionAsync(
+            new DocumentSessionState([firstPath, secondPath], firstPath));
+        var captured = host.CaptureSession();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored, Is.EqualTo(2));
+            Assert.That(host.OpenDocuments.Select(document => document.Path),
+                Is.EqualTo(new[] { Path.GetFullPath(firstPath), Path.GetFullPath(secondPath) }));
+            Assert.That(host.ActiveDocument?.Path, Is.EqualTo(Path.GetFullPath(firstPath)));
+            Assert.That(captured.ActiveDocumentPath, Is.EqualTo(Path.GetFullPath(firstPath)));
+            Assert.That(captured.OpenDocumentPaths, Has.Length.EqualTo(2));
+        });
+    }
+
     private sealed class FakeTextDocumentStore : ITextDocumentStore
     {
         public int LoadCount { get; private set; }

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Toren.App.Documents.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
 using Toren.Workspaces.Contracts;
@@ -14,6 +15,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IDotNetSdkResolver _dotNetSdkResolver;
     private readonly IWorkspaceClassifier _workspaceClassifier;
     private readonly IRecentWorkspaceStore _recentWorkspaceStore;
+    private readonly IDocumentSessionStore _documentSessionStore;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
@@ -50,12 +52,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceTreeService workspaceTreeService,
         IRecentWorkspaceStore recentWorkspaceStore,
+        IDocumentSessionStore documentSessionStore,
         DocumentHostViewModel documents)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
         _workspaceClassifier = workspaceClassifier ?? throw new ArgumentNullException(nameof(workspaceClassifier));
         _recentWorkspaceStore = recentWorkspaceStore ?? throw new ArgumentNullException(nameof(recentWorkspaceStore));
+        _documentSessionStore = documentSessionStore ?? throw new ArgumentNullException(nameof(documentSessionStore));
         Documents = documents ?? throw new ArgumentNullException(nameof(documents));
         Explorer = new ExplorerViewModel(workspaceTreeService);
     }
@@ -122,23 +126,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         var recent = await _recentWorkspaceStore.LoadAsync(cancellationToken).ConfigureAwait(true);
-        if (!recent.IsSuccess)
+        if (recent.IsSuccess)
         {
-            StatusText = recent.Error.Message;
-            return;
-        }
-
-        SetRecentWorkspaces(recent.Value);
-        foreach (var workspace in recent.Value)
-        {
-            if (ActivateWorkspace(workspace, closeWelcome: false))
+            SetRecentWorkspaces(recent.Value);
+            foreach (var workspace in recent.Value)
             {
-                StatusText = $"Restored {workspace.DisplayName}";
-                await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
-                await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
-                break;
+                if (ActivateWorkspace(workspace, closeWelcome: false))
+                {
+                    StatusText = $"Restored {workspace.DisplayName}";
+                    await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
+                    await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
+                    break;
+                }
             }
         }
+        else
+        {
+            StatusText = recent.Error.Message;
+        }
+
+        await RestoreDocumentSessionAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public async Task OpenDirectoryAsync(string path, CancellationToken cancellationToken = default)
@@ -230,6 +237,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
             : saved.Error.Message;
     }
 
+    public async Task<bool> PersistDocumentSessionAsync(CancellationToken cancellationToken = default)
+    {
+        var saved = await _documentSessionStore
+            .SaveAsync(Documents.CaptureSession(), cancellationToken)
+            .ConfigureAwait(true);
+        if (!saved.IsSuccess)
+        {
+            StatusText = saved.Error.Message;
+        }
+
+        return saved.IsSuccess;
+    }
+
     private async Task<bool> OpenWorkspaceAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken)
     {
         if (!ActivateWorkspace(workspace, closeWelcome: true))
@@ -288,6 +308,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             SdkSummary = ".NET SDK: unresolved";
             StatusText = resolved.Error.Message;
+        }
+    }
+
+    private async Task RestoreDocumentSessionAsync(CancellationToken cancellationToken)
+    {
+        var session = await _documentSessionStore.LoadAsync(cancellationToken).ConfigureAwait(true);
+        if (!session.IsSuccess)
+        {
+            StatusText = session.Error.Message;
+            return;
+        }
+
+        var restoredCount = await Documents
+            .RestoreSessionAsync(session.Value, cancellationToken)
+            .ConfigureAwait(true);
+        if (restoredCount > 0)
+        {
+            IsWelcomeSelected = false;
+            StatusText = $"Restored {restoredCount} document tab{(restoredCount == 1 ? string.Empty : "s")}.";
         }
     }
 

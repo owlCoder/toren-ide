@@ -35,12 +35,14 @@ public sealed partial class App : Application
             IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
                 solutionProjectProvider,
                 projectReferenceProvider);
-            var historyPath = Path.Combine(
+            var applicationDataDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TorenIDE",
-                "recent-workspaces.json");
-            IRecentWorkspaceStore recentWorkspaceStore = new FileRecentWorkspaceStore(historyPath);
+                "TorenIDE");
+            IRecentWorkspaceStore recentWorkspaceStore = new FileRecentWorkspaceStore(
+                Path.Combine(applicationDataDirectory, "recent-workspaces.json"));
             ITextDocumentStore textDocumentStore = new FileTextDocumentStore();
+            IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
+                Path.Combine(applicationDataDirectory, "document-session.json"));
             var documentHost = new DocumentHostViewModel(textDocumentStore);
 
             var viewModel = new MainWindowViewModel(
@@ -49,6 +51,7 @@ public sealed partial class App : Application
                 workspaceClassifier,
                 workspaceTreeService,
                 recentWorkspaceStore,
+                documentSessionStore,
                 documentHost);
             desktop.MainWindow = new MainWindow(viewModel);
         }
