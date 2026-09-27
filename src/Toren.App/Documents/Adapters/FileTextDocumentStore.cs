@@ -9,6 +9,9 @@ namespace Toren.App.Documents.Adapters;
 
 public sealed class FileTextDocumentStore : ITextDocumentStore
 {
+    private static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
+    private static readonly byte[] Utf16LittleEndianBom = [0xFF, 0xFE];
+    private static readonly byte[] Utf16BigEndianBom = [0xFE, 0xFF];
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     private static readonly UnicodeEncoding Utf16LittleEndian = new(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true);
     private static readonly UnicodeEncoding Utf16BigEndian = new(bigEndian: true, byteOrderMark: true, throwOnInvalidBytes: true);
@@ -35,7 +38,7 @@ public sealed class FileTextDocumentStore : ITextDocumentStore
                 return decoded;
             }
 
-            if (decoded.Value.Text.IndexOf('\0') >= 0)
+            if (decoded.Value.Text.Contains('\0'))
             {
                 return Result.Failure<TextDocumentContent>(TextDocumentErrors.BinaryFile(fullPath));
             }
@@ -74,27 +77,27 @@ public sealed class FileTextDocumentStore : ITextDocumentStore
     {
         try
         {
-            if (HasPrefix(bytes, 0xEF, 0xBB, 0xBF))
+            if (HasPrefix(bytes, Utf8Bom))
             {
                 return Result.Success(new TextDocumentContent(
                     path,
-                    StrictUtf8.GetString(bytes.AsSpan(3)),
+                    StrictUtf8.GetString(bytes.AsSpan(Utf8Bom.Length)),
                     TextDocumentEncoding.Utf8Bom));
             }
 
-            if (HasPrefix(bytes, 0xFF, 0xFE))
+            if (HasPrefix(bytes, Utf16LittleEndianBom))
             {
                 return Result.Success(new TextDocumentContent(
                     path,
-                    Utf16LittleEndian.GetString(bytes.AsSpan(2)),
+                    Utf16LittleEndian.GetString(bytes.AsSpan(Utf16LittleEndianBom.Length)),
                     TextDocumentEncoding.Utf16LittleEndian));
             }
 
-            if (HasPrefix(bytes, 0xFE, 0xFF))
+            if (HasPrefix(bytes, Utf16BigEndianBom))
             {
                 return Result.Success(new TextDocumentContent(
                     path,
-                    Utf16BigEndian.GetString(bytes.AsSpan(2)),
+                    Utf16BigEndian.GetString(bytes.AsSpan(Utf16BigEndianBom.Length)),
                     TextDocumentEncoding.Utf16BigEndian));
             }
 
@@ -116,14 +119,14 @@ public sealed class FileTextDocumentStore : ITextDocumentStore
         return encoding switch
         {
             TextDocumentEncoding.Utf8 => StrictUtf8.GetBytes(text),
-            TextDocumentEncoding.Utf8Bom => Combine(Encoding.UTF8.GetPreamble(), StrictUtf8.GetBytes(text)),
-            TextDocumentEncoding.Utf16LittleEndian => Combine(Utf16LittleEndian.GetPreamble(), Utf16LittleEndian.GetBytes(text)),
-            TextDocumentEncoding.Utf16BigEndian => Combine(Utf16BigEndian.GetPreamble(), Utf16BigEndian.GetBytes(text)),
+            TextDocumentEncoding.Utf8Bom => Combine(Utf8Bom, StrictUtf8.GetBytes(text)),
+            TextDocumentEncoding.Utf16LittleEndian => Combine(Utf16LittleEndianBom, Utf16LittleEndian.GetBytes(text)),
+            TextDocumentEncoding.Utf16BigEndian => Combine(Utf16BigEndianBom, Utf16BigEndian.GetBytes(text)),
             _ => throw new ArgumentOutOfRangeException(nameof(encoding)),
         };
     }
 
-    private static bool HasPrefix(byte[] bytes, params byte[] prefix) =>
+    private static bool HasPrefix(byte[] bytes, byte[] prefix) =>
         bytes.Length >= prefix.Length && bytes.AsSpan(0, prefix.Length).SequenceEqual(prefix);
 
     private static byte[] Combine(byte[] prefix, byte[] content)
