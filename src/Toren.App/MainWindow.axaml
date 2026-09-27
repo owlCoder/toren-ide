@@ -8,52 +8,83 @@
     Height="900"
     MinWidth="1080"
     MinHeight="700"
+    CanResize="True"
+    SystemDecorations="None"
     Title="Toren IDE">
 
-  <Grid RowDefinitions="50,*,176,26" ColumnDefinitions="50,280,*">
-    <!-- Command bar -->
+  <Grid RowDefinitions="48,*,176,26" ColumnDefinitions="48,280,*">
+    <!-- Toren title bar / command bar -->
     <Border
         Grid.Row="0"
         Grid.ColumnSpan="3"
-        Classes="shell-surface"
+        Classes="shell-surface title-bar"
         BorderThickness="0,0,0,1">
-      <Grid Margin="10,0" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
-          <Border
-              Width="30"
-              Height="30"
-              Background="{DynamicResource TorenAccentMutedBrush}"
-              BorderBrush="{DynamicResource TorenAccentBrush}"
-              BorderThickness="1"
-              CornerRadius="7">
-            <TextBlock
-                Text="T"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                FontWeight="Bold"
-                Foreground="{DynamicResource TorenAccentBrush}" />
-          </Border>
-          <TextBlock Text="Toren IDE" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-        </StackPanel>
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+        <Border
+            Grid.Column="0"
+            Padding="10,0,8,0"
+            Background="Transparent"
+            PointerPressed="TitleBar_OnPointerPressed">
+          <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+            <Border
+                Width="30"
+                Height="30"
+                Background="{DynamicResource TorenAccentMutedBrush}"
+                BorderBrush="{DynamicResource TorenAccentBrush}"
+                BorderThickness="1"
+                CornerRadius="7">
+              <TextBlock
+                  Text="T"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  FontWeight="Bold"
+                  Foreground="{DynamicResource TorenAccentBrush}" />
+            </Border>
+            <TextBlock Text="Toren IDE" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <StackPanel Grid.Column="1" Margin="10,0,0,0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
           <Button Classes="toolbar-button" Content="Open Folder" Click="OpenFolder_OnClick" />
           <Button Classes="toolbar-button" Content="Open Solution" Click="OpenWorkspaceFile_OnClick" />
         </StackPanel>
 
-        <TextBlock
+        <Border
             Grid.Column="2"
-            Text="{Binding WorkspaceTitle}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Classes="subtle"
-            FontSize="11" />
+            Margin="8,0"
+            Background="Transparent"
+            PointerPressed="TitleBar_OnPointerPressed">
+          <TextBlock
+              Text="{Binding WorkspaceTitle}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Classes="subtle"
+              FontSize="11" />
+        </Border>
 
-        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Border Classes="card" Padding="9,5">
+        <StackPanel Grid.Column="3" Margin="0,0,4,0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Border Classes="card compact-card" Padding="9,5">
             <TextBlock Classes="muted" Text="{Binding SdkSummary}" FontSize="11" />
           </Border>
           <Button Classes="toolbar-button" Content="?" Width="32" Padding="0" Click="About_OnClick" ToolTip.Tip="About Toren IDE" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Stretch">
+          <Button
+              Classes="window-control"
+              Content="—"
+              Click="MinimizeWindow_OnClick"
+              ToolTip.Tip="Minimize" />
+          <Button
+              Classes="window-control"
+              Content="□"
+              Click="ToggleMaximizeWindow_OnClick"
+              ToolTip.Tip="Maximize or restore" />
+          <Button
+              Classes="window-control close"
+              Content="×"
+              Click="CloseWindow_OnClick"
+              ToolTip.Tip="Close" />
         </StackPanel>
       </Grid>
     </Border>
@@ -63,7 +94,7 @@
         Grid.Row="1"
         Grid.RowSpan="2"
         Grid.Column="0"
-        Classes="shell-surface"
+        Classes="shell-surface activity-rail"
         BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
         <Button Grid.Row="0" Classes="activity-button active" Content="▤" ToolTip.Tip="Explorer" />

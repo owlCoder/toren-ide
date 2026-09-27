@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Toren.App.ViewModels;
@@ -36,6 +37,33 @@ public sealed partial class MainWindow : Window
     private async void OnOpened(object? sender, EventArgs eventArgs)
     {
         await _viewModel.InitializeAsync().ConfigureAwait(true);
+    }
+
+    private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (!eventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        BeginMoveDrag(eventArgs);
+    }
+
+    private void MinimizeWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void ToggleMaximizeWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
+    private void CloseWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        Close();
     }
 
     private async void OpenFolder_OnClick(object? sender, RoutedEventArgs eventArgs)
