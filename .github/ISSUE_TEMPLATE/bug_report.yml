@@ -1,0 +1,58 @@
+name: Bug report
+description: Report reproducible incorrect behavior in Toren IDE
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Toren IDE. Please provide enough detail to reproduce the problem.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Toren version or commit
+      placeholder: e.g. main @ abc1234
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS Apple Silicon
+        - macOS Intel
+        - Windows x64
+        - Windows ARM64
+        - Linux x64
+        - Linux ARM64
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: dotnet
+    attributes:
+      label: .NET SDK(s)
+      description: Output or relevant version from `dotnet --list-sdks`.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / diagnostics
+      description: Paste relevant output. Remove secrets, tokens, and private paths/data where necessary.
+      render: text
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
