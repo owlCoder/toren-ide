@@ -53,7 +53,7 @@
                  Foreground="{DynamicResource TorenTextSubtleBrush}"
                  VerticalAlignment="Center" Margin="1,0,2,0" />
       <TextBox x:Name="InputBox" Classes="editor-navigation-input"
-               Watermark="Find in file"
+               PlaceholderText="Find in file"
                TextChanged="InputBox_OnTextChanged"
                KeyDown="InputBox_OnKeyDown" />
       <TextBlock x:Name="MatchStatus" Text="0/0" MinWidth="40" FontSize="10.5"
