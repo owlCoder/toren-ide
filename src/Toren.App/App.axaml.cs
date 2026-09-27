@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Toren.App.Diagnostics.Contracts;
+using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
 using Toren.App.Documents.Contracts;
 using Toren.App.ViewModels;
@@ -46,6 +48,8 @@ public sealed partial class App : Application
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
+            IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
+                new DocumentDiagnosticsCoordinator(cSharpSyntaxService);
             var documentHost = new DocumentHostViewModel(textDocumentStore);
 
             var viewModel = new MainWindowViewModel(
@@ -55,7 +59,7 @@ public sealed partial class App : Application
                 workspaceTreeService,
                 recentWorkspaceStore,
                 documentSessionStore,
-                cSharpSyntaxService,
+                documentDiagnosticsCoordinator,
                 documentHost);
             desktop.MainWindow = new MainWindow(viewModel);
         }
