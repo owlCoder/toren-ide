@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a product or developer-experience improvement
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: Please describe the problem first. Features are easier to evaluate when the user need and scope are clear.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: What workflow is difficult or missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: What should Toren do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing .NET/OS tooling, workarounds, or smaller approaches.
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product compatibility
+      options:
+        - label: This can remain compatible with standard .NET project/tooling formats.
+        - label: This does not require a Toren account or mandatory Toren cloud service for local development.
+        - label: I have considered macOS, Windows, and Linux behavior.
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context / mockups
