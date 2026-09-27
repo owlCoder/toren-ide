@@ -79,7 +79,7 @@
   </Style>
 
   <Style Selector="Button.command-button">
-    <Setter Property="MinWidth" Value="30" />
+    <Setter Property="MinWidth" Value="28" />
     <Setter Property="Height" Value="28" />
     <Setter Property="Padding" Value="6" />
     <Setter Property="CornerRadius" Value="4" />
@@ -92,7 +92,7 @@
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
   </Style>
   <Style Selector="Button.command-button:disabled">
-    <Setter Property="Opacity" Value="0.42" />
+    <Setter Property="Opacity" Value="0.38" />
   </Style>
 
   <Style Selector="Button.command-button.run">
@@ -111,11 +111,11 @@
     <Setter Property="FontSize" Value="11" />
   </Style>
   <Style Selector="ComboBox.command-select:disabled">
-    <Setter Property="Opacity" Value="0.62" />
+    <Setter Property="Opacity" Value="0.56" />
   </Style>
 
   <Style Selector="Button.theme-toggle">
-    <Setter Property="Width" Value="26" />
+    <Setter Property="Width" Value="28" />
     <Setter Property="Height" Value="22" />
     <Setter Property="MinHeight" Value="22" />
     <Setter Property="Padding" Value="4" />
@@ -127,5 +127,23 @@
   <Style Selector="Button.theme-toggle:pointerover">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+
+  <Style Selector="ListBox.problems-list">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.problems-list > ListBoxItem">
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="ListBox.problems-list > ListBoxItem:pointerover">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.problems-list > ListBoxItem:selected">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
   </Style>
 </Styles>
