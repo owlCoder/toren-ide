@@ -49,6 +49,7 @@ public sealed partial class App : Application
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
+            ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
                 new DocumentDiagnosticsCoordinator(cSharpSyntaxService);
             var documentHost = new DocumentHostViewModel(textDocumentStore);
@@ -63,7 +64,7 @@ public sealed partial class App : Application
                 documentDiagnosticsCoordinator,
                 documentHost);
             var mainWindow = new MainWindow(viewModel);
-            mainWindow.Tag = new EditorNavigationController(mainWindow);
+            mainWindow.Tag = new EditorNavigationController(mainWindow, cSharpSemanticService);
             desktop.MainWindow = mainWindow;
         }
 
