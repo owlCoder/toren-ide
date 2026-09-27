@@ -23,7 +23,10 @@
     <CornerRadius x:Key="TorenCardRadius">8</CornerRadius>
     <x:Double x:Key="TorenTitleBarHeight">46</x:Double>
     <x:Double x:Key="TorenActivityWidth">50</x:Double>
+    <x:Double x:Key="TorenExplorerWidth">270</x:Double>
     <x:Double x:Key="TorenPanelHeaderHeight">38</x:Double>
+    <x:Double x:Key="TorenToolWindowHeight">168</x:Double>
+    <x:Double x:Key="TorenStatusBarHeight">24</x:Double>
     <x:Double x:Key="TorenControlHeight">32</x:Double>
   </Styles.Resources>
 
@@ -96,6 +99,17 @@
   <Style Selector="Button:disabled">
     <Setter Property="Opacity" Value="0.57" />
   </Style>
+  <Style Selector="Button.planned-action:disabled">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.planned-action:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
   <Style Selector="Button.window-control">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
@@ -104,9 +118,17 @@
     <Setter Property="Width" Value="44" />
     <Setter Property="Height" Value="46" />
     <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.window-control:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="Button.window-control:pointerover Path.shell-icon">
+    <Setter Property="Stroke" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+  <Style Selector="Button.window-control:pointerover Rectangle">
+    <Setter Property="Fill" Value="{DynamicResource TorenTextBrush}" />
   </Style>
   <Style Selector="Button.window-control.close:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenDangerHoverBrush}" />
@@ -131,6 +153,12 @@
   <Style Selector="Button.activity-button:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
   </Style>
+  <Style Selector="Button.activity-button:pointerover Path.shell-icon">
+    <Setter Property="Stroke" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+  <Style Selector="Button.activity-button.active:pointerover Path.shell-icon">
+    <Setter Property="Stroke" Value="{DynamicResource TorenAccentBrush}" />
+  </Style>
   <Style Selector="Button.activity-button:disabled">
     <Setter Property="Opacity" Value="0.56" />
   </Style>
@@ -138,15 +166,15 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem">
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="12" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0,0,0,2" />
     <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Padding" Value="14,8" />
-    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="16,7" />
+    <Setter Property="MinHeight" Value="36" />
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
