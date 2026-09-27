@@ -32,7 +32,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
     {
         Mode = EditorNavigationMode.Find;
         ModeLabel.Text = "Find";
-        InputBox.Watermark = "Find in file";
+        InputBox.PlaceholderText = "Find in file";
         InputBox.Width = 220;
         MatchStatus.IsVisible = true;
         MatchCaseButton.IsVisible = true;
@@ -48,7 +48,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
     {
         Mode = EditorNavigationMode.GoToLine;
         ModeLabel.Text = "Ln";
-        InputBox.Watermark = "Go to line";
+        InputBox.PlaceholderText = "Go to line";
         InputBox.Width = 140;
         MatchStatus.IsVisible = false;
         MatchCaseButton.IsVisible = false;
