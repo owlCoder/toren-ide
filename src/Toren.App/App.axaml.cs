@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Toren.App.ViewModels;
+using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
@@ -31,5 +32,13 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private async void AboutToren_OnClick(object? sender, EventArgs eventArgs)
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+        {
+            await AboutWindow.ShowAsync(owner).ConfigureAwait(true);
+        }
     }
 }

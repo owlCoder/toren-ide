@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Toren.App.ViewModels;
+using Toren.App.Views;
 
 namespace Toren.App;
 
@@ -71,5 +72,10 @@ public sealed partial class MainWindow : Window
         {
             _viewModel.SetStatus("The selected file is not a supported .NET workspace.");
         }
+    }
+
+    private async void About_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        await AboutWindow.ShowAsync(this).ConfigureAwait(true);
     }
 }
