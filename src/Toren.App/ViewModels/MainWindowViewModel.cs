@@ -11,6 +11,7 @@ namespace Toren.App.ViewModels;
 public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDotNetEnvironmentService _dotNetEnvironmentService;
+    private readonly IDotNetSdkResolver _dotNetSdkResolver;
     private readonly IWorkspaceClassifier _workspaceClassifier;
     private readonly IRecentWorkspaceStore _recentWorkspaceStore;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
@@ -40,11 +41,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public MainWindowViewModel(
         IDotNetEnvironmentService dotNetEnvironmentService,
+        IDotNetSdkResolver dotNetSdkResolver,
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceTreeService workspaceTreeService,
         IRecentWorkspaceStore recentWorkspaceStore)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
+        _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
         _workspaceClassifier = workspaceClassifier ?? throw new ArgumentNullException(nameof(workspaceClassifier));
         _recentWorkspaceStore = recentWorkspaceStore ?? throw new ArgumentNullException(nameof(recentWorkspaceStore));
         Explorer = new ExplorerViewModel(workspaceTreeService);
@@ -102,6 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             {
                 StatusText = $"Restored {workspace.DisplayName}";
                 await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
+                await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
                 break;
             }
         }
@@ -151,6 +155,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
 
         var recorded = await _recentWorkspaceStore.RecordAsync(workspace, cancellationToken).ConfigureAwait(true);
         if (recorded.IsSuccess)
@@ -182,6 +187,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
         StatusText = $"Opened {workspace.Kind}: {workspace.Path}";
         return true;
+    }
+
+    private async Task RefreshWorkspaceSdkAsync(
+        WorkspaceDescriptor workspace,
+        CancellationToken cancellationToken)
+    {
+        var resolved = await _dotNetSdkResolver
+            .ResolveVersionAsync(GetWorkspaceDirectory(workspace), cancellationToken)
+            .ConfigureAwait(true);
+        if (resolved.IsSuccess)
+        {
+            SdkSummary = $".NET SDK: {resolved.Value}";
+        }
+        else
+        {
+            SdkSummary = ".NET SDK: unresolved";
+            StatusText = resolved.Error.Message;
+        }
+    }
+
+    private static string GetWorkspaceDirectory(WorkspaceDescriptor workspace)
+    {
+        var fullPath = Path.GetFullPath(workspace.Path);
+        return workspace.Kind == WorkspaceKind.Folder
+            ? fullPath
+            : Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
     }
 
     private void SetRecentWorkspaces(IReadOnlyList<WorkspaceDescriptor> workspaces)

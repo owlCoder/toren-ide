@@ -13,11 +13,12 @@ namespace Toren.UnitTests.Workspaces;
 public sealed class ExplorerOpeningTests
 {
     [Test]
-    public async Task OpeningSolutionLoadsFirstLevelWithoutTreeViewEvent()
+    public async Task OpeningSolutionLoadsFirstLevelAndResolvesWorkspaceSdk()
     {
         var workspacePath = Path.Combine(Path.GetTempPath(), "ParcelBox.sln");
         var tree = new FakeWorkspaceTreeService();
-        var viewModel = CreateViewModel(tree, new FakeRecentWorkspaceStore([]));
+        var sdkResolver = new FakeDotNetSdkResolver();
+        var viewModel = CreateViewModel(tree, new FakeRecentWorkspaceStore([]), sdkResolver);
 
         await viewModel.OpenWorkspaceFileAsync(workspacePath);
 
@@ -27,6 +28,10 @@ public sealed class ExplorerOpeningTests
             Assert.That(viewModel.Explorer.Roots, Has.Count.EqualTo(1));
             Assert.That(viewModel.Explorer.Roots[0].IsExpanded, Is.True);
             Assert.That(viewModel.Explorer.Roots[0].Children[0].Name, Is.EqualTo("ParcelBox.Api.csproj"));
+            Assert.That(viewModel.SdkSummary, Is.EqualTo(".NET SDK: 10.0.200"));
+            Assert.That(
+                sdkResolver.LastWorkingDirectory,
+                Is.EqualTo(Path.GetDirectoryName(Path.GetFullPath(workspacePath))));
         });
     }
 
@@ -36,7 +41,8 @@ public sealed class ExplorerOpeningTests
         var workspace = new WorkspaceDescriptor(
             Path.Combine(Path.GetTempPath(), "ParcelBox.sln"), "ParcelBox", WorkspaceKind.Solution);
         var tree = new FakeWorkspaceTreeService();
-        var viewModel = CreateViewModel(tree, new FakeRecentWorkspaceStore([workspace]));
+        var sdkResolver = new FakeDotNetSdkResolver();
+        var viewModel = CreateViewModel(tree, new FakeRecentWorkspaceStore([workspace]), sdkResolver);
 
         await viewModel.InitializeAsync();
 
@@ -45,13 +51,15 @@ public sealed class ExplorerOpeningTests
             Assert.That(tree.ChildLoadCount, Is.EqualTo(1));
             Assert.That(viewModel.Explorer.Roots[0].Children[0].Name, Is.EqualTo("ParcelBox.Api.csproj"));
             Assert.That(viewModel.IsWelcomeOpen, Is.True);
+            Assert.That(viewModel.SdkSummary, Is.EqualTo(".NET SDK: 10.0.200"));
         });
     }
 
     private static MainWindowViewModel CreateViewModel(
         IWorkspaceTreeService tree,
-        IRecentWorkspaceStore recent) =>
-        new(new FakeDotNetEnvironmentService(), new WorkspaceClassifier(), tree, recent);
+        IRecentWorkspaceStore recent,
+        IDotNetSdkResolver sdkResolver) =>
+        new(new FakeDotNetEnvironmentService(), sdkResolver, new WorkspaceClassifier(), tree, recent);
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService
     {
@@ -87,5 +95,19 @@ public sealed class ExplorerOpeningTests
         public Task<Result<IReadOnlyList<DotNetSdkInfo>>> GetInstalledSdksAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success<IReadOnlyList<DotNetSdkInfo>>([]));
+    }
+
+    private sealed class FakeDotNetSdkResolver : IDotNetSdkResolver
+    {
+        public string? LastWorkingDirectory { get; private set; }
+
+        public Task<Result<string>> ResolveVersionAsync(
+            string workingDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            LastWorkingDirectory = workingDirectory;
+            return Task.FromResult(Result.Success("10.0.200"));
+        }
     }
 }

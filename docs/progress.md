@@ -15,6 +15,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;
+- **Done** — workspace SDK resolution is isolated behind `IDotNetSdkResolver` and uses the workspace directory so standard `global.json` selection rules stay authoritative;
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
 - **Done in Q0, pending cross-platform visual review** — consistent Toren vector activity and aligned action icons, compact shell surfaces and typography, a shell-colored Open menu in the title bar, interactive Welcome with balanced columns and honest planned states, closable document tab, tool tabs without theme underlines, and a simplified About window with one close control.
@@ -32,7 +33,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | AvaloniaEdit integration | Planned | Real editable documents and tabs |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
 | Search / Go to File / symbols | Planned | Workspace-wide navigation |
-| .NET SDK discovery | Partial | Installed SDK discovery exists; `global.json` resolution/doctor still pending |
+| .NET SDK discovery | Partial | Installed SDK discovery and workspace-specific `dotnet --version` resolution are in place; running in the workspace directory honors normal `global.json` selection; missing-SDK doctor/remediation remains |
 | Restore / build / clean / run | Planned | Structured commands, cancellation, output |
 | Problems panel | Planned | Compiler/analyzer/MSBuild/NuGet diagnostics |
 | Test Explorer | Planned | NUnit/xUnit/MSTest/Microsoft Testing Platform |
@@ -55,7 +56,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
 - **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
-- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, concise project labels, clean provider boundaries, and evaluated reference expansion are in place, with broader evaluated graph metadata and remaining workflow details next.
+- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, concise project labels, clean provider boundaries, evaluated reference expansion, and workspace-aware SDK resolution are in place, with broader evaluated graph metadata and remaining workflow details next.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.

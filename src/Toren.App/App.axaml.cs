@@ -26,6 +26,7 @@ public sealed partial class App : Application
         {
             IProcessRunner processRunner = new SystemProcessRunner();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
+            IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(processRunner);
@@ -40,6 +41,7 @@ public sealed partial class App : Application
 
             var viewModel = new MainWindowViewModel(
                 dotNetEnvironmentService,
+                dotNetSdkResolver,
                 workspaceClassifier,
                 workspaceTreeService,
                 recentWorkspaceStore);
