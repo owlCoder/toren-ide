@@ -19,7 +19,7 @@ public sealed class DotNetEnvironmentService(IProcessRunner processRunner) : IDo
             ProcessRequest.Create("dotnet", "--list-sdks"),
             cancellationToken).ConfigureAwait(false);
 
-        if (execution.IsFailure)
+        if (!execution.IsSuccess)
         {
             return Result.Failure<IReadOnlyList<DotNetSdkInfo>>(
                 DotNetEnvironmentErrors.ExecutableUnavailable(execution.Error.Message));
