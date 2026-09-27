@@ -4,21 +4,66 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Toren.App.ViewModels"
              Width="18" Height="18" IsHitTestVisible="False">
+  <UserControl.Resources>
+    <!-- Toren-owned structural Explorer glyphs. They intentionally use restrained outlines
+         instead of the fuller shell/file-type icon language. -->
+    <StreamGeometry x:Key="TorenExplorerSolution">M4 5H20V9H4Z M4 11H11V19H4Z M13 11H20V19H13Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenExplorerProject">M5 4H19V20H5Z M8 8H16 M8 12H16 M8 16H13</StreamGeometry>
+    <StreamGeometry x:Key="TorenExplorerReferences">M5 5H9V9H5Z M15 5H19V9H15Z M10 15H14V19H10Z M9 7H15 M7 9V12H12V15 M17 9V12H12</StreamGeometry>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Path.explorer-icon">
+      <Setter Property="Width" Value="15.5" />
+      <Setter Property="Height" Value="15.5" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Opacity" Value="0.86" />
+    </Style>
+    <Style Selector="Path.explorer-icon.reference-item">
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
+      <Setter Property="Opacity" Value="0.76" />
+    </Style>
+  </UserControl.Styles>
+
   <Grid Width="18" Height="18">
-    <Path Classes="explorer-icon folder" Data="{StaticResource TorenIconFolder}" IsVisible="{Binding IsFolderClosed}" />
-    <Path Classes="explorer-icon folder-open" Data="{StaticResource TorenIconFolderOpen}" IsVisible="{Binding IsFolderOpen}" />
-    <Path Classes="explorer-icon solution" Data="{StaticResource TorenIconSolution}" IsVisible="{Binding IsSolution}" />
-    <Path Classes="explorer-icon project" Data="{StaticResource TorenIconProject}" IsVisible="{Binding IsProject}" />
-    <Path Classes="explorer-icon test-project" Data="{StaticResource TorenIconTests}" IsVisible="{Binding IsTestProject}" />
-    <Path Classes="explorer-icon references" Data="{StaticResource TorenIconReference}" IsVisible="{Binding IsReferences}" />
-    <Path Classes="explorer-icon references" Data="{StaticResource TorenIconReference}" IsVisible="{Binding IsReference}" />
-    <Path Classes="explorer-icon code" Data="{StaticResource TorenIconCodeFile}" IsVisible="{Binding IsCodeFile}" />
-    <Path Classes="explorer-icon data" Data="{StaticResource TorenIconJsonFile}" IsVisible="{Binding IsDataFile}" />
-    <Path Classes="explorer-icon markup" Data="{StaticResource TorenIconMarkupFile}" IsVisible="{Binding IsMarkupFile}" />
-    <Path Classes="explorer-icon config" Data="{StaticResource TorenIconConfigFile}" IsVisible="{Binding IsConfigFile}" />
-    <Path Classes="explorer-icon document" Data="{StaticResource TorenIconDocumentFile}" IsVisible="{Binding IsDocumentFile}" />
-    <Path Classes="explorer-icon container" Data="{StaticResource TorenIconContainerFile}" IsVisible="{Binding IsContainerFile}" />
-    <Path Classes="explorer-icon image" Data="{StaticResource TorenIconImageFile}" IsVisible="{Binding IsImageFile}" />
-    <Path Classes="explorer-icon" Data="{StaticResource TorenIconFile}" IsVisible="{Binding IsGenericFile}" />
+    <Path Classes="explorer-icon folder" Data="{StaticResource TorenIconFolder}"
+          IsVisible="{Binding IsFolderClosed}" Opacity="0.76" />
+    <Path Classes="explorer-icon folder-open" Data="{StaticResource TorenIconFolderOpen}"
+          IsVisible="{Binding IsFolderOpen}" Opacity="0.78" />
+
+    <Path Classes="explorer-icon solution" Data="{StaticResource TorenExplorerSolution}"
+          IsVisible="{Binding IsSolution}" Fill="Transparent"
+          Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.45" Opacity="0.92" />
+    <Path Classes="explorer-icon project" Data="{StaticResource TorenExplorerProject}"
+          IsVisible="{Binding IsProject}" Fill="Transparent"
+          Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.45" Opacity="0.9" />
+    <Path Classes="explorer-icon test-project" Data="{StaticResource TorenExplorerProject}"
+          IsVisible="{Binding IsTestProject}" Fill="Transparent"
+          Stroke="{DynamicResource TorenSuccessBrush}" StrokeThickness="1.45" Opacity="0.78" />
+    <Path Classes="explorer-icon references" Data="{StaticResource TorenExplorerReferences}"
+          IsVisible="{Binding IsReferences}" Fill="Transparent"
+          Stroke="{DynamicResource TorenTextSubtleBrush}" StrokeThickness="1.45" Opacity="0.9" />
+    <Path Classes="explorer-icon reference-item" Data="{StaticResource TorenIconReference}"
+          IsVisible="{Binding IsReference}" Fill="{DynamicResource TorenTextSubtleBrush}" />
+
+    <Path Classes="explorer-icon code" Data="{StaticResource TorenIconCodeFile}"
+          IsVisible="{Binding IsCodeFile}" Opacity="0.78" />
+    <Path Classes="explorer-icon data" Data="{StaticResource TorenIconJsonFile}"
+          IsVisible="{Binding IsDataFile}" Opacity="0.76" />
+    <Path Classes="explorer-icon markup" Data="{StaticResource TorenIconMarkupFile}"
+          IsVisible="{Binding IsMarkupFile}" Opacity="0.76" />
+    <Path Classes="explorer-icon config" Data="{StaticResource TorenIconConfigFile}"
+          IsVisible="{Binding IsConfigFile}" Opacity="0.76" />
+    <Path Classes="explorer-icon document" Data="{StaticResource TorenIconDocumentFile}"
+          IsVisible="{Binding IsDocumentFile}" Opacity="0.76" />
+    <Path Classes="explorer-icon container" Data="{StaticResource TorenIconContainerFile}"
+          IsVisible="{Binding IsContainerFile}" Opacity="0.8" />
+    <Path Classes="explorer-icon image" Data="{StaticResource TorenIconImageFile}"
+          IsVisible="{Binding IsImageFile}" Opacity="0.76" />
+    <Path Classes="explorer-icon" Data="{StaticResource TorenIconFile}"
+          IsVisible="{Binding IsGenericFile}" Fill="{DynamicResource TorenTextSubtleBrush}" Opacity="0.72" />
   </Grid>
 </UserControl>

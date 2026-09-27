@@ -152,7 +152,10 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
             .Where(line => line.EndsWith("proj", StringComparison.OrdinalIgnoreCase))
             .Select(line => line.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar))
             .Select(line => Path.GetFullPath(Path.Combine(solutionDirectory, line)))
-            .Select(projectPath => new WorkspaceNode(projectPath, Path.GetFileName(projectPath), WorkspaceNodeKind.Project))
+            .Select(projectPath => new WorkspaceNode(
+                projectPath,
+                Path.GetFileNameWithoutExtension(projectPath),
+                WorkspaceNodeKind.Project))
             .ToArray();
 
         return Result.Success<IReadOnlyList<WorkspaceNode>>(projects);
@@ -205,7 +208,7 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
                 .Where(reference => !string.IsNullOrWhiteSpace(reference.Include))
                 .Select(reference => new WorkspaceNode(
                     path,
-                    $"{reference.Include} ({reference.Kind.Replace("Reference", string.Empty, StringComparison.Ordinal)})",
+                    GetReferenceDisplayName(reference.Kind, reference.Include!),
                     WorkspaceNodeKind.Reference))
                 .ToArray();
 
@@ -216,5 +219,19 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
             return Result.Failure<IReadOnlyList<WorkspaceNode>>(
                 WorkspaceTreeErrors.ReadFailed(path, exception.Message));
         }
+    }
+
+    private static string GetReferenceDisplayName(string kind, string include)
+    {
+        if (!kind.Equals("ProjectReference", StringComparison.Ordinal))
+        {
+            return include;
+        }
+
+        var normalizedPath = include
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+        var projectName = Path.GetFileNameWithoutExtension(normalizedPath);
+        return string.IsNullOrWhiteSpace(projectName) ? include : projectName;
     }
 }

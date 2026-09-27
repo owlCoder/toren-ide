@@ -68,8 +68,9 @@ public sealed class WorkspaceTreeServiceTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.Multiple(() =>
             {
-                Assert.That(string.Join(",", result.Value!.Select(node => node.Name)), Is.EqualTo("App.csproj,Library.csproj"));
+                Assert.That(string.Join(",", result.Value!.Select(node => node.Name)), Is.EqualTo("App,Library"));
                 Assert.That(result.Value![0].Path, Is.EqualTo(Path.Combine(root, "src", "App One", "App.csproj")));
+                Assert.That(result.Value.All(node => node.Kind == WorkspaceNodeKind.Project), Is.True);
                 Assert.That(string.Join("|", runner.LastRequest!.Arguments), Is.EqualTo($"sln|{solution}|list"));
             });
         }
@@ -80,13 +81,15 @@ public sealed class WorkspaceTreeServiceTests
     }
 
     [Test]
-    public async Task ProjectChildrenExposeDeclaredReferencesAndPhysicalFiles()
+    public async Task ProjectChildrenExposeConciseReferenceNamesAndPhysicalFiles()
     {
         var root = CreateTemporaryDirectory();
         try
         {
             var project = Path.Combine(root, "App.csproj");
-            File.WriteAllText(project, "<Project><ItemGroup><ProjectReference Include=\"../Lib/Lib.csproj\" /><PackageReference Include=\"NUnit\" Version=\"4.0\" /></ItemGroup></Project>");
+            File.WriteAllText(
+                project,
+                "<Project><ItemGroup><ProjectReference Include=\"../Lib/ParcelBox.Application.csproj\" /><PackageReference Include=\"NUnit\" Version=\"4.0\" /><FrameworkReference Include=\"Microsoft.AspNetCore.App\" /></ItemGroup></Project>");
             File.WriteAllText(Path.Combine(root, "Program.cs"), "class Program {}");
             var service = new WorkspaceTreeService(new FakeProcessRunner(string.Empty));
 
@@ -98,7 +101,9 @@ public sealed class WorkspaceTreeServiceTests
                 Assert.That(children.IsSuccess, Is.True);
                 Assert.That(string.Join(",", children.Value!.Select(node => node.Name)), Is.EqualTo("References,Program.cs"));
                 Assert.That(references.IsSuccess, Is.True);
-                Assert.That(string.Join(",", references.Value!.Select(node => node.Name)), Is.EqualTo("../Lib/Lib.csproj (Project),NUnit (Package)"));
+                Assert.That(
+                    string.Join(",", references.Value!.Select(node => node.Name)),
+                    Is.EqualTo("ParcelBox.Application,NUnit,Microsoft.AspNetCore.App"));
             });
         }
         finally
