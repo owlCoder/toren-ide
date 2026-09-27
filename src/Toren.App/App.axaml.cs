@@ -22,8 +22,6 @@ namespace Toren.App;
 
 public sealed partial class App : Application
 {
-    private EditorNavigationController? _editorNavigationController;
-
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -65,7 +63,7 @@ public sealed partial class App : Application
                 documentDiagnosticsCoordinator,
                 documentHost);
             var mainWindow = new MainWindow(viewModel);
-            _editorNavigationController = new EditorNavigationController(mainWindow);
+            mainWindow.Tag = new EditorNavigationController(mainWindow);
             desktop.MainWindow = mainWindow;
         }
 
