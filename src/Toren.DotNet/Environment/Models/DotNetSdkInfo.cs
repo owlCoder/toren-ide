@@ -1,4 +1,4 @@
-namespace Toren.DotNet.Environment;
+namespace Toren.DotNet.Environment.Models;
 
 public sealed record DotNetSdkInfo(string Version, string BasePath)
 {

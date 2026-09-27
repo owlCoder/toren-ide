@@ -15,9 +15,11 @@
 <!-- Tests, manual verification, platforms checked, screenshots, etc. -->
 
 - [ ] Tests added/updated where appropriate
-- [ ] Build passes locally
+- [ ] Build passes locally or CI is green
 - [ ] Documentation updated where appropriate
+- [ ] `docs/progress.md` updated when feature status changed
 - [ ] Platform impact considered (macOS / Windows / Linux)
+- [ ] Expected failures use explicit result semantics where appropriate
 - [ ] New dependencies and licenses reviewed
 - [ ] No proprietary project/build format introduced
 

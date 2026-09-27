@@ -1,4 +1,4 @@
-namespace Toren.Core.Execution;
+namespace Toren.Core.Execution.Models;
 
 public sealed record ProcessResult(
     int ExitCode,

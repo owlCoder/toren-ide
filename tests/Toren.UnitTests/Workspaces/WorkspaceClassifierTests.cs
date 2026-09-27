@@ -1,5 +1,6 @@
 using NUnit.Framework;
-using Toren.Workspaces;
+using Toren.Workspaces.Models;
+using Toren.Workspaces.Services;
 
 namespace Toren.UnitTests.Workspaces;
 

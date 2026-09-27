@@ -3,16 +3,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <Styles.Resources>
-    <SolidColorBrush x:Key="TorenBackgroundBrush">#17191D</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceBrush">#1E2126</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#252930</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#2C3139</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenBorderBrush">#343941</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenTextBrush">#E7EAF0</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenTextMutedBrush">#959DAA</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenAccentBrush">#6EA8FE</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenAccentMutedBrush">#263A58</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSuccessBrush">#57C785</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenBackgroundBrush">#121419</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceBrush">#171B21</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#1D232B</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#242C36</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenBorderBrush">#2C3540</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenBorderStrongBrush">#3A4654</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextBrush">#E8ECF2</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextMutedBrush">#91A0B1</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextSubtleBrush">#6F7E8F</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenAccentBrush">#38BDF8</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenAccentMutedBrush">#103448</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSuccessBrush">#55D187</SolidColorBrush>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -26,12 +28,19 @@
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
   </Style>
 
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
   <Style Selector="Button.toolbar-button">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="10,6" />
     <Setter Property="MinHeight" Value="30" />
   </Style>
@@ -45,18 +54,25 @@
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,7" />
   </Style>
 
   <Style Selector="Button.activity-button">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Width" Value="44" />
-    <Setter Property="Height" Value="44" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+    <Setter Property="Width" Value="50" />
+    <Setter Property="Height" Value="48" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="18" />
+  </Style>
+
+  <Style Selector="Button.activity-button.active">
+    <Setter Property="Foreground" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
   </Style>
 
   <Style Selector="Button.activity-button:pointerover /template/ ContentPresenter">
@@ -70,8 +86,18 @@
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
   </Style>
 
+  <Style Selector="TextBlock.section-label">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+  </Style>
+
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.subtle">
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
   </Style>
 
   <Style Selector="TextBlock.accent">

@@ -1,4 +1,4 @@
-namespace Toren.Workspaces;
+namespace Toren.Workspaces.Models;
 
 public enum WorkspaceKind
 {

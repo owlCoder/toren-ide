@@ -1,4 +1,6 @@
-namespace Toren.DotNet.Environment;
+using Toren.DotNet.Environment.Models;
+
+namespace Toren.DotNet.Environment.Parsing;
 
 public static class DotNetSdkListParser
 {
@@ -11,14 +13,16 @@ public static class DotNetSdkListParser
 
         while (reader.ReadLine() is { } line)
         {
-            var separatorIndex = line.LastIndexOf(" [", StringComparison.Ordinal);
-            if (separatorIndex <= 0 || !line.EndsWith(']'))
+            var openingBracketIndex = line.IndexOf('[', StringComparison.Ordinal);
+            var closingBracketIndex = line.LastIndexOf(']');
+
+            if (openingBracketIndex <= 0 || closingBracketIndex <= openingBracketIndex)
             {
                 continue;
             }
 
-            var version = line[..separatorIndex].Trim();
-            var basePath = line[(separatorIndex + 2)..^1].Trim();
+            var version = line[..openingBracketIndex].Trim();
+            var basePath = line[(openingBracketIndex + 1)..closingBracketIndex].Trim();
 
             if (version.Length == 0 || basePath.Length == 0)
             {

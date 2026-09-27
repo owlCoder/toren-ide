@@ -2,7 +2,15 @@
     x:Class="Toren.App.App"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Name="Toren IDE"
     RequestedThemeVariant="Dark">
+
+  <NativeMenu.Menu>
+    <NativeMenu>
+      <NativeMenuItem Header="About Toren IDE…" Click="AboutToren_OnClick" />
+    </NativeMenu>
+  </NativeMenu.Menu>
+
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://Toren.App/Styles/TorenStyles.axaml" />
