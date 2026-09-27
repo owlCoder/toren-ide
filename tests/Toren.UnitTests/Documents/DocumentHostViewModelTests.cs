@@ -25,6 +25,7 @@ public sealed class DocumentHostViewModelTests
             Assert.That(second.IsSuccess, Is.True);
             Assert.That(host.OpenDocuments, Has.Count.EqualTo(1));
             Assert.That(host.ActiveDocument, Is.SameAs(first.Value));
+            Assert.That(host.HasDirtyDocuments, Is.False);
             Assert.That(store.LoadCount, Is.EqualTo(1));
         });
     }
@@ -38,11 +39,14 @@ public sealed class DocumentHostViewModelTests
         var document = opened.Value!;
 
         document.Text = "changed";
+        Assert.That(host.HasDirtyDocuments, Is.True);
+
         var saved = await host.SaveActiveAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(document.IsDirty, Is.False);
+            Assert.That(host.HasDirtyDocuments, Is.False);
             Assert.That(saved.IsSuccess, Is.True);
             Assert.That(store.SaveCount, Is.EqualTo(1));
             Assert.That(store.LastSavedText, Is.EqualTo("changed"));
@@ -62,6 +66,7 @@ public sealed class DocumentHostViewModelTests
         Assert.Multiple(() =>
         {
             Assert.That(closed, Is.False);
+            Assert.That(host.HasDirtyDocuments, Is.True);
             Assert.That(host.OpenDocuments, Has.Count.EqualTo(1));
             Assert.That(host.ActiveDocument, Is.SameAs(document));
         });
