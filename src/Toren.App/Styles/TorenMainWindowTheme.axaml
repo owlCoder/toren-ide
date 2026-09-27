@@ -1,0 +1,131 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="TorenBackgroundBrush">#1E1E1E</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceBrush">#252526</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#2D2D30</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#333337</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#263B49</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenChromeBrush">#181A1F</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderBrush">#3A3D41</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderStrongBrush">#565B61</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextBrush">#DCDCDC</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextMutedBrush">#B5B5B5</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextSubtleBrush">#858585</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentBrush">#4FC1FF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentHoverBrush">#75CFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentMutedBrush">#123D52</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSuccessBrush">#6A9955</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenWarningBrush">#DCDCAA</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenErrorBrush">#F48771</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenDangerHoverBrush">#C42B1C</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderBrush">#D7BA7D</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#E5C07B</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconSolutionBrush">#C586C0</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconProjectBrush">#4FC1FF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconTestBrush">#6A9955</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconReferenceBrush">#4EC9B0</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconCodeBrush">#9CDCFE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDataBrush">#DCDCAA</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconMarkupBrush">#CE9178</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDocumentBrush">#9CDCFE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconConfigBrush">#AAB2BF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconContainerBrush">#4FC1FF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconImageBrush">#C586C0</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="TorenBackgroundBrush">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceBrush">#F3F3F3</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#EAEAEA</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#E6E6E6</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#DCECF7</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenChromeBrush">#F7F7F8</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderBrush">#D0D0D0</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderStrongBrush">#A8A8A8</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextBrush">#1F2328</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextMutedBrush">#57606A</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextSubtleBrush">#7D8590</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentBrush">#0078D4</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentHoverBrush">#106EBE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentMutedBrush">#DCEEFF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSuccessBrush">#107C10</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenWarningBrush">#8A6D1D</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenErrorBrush">#C42B1C</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenDangerHoverBrush">#A80000</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderBrush">#C07C00</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#B76E00</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconSolutionBrush">#7A3E9D</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconProjectBrush">#0078D4</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconTestBrush">#107C10</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconReferenceBrush">#16825D</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconCodeBrush">#005FB8</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDataBrush">#986F0B</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconMarkupBrush">#A31515</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDocumentBrush">#0067C0</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconConfigBrush">#57606A</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconContainerBrush">#0078D4</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconImageBrush">#7A3E9D</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <Style Selector="Border.command-bar">
+    <Setter Property="Background" Value="{DynamicResource TorenChromeBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+  </Style>
+
+  <Style Selector="Button.command-button">
+    <Setter Property="MinWidth" Value="30" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.command-button:pointerover">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+  <Style Selector="Button.command-button:disabled">
+    <Setter Property="Opacity" Value="0.42" />
+  </Style>
+
+  <Style Selector="Button.command-button.run">
+    <Setter Property="Foreground" Value="{DynamicResource TorenSuccessBrush}" />
+  </Style>
+
+  <Style Selector="ComboBox.command-select">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+  <Style Selector="ComboBox.command-select:disabled">
+    <Setter Property="Opacity" Value="0.62" />
+  </Style>
+
+  <Style Selector="Button.theme-toggle">
+    <Setter Property="Width" Value="26" />
+    <Setter Property="Height" Value="22" />
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.theme-toggle:pointerover">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+</Styles>
