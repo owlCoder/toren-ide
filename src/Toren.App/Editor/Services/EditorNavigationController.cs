@@ -13,7 +13,6 @@ public sealed class EditorNavigationController : IDisposable
     private readonly TextEditor _editor;
     private readonly Grid _host;
     private readonly EditorNavigationOverlay _overlay;
-    private readonly TextSearchService _searchService;
     private IReadOnlyList<TextSearchMatch> _matches = [];
     private int _selectedMatchIndex = -1;
     private bool _disposed;
@@ -25,7 +24,6 @@ public sealed class EditorNavigationController : IDisposable
             ?? throw new InvalidOperationException("The document editor could not be located.");
         _host = _editor.Parent as Grid
             ?? throw new InvalidOperationException("The document editor must be hosted by a Grid.");
-        _searchService = new TextSearchService();
         _overlay = new EditorNavigationOverlay();
         _host.Children.Add(_overlay);
 
@@ -171,7 +169,7 @@ public sealed class EditorNavigationController : IDisposable
 
     private void RefreshMatches(bool selectCurrent)
     {
-        _matches = _searchService.FindAll(_editor.Text, _overlay.Query, _overlay.MatchCase);
+        _matches = TextSearchService.FindAll(_editor.Text, _overlay.Query, _overlay.MatchCase);
         if (_matches.Count == 0)
         {
             _selectedMatchIndex = -1;
