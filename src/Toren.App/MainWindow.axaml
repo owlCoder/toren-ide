@@ -25,20 +25,30 @@
                        FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
         </Border>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-          <Button Classes="toolbar-button" Click="OpenFolder_OnClick" AutomationProperties.Name="Open Folder">
-            <StackPanel Classes="action-content">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
-              <TextBlock Text="Open Folder" />
-            </StackPanel>
-          </Button>
-          <Button Classes="toolbar-button" Click="OpenWorkspaceFile_OnClick" AutomationProperties.Name="Open Solution">
-            <StackPanel Classes="action-content">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" />
-              <TextBlock Text="Open Solution" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
+        <Button Grid.Column="1" Classes="toolbar-button open-menu-button"
+                Margin="8,0,0,0" VerticalAlignment="Center"
+                ToolTip.Tip="Open a folder, solution, or project"
+                AutomationProperties.Name="Open workspace menu">
+          <Button.Flyout>
+            <MenuFlyout Placement="Bottom">
+              <MenuItem Header="Open Folder…" Click="OpenFolder_OnClick">
+                <MenuItem.Icon>
+                  <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" Width="16" Height="16" />
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem Header="Open Solution or Project…" Click="OpenWorkspaceFile_OnClick">
+                <MenuItem.Icon>
+                  <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" Width="16" Height="16" />
+                </MenuItem.Icon>
+              </MenuItem>
+            </MenuFlyout>
+          </Button.Flyout>
+          <StackPanel Classes="action-content">
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
+            <TextBlock Text="Open" />
+            <Path Classes="shell-icon menu-chevron" Data="M3 6L8 11L13 6" />
+          </StackPanel>
+        </Button>
         <Border Grid.Column="2" Margin="8,0" Background="Transparent"
                 PointerPressed="TitleBar_OnPointerPressed">
           <TextBlock Classes="subtle chrome-label" Text="{Binding WorkspaceTitle}"
