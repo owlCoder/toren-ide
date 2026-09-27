@@ -21,7 +21,7 @@ public sealed class EditorNavigationController
     private int _selectedMatchIndex = -1;
     private bool _detached;
 
-    public EditorNavigationController(Window window, ICSharpSemanticService semanticService)
+    private EditorNavigationController(Window window, ICSharpSemanticService semanticService)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _semanticService = semanticService ?? throw new ArgumentNullException(nameof(semanticService));
@@ -40,6 +40,11 @@ public sealed class EditorNavigationController
         _editor.TextChanged += Editor_OnTextChanged;
         _window.KeyDown += Window_OnKeyDown;
         _window.Closed += Window_OnClosed;
+    }
+
+    public static void Attach(Window window, ICSharpSemanticService semanticService)
+    {
+        _ = new EditorNavigationController(window, semanticService);
     }
 
     private void Detach()
