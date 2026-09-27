@@ -11,6 +11,7 @@ using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
 using Toren.App.ViewModels;
 using Toren.Workspaces.Models;
+using TextMateInstallation = AvaloniaEdit.TextMate.TextMate.Installation;
 
 namespace Toren.App;
 
@@ -30,7 +31,7 @@ internal sealed partial class MainWindow : Window
 
     private readonly MainWindowViewModel _viewModel;
     private readonly RegistryOptions _registryOptions;
-    private readonly TextMate.TextMate.Installation _textMateInstallation;
+    private readonly TextMateInstallation _textMateInstallation;
     private bool _synchronizingEditorText;
     private bool _sessionCloseInProgress;
     private bool _sessionPersistedForClose;
@@ -169,7 +170,7 @@ internal sealed partial class MainWindow : Window
         }
     }
 
-    private void TextMateInstallation_OnAppliedTheme(object? sender, TextMate.TextMate.Installation installation)
+    private void TextMateInstallation_OnAppliedTheme(object? sender, TextMateInstallation installation)
     {
         ApplyTextMateBrush(
             installation,
@@ -199,7 +200,7 @@ internal sealed partial class MainWindow : Window
     }
 
     private static bool ApplyTextMateBrush(
-        TextMate.TextMate.Installation installation,
+        TextMateInstallation installation,
         string colorKey,
         Action<IBrush> apply)
     {
