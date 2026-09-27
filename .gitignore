@@ -1,0 +1,74 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+[Dd]ebug/
+[Rr]elease/
+
+# .NET tooling
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+packages/
+TestResults/
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+
+# IDEs/editors
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Rider
+*.DotSettings.user
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Local environment/secrets
+.env
+.env.*
+!.env.example
+secrets.json
+
+# Node tooling used by auxiliary build tasks
+node_modules/
+
+# Avalonia / generated output
+**/Generated/
+
+# Local packaging/signing artifacts
+*.pfx
+*.p12
+*.cer
+*.mobileprovision
+*.dmg
+*.msi
+*.pkg
+*.AppImage
+
+# Benchmark/profiling output
+BenchmarkDotNet.Artifacts/
+*.diagsession
+*.psess
+*.vsp
+*.vspx
+*.sap
