@@ -200,7 +200,8 @@ public sealed class WorkspaceTreeService(
             return reference.Identity;
         }
 
-        var normalizedPath = reference.Identity
+        var source = reference.ResolvedPath ?? reference.Identity;
+        var normalizedPath = source
             .Replace('\\', Path.DirectorySeparatorChar)
             .Replace('/', Path.DirectorySeparatorChar);
         var projectName = Path.GetFileNameWithoutExtension(normalizedPath);

@@ -16,6 +16,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;
 - **Done** — evaluated project metadata is isolated behind `IProjectMetadataProvider`; MSBuild-specific evaluation stays in an adapter instead of leaking into Explorer or models;
+- **Done** — evaluated solution/project graph composition is isolated behind `IWorkspaceProjectGraphService`; graph models remain data-only and project-reference edges carry resolved paths;
 - **Done** — workspace SDK resolution is isolated behind `IDotNetSdkResolver` and uses the workspace directory so standard `global.json` selection rules stay authoritative;
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
@@ -29,7 +30,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
 | Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
-| Workspace/project model | Partial | Lazy Explorer shows physical files and solution projects through a dedicated solution provider; project labels use shortest unique names; reference expansion uses evaluated MSBuild references; evaluated project metadata now exposes TFM(s), output/assembly identity, test-project state, Central Package Management, and standard imported props/targets paths behind a dedicated contract; graph composition and remaining workflow details remain |
+| Workspace/project model | Partial | Lazy Explorer shows physical files and solution projects through a dedicated solution provider; project labels use shortest unique names; evaluated references and metadata sit behind dedicated contracts; `WorkspaceProjectGraphService` composes solution/project workspaces into data-only graph models with resolved project-reference edges; plain-folder project discovery and remaining workflow details remain |
 | Recent workspaces/session restore | Partial | Recent workspaces persist in OS application data and the last available workspace is restored; document session state remains |
 | AvaloniaEdit integration | Planned | Real editable documents and tabs |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
@@ -57,7 +58,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
 - **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
-- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, concise project labels, clean provider boundaries, evaluated references, evaluated project metadata, and workspace-aware SDK resolution are in place, with graph composition and remaining workflow details next.
+- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, concise project labels, clean provider boundaries, evaluated references/metadata, on-demand solution/project graph composition, and workspace-aware SDK resolution are in place. Plain-folder project discovery and remaining session/workflow details are the next M1 acceptance points.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.

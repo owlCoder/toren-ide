@@ -41,7 +41,7 @@ public sealed class MsBuildProjectReferenceProvider(IProcessRunner processRunner
         if (!execution.Value.Succeeded)
         {
             return Result.Failure<IReadOnlyList<ProjectReferenceInfo>>(
-                ProjectReferenceErrors.EvaluationFailed(GetProcessFailureDetails(execution.Value)));
+                ProjectReferenceErrors.EvaluationFailed(ProcessFailureDetails.From(execution.Value)));
         }
 
         try
@@ -54,9 +54,9 @@ public sealed class MsBuildProjectReferenceProvider(IProcessRunner processRunner
             }
 
             var references = new List<ProjectReferenceInfo>();
-            AddReferences(references, items, "ProjectReference", ProjectReferenceKind.Project);
-            AddReferences(references, items, "PackageReference", ProjectReferenceKind.Package);
-            AddReferences(references, items, "FrameworkReference", ProjectReferenceKind.Framework);
+            AddReferences(references, items, "ProjectReference", ProjectReferenceKind.Project, projectPath);
+            AddReferences(references, items, "PackageReference", ProjectReferenceKind.Package, projectPath);
+            AddReferences(references, items, "FrameworkReference", ProjectReferenceKind.Framework, projectPath);
             return Result.Success<IReadOnlyList<ProjectReferenceInfo>>(references);
         }
         catch (JsonException exception)
@@ -70,7 +70,8 @@ public sealed class MsBuildProjectReferenceProvider(IProcessRunner processRunner
         List<ProjectReferenceInfo> destination,
         JsonElement items,
         string itemName,
-        ProjectReferenceKind kind)
+        ProjectReferenceKind kind,
+        string projectPath)
     {
         if (!items.TryGetProperty(itemName, out var itemGroup) || itemGroup.ValueKind != JsonValueKind.Array)
         {
@@ -85,20 +86,28 @@ public sealed class MsBuildProjectReferenceProvider(IProcessRunner processRunner
             }
 
             var identity = identityElement.GetString();
-            if (!string.IsNullOrWhiteSpace(identity))
+            if (string.IsNullOrWhiteSpace(identity))
             {
-                destination.Add(new ProjectReferenceInfo(identity, kind));
+                continue;
             }
+
+            var resolvedPath = kind == ProjectReferenceKind.Project
+                ? ResolveProjectReferencePath(projectPath, identity)
+                : null;
+            destination.Add(new ProjectReferenceInfo(identity, kind, resolvedPath));
         }
     }
 
-    private static string GetProcessFailureDetails(ProcessResult processResult)
+    private static string ResolveProjectReferencePath(string projectPath, string identity)
     {
-        var details = string.IsNullOrWhiteSpace(processResult.StandardError)
-            ? processResult.StandardOutput.Trim()
-            : processResult.StandardError.Trim();
-        return string.IsNullOrWhiteSpace(details)
-            ? "The .NET CLI did not provide error details."
-            : details;
+        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectPath))
+            ?? throw new InvalidOperationException("Project has no directory.");
+        var normalizedIdentity = identity
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+        var referencePath = Path.IsPathRooted(normalizedIdentity)
+            ? normalizedIdentity
+            : Path.Combine(projectDirectory, normalizedIdentity);
+        return Path.GetFullPath(referencePath);
     }
 }

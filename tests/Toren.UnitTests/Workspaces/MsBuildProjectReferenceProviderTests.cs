@@ -9,7 +9,7 @@ namespace Toren.UnitTests.Workspaces;
 public sealed class MsBuildProjectReferenceProviderTests
 {
     [Test]
-    public async Task ParsesEvaluatedReferenceItems()
+    public async Task ParsesEvaluatedReferenceItemsAndResolvesProjectPath()
     {
         var project = Path.Combine(Path.GetTempPath(), "App.csproj");
         var runner = new FakeProcessRunner(
@@ -18,12 +18,17 @@ public sealed class MsBuildProjectReferenceProviderTests
 
         var result = await provider.GetReferencesAsync(project);
 
+        var expectedProjectReference = Path.GetFullPath(
+            Path.Combine(Path.GetTempPath(), "..", "Lib", "ParcelBox.Application.csproj"));
         Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
             Assert.That(
                 string.Join(",", result.Value!.Select(reference => $"{reference.Kind}:{reference.Identity}")),
                 Is.EqualTo("Project:../Lib/ParcelBox.Application.csproj,Package:NUnit,Framework:Microsoft.AspNetCore.App"));
+            Assert.That(result.Value[0].ResolvedPath, Is.EqualTo(expectedProjectReference));
+            Assert.That(result.Value[1].ResolvedPath, Is.Null);
+            Assert.That(result.Value[2].ResolvedPath, Is.Null);
             Assert.That(
                 string.Join("|", runner.LastRequest!.Arguments),
                 Is.EqualTo($"msbuild|{project}|-nologo|-verbosity:quiet|-getItem:ProjectReference,PackageReference,FrameworkReference"));

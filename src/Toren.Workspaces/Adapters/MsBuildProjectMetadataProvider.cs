@@ -42,7 +42,7 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
         if (!execution.Value.Succeeded)
         {
             return Result.Failure<ProjectMetadata>(
-                ProjectMetadataErrors.EvaluationFailed(GetProcessFailureDetails(execution.Value)));
+                ProjectMetadataErrors.EvaluationFailed(ProcessFailureDetails.From(execution.Value)));
         }
 
         try
@@ -106,14 +106,4 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
 
     private static bool GetBooleanProperty(JsonElement properties, string name) =>
         bool.TryParse(GetProperty(properties, name), out var value) && value;
-
-    private static string GetProcessFailureDetails(ProcessResult processResult)
-    {
-        var details = string.IsNullOrWhiteSpace(processResult.StandardError)
-            ? processResult.StandardOutput.Trim()
-            : processResult.StandardError.Trim();
-        return string.IsNullOrWhiteSpace(details)
-            ? "The .NET CLI did not provide error details."
-            : details;
-    }
 }

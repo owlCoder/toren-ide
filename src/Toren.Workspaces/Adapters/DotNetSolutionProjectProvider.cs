@@ -31,7 +31,7 @@ public sealed class DotNetSolutionProjectProvider(IProcessRunner processRunner) 
         if (!execution.Value.Succeeded)
         {
             return Result.Failure<IReadOnlyList<string>>(
-                SolutionProjectErrors.ListFailed(GetProcessFailureDetails(execution.Value)));
+                SolutionProjectErrors.ListFailed(ProcessFailureDetails.From(execution.Value)));
         }
 
         var solutionDirectory = Path.GetDirectoryName(solutionPath)
@@ -45,15 +45,5 @@ public sealed class DotNetSolutionProjectProvider(IProcessRunner processRunner) 
             .ToArray();
 
         return Result.Success<IReadOnlyList<string>>(projects);
-    }
-
-    private static string GetProcessFailureDetails(ProcessResult processResult)
-    {
-        var details = string.IsNullOrWhiteSpace(processResult.StandardError)
-            ? processResult.StandardOutput.Trim()
-            : processResult.StandardError.Trim();
-        return string.IsNullOrWhiteSpace(details)
-            ? "The .NET CLI did not provide error details."
-            : details;
     }
 }
