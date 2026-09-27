@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using AvaloniaEdit.Highlighting;
 using Toren.App.ViewModels;
 using Toren.Workspaces.Models;
 
@@ -56,7 +57,12 @@ internal sealed partial class MainWindow : Window
 
     private void SynchronizeEditorFromActiveDocument()
     {
-        var text = _viewModel.Documents.ActiveDocument?.Text ?? string.Empty;
+        var document = _viewModel.Documents.ActiveDocument;
+        DocumentEditor.SyntaxHighlighting = document is null
+            ? null
+            : HighlightingManager.Instance.GetDefinitionByExtension(Path.GetExtension(document.Path));
+
+        var text = document?.Text ?? string.Empty;
         if (DocumentEditor.Text.Equals(text, StringComparison.Ordinal))
         {
             return;
