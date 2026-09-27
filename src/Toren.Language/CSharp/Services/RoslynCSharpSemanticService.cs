@@ -135,7 +135,7 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
         return paths
             .Where(File.Exists)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(MetadataReference.CreateFromFile)
+            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToArray();
     }
 }
