@@ -7,7 +7,7 @@ namespace Toren.UnitTests.DotNet;
 public sealed class DotNetSdkListParserTests
 {
     [Test]
-    public void Parse_extracts_stable_and_prerelease_sdks()
+    public void ParseExtractsStableAndPrereleaseSdks()
     {
         const string output = """
             8.0.419 [/usr/local/share/dotnet/sdk]
@@ -27,7 +27,7 @@ public sealed class DotNetSdkListParserTests
     }
 
     [Test]
-    public void Parse_ignores_lines_that_do_not_match_dotnet_output()
+    public void ParseIgnoresLinesThatDoNotMatchDotnetOutput()
     {
         const string output = """
             not-an-sdk

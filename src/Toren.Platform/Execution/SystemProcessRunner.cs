@@ -49,8 +49,10 @@ public sealed class SystemProcessRunner : IProcessRunner
             throw new InvalidOperationException($"Failed to start process '{request.FileName}'.");
         }
 
-        var standardOutput = process.StandardOutput.ReadToEndAsync();
-        var standardError = process.StandardError.ReadToEndAsync();
+        // Output readers intentionally use CancellationToken.None. Cancellation is handled by
+        // WaitForExitAsync below, which terminates the full process tree before the method exits.
+        var standardOutput = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        var standardError = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
         try
         {

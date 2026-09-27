@@ -9,7 +9,7 @@ public sealed class WorkspaceClassifierTests
     private readonly WorkspaceClassifier _classifier = new();
 
     [Test]
-    public void ClassifyDirectory_returns_folder_workspace()
+    public void ClassifyDirectoryReturnsFolderWorkspace()
     {
         var path = Path.Combine(Path.GetTempPath(), "toren-sample");
 
@@ -26,7 +26,7 @@ public sealed class WorkspaceClassifierTests
     [TestCase("Sample.sln", WorkspaceKind.Solution)]
     [TestCase("Sample.slnx", WorkspaceKind.SolutionX)]
     [TestCase("Sample.csproj", WorkspaceKind.Project)]
-    public void TryClassifyFile_recognizes_dotnet_workspace_files(string fileName, WorkspaceKind expectedKind)
+    public void TryClassifyFileRecognizesDotnetWorkspaceFiles(string fileName, WorkspaceKind expectedKind)
     {
         var path = Path.Combine(Path.GetTempPath(), fileName);
 
@@ -42,7 +42,7 @@ public sealed class WorkspaceClassifierTests
     }
 
     [Test]
-    public void TryClassifyFile_rejects_unsupported_files()
+    public void TryClassifyFileRejectsUnsupportedFiles()
     {
         var path = Path.Combine(Path.GetTempPath(), "notes.txt");
 
