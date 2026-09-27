@@ -18,6 +18,8 @@ public sealed partial class DocumentHostViewModel(ITextDocumentStore documentSto
 
     public bool HasActiveDocument => ActiveDocument is not null;
 
+    public bool HasDirtyDocuments => OpenDocuments.Any(document => document.IsDirty);
+
     public async Task<Result<OpenDocumentViewModel>> OpenAsync(
         string path,
         CancellationToken cancellationToken = default)
