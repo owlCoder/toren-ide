@@ -4,6 +4,8 @@ using Avalonia.Input;
 using AvaloniaEdit;
 using Toren.App.Editor.Models;
 using Toren.App.Editor.Views;
+using Toren.Language.CSharp.Contracts;
+using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Editor.Services;
 
@@ -13,13 +15,16 @@ public sealed class EditorNavigationController
     private readonly TextEditor _editor;
     private readonly Grid _host;
     private readonly EditorNavigationOverlay _overlay;
+    private readonly ICSharpSemanticService _semanticService;
+    private readonly Stack<int> _navigationHistory = new();
     private IReadOnlyList<TextSearchMatch> _matches = [];
     private int _selectedMatchIndex = -1;
     private bool _detached;
 
-    public EditorNavigationController(Window window)
+    public EditorNavigationController(Window window, ICSharpSemanticService semanticService)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
+        _semanticService = semanticService ?? throw new ArgumentNullException(nameof(semanticService));
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
         _host = _editor.Parent as Grid
@@ -56,7 +61,7 @@ public sealed class EditorNavigationController
         _host.Children.Remove(_overlay);
     }
 
-    private void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
     {
         var commandModifier = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control)
             || eventArgs.KeyModifiers.HasFlag(KeyModifiers.Meta);
@@ -71,6 +76,22 @@ public sealed class EditorNavigationController
         if (commandModifier && eventArgs.Key == Key.G)
         {
             ShowGoToLine();
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (eventArgs.Key == Key.F12 && _editor.IsVisible)
+        {
+            eventArgs.Handled = true;
+            await GoToDefinitionAsync().ConfigureAwait(true);
+            return;
+        }
+
+        if (eventArgs.Key == Key.Left
+            && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt)
+            && _navigationHistory.Count > 0)
+        {
+            NavigateBack();
             eventArgs.Handled = true;
             return;
         }
@@ -119,6 +140,41 @@ public sealed class EditorNavigationController
 
         var currentLine = _editor.Document.GetLocation(_editor.CaretOffset).Line;
         _overlay.ShowGoToLine(currentLine);
+    }
+
+    private async Task GoToDefinitionAsync()
+    {
+        var originOffset = _editor.CaretOffset;
+        var origin = _editor.Document.GetLocation(originOffset);
+        var symbol = await _semanticService
+            .GetSymbolAsync(_editor.Text, origin.Line, origin.Column)
+            .ConfigureAwait(true);
+        if (symbol?.Definition is null)
+        {
+            return;
+        }
+
+        _navigationHistory.Push(originOffset);
+        NavigateTo(symbol.Definition);
+    }
+
+    private void NavigateTo(CSharpSourceLocation location)
+    {
+        var line = Math.Clamp(location.Line, 1, _editor.Document.LineCount);
+        var documentLine = _editor.Document.GetLineByNumber(line);
+        var column = Math.Clamp(location.Column, 1, documentLine.Length + 1);
+        _editor.CaretOffset = documentLine.Offset + column - 1;
+        _editor.ScrollTo(line, column);
+        _editor.Focus();
+    }
+
+    private void NavigateBack()
+    {
+        var offset = Math.Clamp(_navigationHistory.Pop(), 0, _editor.Document.TextLength);
+        _editor.CaretOffset = offset;
+        var location = _editor.Document.GetLocation(offset);
+        _editor.ScrollTo(location.Line, location.Column);
+        _editor.Focus();
     }
 
     private void Overlay_OnQueryChanged(object? sender, EventArgs eventArgs)
