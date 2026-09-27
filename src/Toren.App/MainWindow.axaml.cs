@@ -39,12 +39,24 @@ internal sealed partial class MainWindow : Window
         DocumentEditor.TextChanged += DocumentEditor_OnTextChanged;
         _viewModel.Documents.PropertyChanged += Documents_OnPropertyChanged;
         KeyDown += MainWindow_OnKeyDown;
+        Closing += MainWindow_OnClosing;
         Opened += OnOpened;
     }
 
     private async void OnOpened(object? sender, EventArgs eventArgs)
     {
         await _viewModel.InitializeAsync().ConfigureAwait(true);
+    }
+
+    private void MainWindow_OnClosing(object? sender, WindowClosingEventArgs eventArgs)
+    {
+        if (!_viewModel.Documents.HasDirtyDocuments)
+        {
+            return;
+        }
+
+        eventArgs.Cancel = true;
+        _viewModel.SetStatus("Save all modified documents before closing Toren IDE.");
     }
 
     private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
