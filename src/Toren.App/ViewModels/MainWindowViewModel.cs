@@ -43,7 +43,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             .GetInstalledSdksAsync(cancellationToken)
             .ConfigureAwait(true);
 
-        if (sdkResult.IsFailure)
+        if (!sdkResult.IsSuccess)
         {
             SdkSummary = ".NET SDK: unavailable";
             StatusText = sdkResult.Error.Message;
