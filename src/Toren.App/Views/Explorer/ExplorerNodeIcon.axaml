@@ -1,0 +1,24 @@
+<UserControl x:Class="Toren.App.Views.Explorer.ExplorerNodeIcon"
+             x:DataType="vm:WorkspaceNodeViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Toren.App.ViewModels"
+             Width="18" Height="18" IsHitTestVisible="False">
+  <Grid Width="18" Height="18">
+    <Path Classes="explorer-icon folder" Data="{StaticResource TorenIconFolder}" IsVisible="{Binding IsFolderClosed}" />
+    <Path Classes="explorer-icon folder-open" Data="{StaticResource TorenIconFolderOpen}" IsVisible="{Binding IsFolderOpen}" />
+    <Path Classes="explorer-icon solution" Data="{StaticResource TorenIconSolution}" IsVisible="{Binding IsSolution}" />
+    <Path Classes="explorer-icon project" Data="{StaticResource TorenIconProject}" IsVisible="{Binding IsProject}" />
+    <Path Classes="explorer-icon test-project" Data="{StaticResource TorenIconTests}" IsVisible="{Binding IsTestProject}" />
+    <Path Classes="explorer-icon references" Data="{StaticResource TorenIconReference}" IsVisible="{Binding IsReferences}" />
+    <Path Classes="explorer-icon references" Data="{StaticResource TorenIconReference}" IsVisible="{Binding IsReference}" />
+    <Path Classes="explorer-icon code" Data="{StaticResource TorenIconCodeFile}" IsVisible="{Binding IsCodeFile}" />
+    <Path Classes="explorer-icon data" Data="{StaticResource TorenIconJsonFile}" IsVisible="{Binding IsDataFile}" />
+    <Path Classes="explorer-icon markup" Data="{StaticResource TorenIconMarkupFile}" IsVisible="{Binding IsMarkupFile}" />
+    <Path Classes="explorer-icon config" Data="{StaticResource TorenIconConfigFile}" IsVisible="{Binding IsConfigFile}" />
+    <Path Classes="explorer-icon document" Data="{StaticResource TorenIconDocumentFile}" IsVisible="{Binding IsDocumentFile}" />
+    <Path Classes="explorer-icon container" Data="{StaticResource TorenIconContainerFile}" IsVisible="{Binding IsContainerFile}" />
+    <Path Classes="explorer-icon image" Data="{StaticResource TorenIconImageFile}" IsVisible="{Binding IsImageFile}" />
+    <Path Classes="explorer-icon" Data="{StaticResource TorenIconFile}" IsVisible="{Binding IsGenericFile}" />
+  </Grid>
+</UserControl>

@@ -4,6 +4,7 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
+        xmlns:icons="clr-namespace:Toren.App.Views.Explorer"
         Width="1440" Height="900" MinWidth="1080" MinHeight="700"
         CanResize="True" WindowDecorations="None" Title="Toren IDE">
   <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
@@ -46,7 +47,7 @@
           <StackPanel Classes="action-content">
             <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
             <TextBlock Text="Open" />
-            <Path Classes="shell-icon menu-chevron" Data="M3 6L8 11L13 6" />
+            <Path Classes="shell-icon menu-chevron" Data="{StaticResource TorenIconChevronDown}" />
           </StackPanel>
         </Button>
         <Border Grid.Column="2" Margin="8,0" Background="Transparent"
@@ -58,44 +59,44 @@
         <StackPanel Grid.Column="3" Orientation="Horizontal">
           <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
                   AutomationProperties.Name="Minimize window">
-            <Rectangle Width="12" Height="1.5" Fill="{DynamicResource TorenTextMutedBrush}" />
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconWindowMinimize}" Width="16" Height="16" />
           </Button>
           <Button Classes="window-control" Click="ToggleMaximizeWindow_OnClick" ToolTip.Tip="Maximize or restore"
                   AutomationProperties.Name="Maximize or restore window">
-            <Path Classes="shell-icon" Data="M3 3H13V13H3Z" Width="14" Height="14" />
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconWindowMaximize}" Width="16" Height="16" />
           </Button>
           <Button Classes="window-control close" Click="CloseWindow_OnClick" ToolTip.Tip="Close"
                   AutomationProperties.Name="Close window">
-            <Path Classes="shell-icon" Data="M3 3L13 13 M13 3L3 13" Width="14" Height="14" />
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="16" Height="16" />
           </Button>
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- Activity bar: Toren-owned 18 px path icons with one visual weight -->
+    <!-- Activity bar: one 24-unit filled icon family within consistent 48 px targets. -->
     <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="0"
             Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
             BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
         <Button Grid.Row="0" Classes="activity-button active" ToolTip.Tip="Explorer"
                 AutomationProperties.Name="Explorer" IsTabStop="False">
-          <Path Classes="shell-icon" Data="M2 3H14V13H2Z M5 3V13 M7.5 6H12 M7.5 9H12" />
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconExplorer}" />
         </Button>
         <Button Grid.Row="1" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
                 ToolTip.Tip="Source control — coming in MVP 1.0" AutomationProperties.Name="Source control, coming in MVP 1.0">
-          <Path Classes="shell-icon" Data="M5 3V11A2 2 0 0 0 7 13H11 M5 3A1.5 1.5 0 1 0 5 6A1.5 1.5 0 1 0 5 3 M11 10A1.5 1.5 0 1 0 11 13A1.5 1.5 0 1 0 11 10" />
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconSourceControl}" />
         </Button>
         <Button Grid.Row="2" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
                 ToolTip.Tip="Tests — coming in MVP 1.0" AutomationProperties.Name="Tests, coming in MVP 1.0">
-          <Path Classes="shell-icon" Data="M5 2H11 M6 2V7L3 13H13L10 7V2 M5 10H11" />
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconTests}" />
         </Button>
         <Button Grid.Row="3" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
                 ToolTip.Tip="Debug — coming in MVP 1.0" AutomationProperties.Name="Debug, coming in MVP 1.0">
-          <Path Classes="shell-icon" Data="M4 2L13 8L4 14Z" />
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconDebug}" />
         </Button>
         <Button Grid.Row="5" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
                 ToolTip.Tip="Settings — coming in MVP 1.0" AutomationProperties.Name="Settings, coming in MVP 1.0">
-          <Path Classes="shell-icon" Data="M2 4H14 M2 8H14 M2 12H14 M6 2.5V5.5 M10 6.5V9.5 M6 10.5V13.5" />
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconSettings}" />
         </Button>
       </Grid>
     </Border>
@@ -132,18 +133,7 @@
           <TreeView.ItemTemplate>
             <TreeDataTemplate ItemsSource="{Binding Children}">
               <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
-                <Grid Width="16" Height="16" VerticalAlignment="Center">
-                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsFolder}"
-                        Data="{StaticResource TorenIconFolder}" />
-                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsSolution}"
-                        Data="{StaticResource TorenIconSolution}" />
-                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsProject}"
-                        Data="{StaticResource TorenIconProject}" />
-                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsReferences}"
-                        Data="{StaticResource TorenIconReference}" />
-                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsFile}"
-                        Data="{StaticResource TorenIconFile}" />
-                </Grid>
+                <icons:ExplorerNodeIcon Width="18" Height="18" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
                            IsVisible="{Binding IsContent}"
                            TextTrimming="CharacterEllipsis" />
@@ -172,15 +162,15 @@
                 PointerPressed="WelcomeTab_OnPointerPressed">
           <Grid ColumnDefinitions="18,*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
             <Path Grid.Column="0" Classes="shell-icon" Width="14" Height="14"
-                  Stroke="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center"
-                  Data="M2 3H14V13H2Z M5 3V13" />
+                  Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center"
+                  Data="{StaticResource TorenIconWelcome}" />
             <TextBlock Grid.Column="1" Text="Welcome" FontSize="12" VerticalAlignment="Center" />
             <Ellipse Grid.Column="2" Width="6" Height="6" IsVisible="False"
                      Fill="{DynamicResource TorenTextMutedBrush}" VerticalAlignment="Center" />
             <Button Grid.Column="3" Classes="tab-close" Width="26" Height="26" MinHeight="26"
                     Padding="0" Click="CloseWelcome_OnClick" ToolTip.Tip="Close Welcome"
                     AutomationProperties.Name="Close Welcome tab">
-              <Path Classes="shell-icon" Data="M3 3L13 13 M13 3L3 13" Width="12" Height="12" />
+              <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
             </Button>
           </Grid>
         </Border>
@@ -323,25 +313,49 @@
                   HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
         <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
-          <TabItem Header="Problems">
+          <TabItem>
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="shell-icon" Data="{StaticResource TorenIconProblems}" Width="14" Height="14" />
+                <TextBlock Text="Problems" VerticalAlignment="Center" />
+              </StackPanel>
+            </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="No problems to show" FontWeight="SemiBold" FontSize="12" />
               <TextBlock Classes="muted" Text="Diagnostics will appear here when project analysis is available." FontSize="11" />
             </StackPanel>
           </TabItem>
-          <TabItem Header="Output">
+          <TabItem>
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="shell-icon" Data="{StaticResource TorenIconOutput}" Width="14" Height="14" />
+                <TextBlock Text="Output" VerticalAlignment="Center" />
+              </StackPanel>
+            </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
               <TextBlock Classes="muted" Text="Build and tool output will appear here when those capabilities are available." FontSize="11" />
             </StackPanel>
           </TabItem>
-          <TabItem Header="Terminal">
+          <TabItem>
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="shell-icon" Data="{StaticResource TorenIconTerminal}" Width="14" Height="14" />
+                <TextBlock Text="Terminal" VerticalAlignment="Center" />
+              </StackPanel>
+            </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="Terminal is coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
               <TextBlock Classes="muted" Text="The integrated shell is not available yet." FontSize="11" />
             </StackPanel>
           </TabItem>
-          <TabItem Header="Tests">
+          <TabItem>
+            <TabItem.Header>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="shell-icon" Data="{StaticResource TorenIconTests}" Width="14" Height="14" />
+                <TextBlock Text="Tests" VerticalAlignment="Center" />
+              </StackPanel>
+            </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="Tests are coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
               <TextBlock Classes="muted" Text="Test discovery and results are not available yet." FontSize="11" />
