@@ -6,6 +6,19 @@ namespace Toren.App.ViewModels;
 
 public sealed partial class WorkspaceNodeViewModel : ObservableObject
 {
+    private static readonly string[] TestProjectSuffixes =
+    [
+        ".Test",
+        ".Tests",
+        ".UnitTests",
+        ".IntegrationTests",
+        ".FunctionalTests",
+        "-Test",
+        "-Tests",
+        "_Test",
+        "_Tests",
+    ];
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFolderClosed))]
     [NotifyPropertyChangedFor(nameof(IsFolderOpen))]
@@ -104,10 +117,7 @@ public sealed partial class WorkspaceNodeViewModel : ObservableObject
             case WorkspaceNodeKind.Solution:
                 return ExplorerIconKind.Solution;
             case WorkspaceNodeKind.Project:
-                return node.Name.Contains(".Tests.", StringComparison.OrdinalIgnoreCase)
-                    || node.Name.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase)
-                    ? ExplorerIconKind.TestProject
-                    : ExplorerIconKind.Project;
+                return IsTestProjectName(node.Name) ? ExplorerIconKind.TestProject : ExplorerIconKind.Project;
             case WorkspaceNodeKind.References:
                 return ExplorerIconKind.References;
             case WorkspaceNodeKind.Reference or WorkspaceNodeKind.SymbolicLink:
@@ -119,10 +129,37 @@ public sealed partial class WorkspaceNodeViewModel : ObservableObject
         }
     }
 
+    private static bool IsTestProjectName(string name)
+    {
+        var projectName = Path.GetFileNameWithoutExtension(name);
+        if (projectName.Equals("Test", StringComparison.OrdinalIgnoreCase)
+            || projectName.Equals("Tests", StringComparison.OrdinalIgnoreCase)
+            || projectName.Equals("UnitTests", StringComparison.OrdinalIgnoreCase)
+            || projectName.Equals("IntegrationTests", StringComparison.OrdinalIgnoreCase)
+            || projectName.Equals("FunctionalTests", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (var suffix in TestProjectSuffixes)
+        {
+            if (projectName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static ExplorerIconKind ClassifyFile(string name)
     {
         if (name.Equals("Dockerfile", StringComparison.OrdinalIgnoreCase)
-            || name.StartsWith("Dockerfile.", StringComparison.OrdinalIgnoreCase))
+            || name.StartsWith("Dockerfile.", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("docker-compose.yml", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("docker-compose.yaml", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("compose.yml", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("compose.yaml", StringComparison.OrdinalIgnoreCase))
         {
             return ExplorerIconKind.Container;
         }
