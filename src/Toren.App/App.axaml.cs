@@ -5,6 +5,7 @@ using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
 using Toren.App.Documents.Contracts;
+using Toren.App.Editor.Services;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
@@ -21,6 +22,8 @@ namespace Toren.App;
 
 public sealed partial class App : Application
 {
+    private EditorNavigationController? _editorNavigationController;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -61,7 +64,9 @@ public sealed partial class App : Application
                 documentSessionStore,
                 documentDiagnosticsCoordinator,
                 documentHost);
-            desktop.MainWindow = new MainWindow(viewModel);
+            var mainWindow = new MainWindow(viewModel);
+            _editorNavigationController = new EditorNavigationController(mainWindow);
+            desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
