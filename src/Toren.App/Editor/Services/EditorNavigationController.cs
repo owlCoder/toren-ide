@@ -7,7 +7,7 @@ using Toren.App.Editor.Views;
 
 namespace Toren.App.Editor.Services;
 
-public sealed class EditorNavigationController : IDisposable
+public sealed class EditorNavigationController
 {
     private readonly Window _window;
     private readonly TextEditor _editor;
@@ -15,7 +15,7 @@ public sealed class EditorNavigationController : IDisposable
     private readonly EditorNavigationOverlay _overlay;
     private IReadOnlyList<TextSearchMatch> _matches = [];
     private int _selectedMatchIndex = -1;
-    private bool _disposed;
+    private bool _detached;
 
     public EditorNavigationController(Window window)
     {
@@ -37,14 +37,14 @@ public sealed class EditorNavigationController : IDisposable
         _window.Closed += Window_OnClosed;
     }
 
-    public void Dispose()
+    private void Detach()
     {
-        if (_disposed)
+        if (_detached)
         {
             return;
         }
 
-        _disposed = true;
+        _detached = true;
         _overlay.QueryChanged -= Overlay_OnQueryChanged;
         _overlay.NextRequested -= Overlay_OnNextRequested;
         _overlay.PreviousRequested -= Overlay_OnPreviousRequested;
@@ -245,6 +245,6 @@ public sealed class EditorNavigationController : IDisposable
 
     private void Window_OnClosed(object? sender, EventArgs eventArgs)
     {
-        Dispose();
+        Detach();
     }
 }
