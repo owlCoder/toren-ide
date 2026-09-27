@@ -22,25 +22,26 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **Done** — text-file I/O is isolated behind `ITextDocumentStore`; document models are data-only and UTF-8/UTF-16 encoding is preserved on save;
 - **Done** — document-tab persistence is isolated behind `IDocumentSessionStore`; session models are data-only and session-file I/O stays in an adapter;
 - **Done** — the first C# language boundary is isolated behind `ICSharpSyntaxService`; Roslyn remains inside `Toren.Language` and the app consumes data-only diagnostic models instead of Roslyn types;
+- **Done** — editor syntax presentation uses TextMate grammars/themes instead of the basic built-in highlighting palette; dark/light editor colors switch together with the shell;
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
 - **Done in Q0, pending cross-platform visual review** — consistent Toren vector activity and aligned action icons, compact shell surfaces and typography, a shell-colored Open menu in the title bar, interactive Welcome with balanced columns and honest planned states, closable document tab, tool tabs without theme underlines, and a simplified About window with one close control.
-- **Partial** — native title-bar behavior, focus and contrast, and final spacing still need hands-on visual review on macOS, Windows, and Linux before the Q0 quality gate is closed.
+- **Partial** — native title-bar behavior, light/dark visual parity, focus and contrast, and final spacing still need hands-on visual review on macOS, Windows, and Linux before the Q0 quality gate is closed.
 
 ## MVP 1.0 feature matrix
 
 | Area | Status | Current state / next acceptance point |
 | --- | --- | --- |
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
-| Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
+| Toren visual language / shell | Partial | Dark/light shell palettes, footer theme toggle, Toren vector icons, VS-style command bar shell, interactive Welcome, closable tabs, Explorer and tool-window polish are in place; cross-platform visual review and remaining surfaces still need validation |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
 | Workspace/project model | Done | Lazy Explorer, folder/solution/direct-project discovery, concise project labels, evaluated references/metadata, resolved project-reference edges, and on-demand data-only project graph are implemented behind clean provider/service boundaries |
 | Recent workspaces/session restore | Done | Recent workspaces and clean open document tabs persist in OS application data; the last workspace, tab order, and active document are restored on startup |
-| AvaloniaEdit integration | Partial | Explorer files open into real tabs backed by AvaloniaEdit; dirty state, active-tab switching, encoding-safe load/save, close protection, Ctrl/Cmd+S, extension-based syntax highlighting, and document-session restoration are in place; richer editor behavior remains |
+| AvaloniaEdit integration | Partial | Explorer files open into real tabs backed by AvaloniaEdit; dirty state, active-tab switching, encoding-safe load/save, close protection, Ctrl/Cmd+S, TextMate grammar highlighting with Dark+/Light+ themes, improved line-number gutter/current-line presentation, and document-session restoration are in place; richer editor behavior remains |
 | C# language intelligence | Partial | A Roslyn-backed syntax-diagnostics boundary with source locations is in place; semantic workspace context, live/debounced analysis, completion, hover, navigation, rename, formatting, and code actions remain |
 | Search / Go to File / symbols | Planned | Workspace-wide navigation |
 | .NET SDK discovery | Partial | Installed SDK discovery and workspace-specific `dotnet --version` resolution are in place; running in the workspace directory honors normal `global.json` selection; missing-SDK doctor/remediation remains |
-| Restore / build / clean / run | Planned | Structured commands, cancellation, output |
+| Restore / build / clean / run | Planned | VS-style toolbar surface is present with honest disabled configuration/startup/run placeholders; structured commands, cancellation, output, and execution arrive in M3 |
 | Problems panel | Planned | Compiler/analyzer/MSBuild/NuGet diagnostics |
 | Test Explorer | Planned | NUnit/xUnit/MSTest/Microsoft Testing Platform |
 | Debugger | Planned | DAP-style boundary, breakpoints, stepping, watches, stack |
@@ -52,7 +53,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | EF Core tooling | Planned | Migrations add/remove/list/update database |
 | Docker Compose workflows | Planned | Up/down/build/logs; Docker remains optional |
 | Environment Doctor | Planned | SDK/Git/Docker/HTTPS checks and actionable remediation |
-| Settings / keybindings | Planned | Searchable settings, theme/editor/tool configuration |
+| Settings / keybindings | Planned | Runtime dark/light switching exists in the shell; persisted theme preference, searchable settings, editor/tool configuration, and keybinding management remain |
 | Packaging and updates | Planned | Signed/notarized macOS, Windows/Linux packaging, stable/preview channels |
 | Database explorer | Post-1.0 | PostgreSQL/SQL Server/SQLite browsing and SQL editor |
 | General extension marketplace | Post-1.0 | Architecture may be extensible, marketplace is not MVP scope |
@@ -61,10 +62,10 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 ## Delivery slices
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
-- **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
+- **Q0 — UI round delivered:** owner visual review on macOS is complete; dark/light editor/shell palette and command-bar follow-up are implemented, while cross-platform visual review remains open.
 - **M1 — Done:** folder/solution/project opening, lazy Explorer, recent-workspace restore, clean discovery/evaluation provider boundaries, evaluated project metadata/references, resolved reference edges, and on-demand workspace project graph are in place.
-- **M2 — Active:** AvaloniaEdit, document/tab lifecycle, syntax highlighting, unsaved-change protection, document-session restoration, and the first Roslyn-backed C# syntax-diagnostics boundary are in place; next are live analysis/Problems integration, editor navigation/search behavior, and semantic C# language intelligence.
-- **M3:** build, run, diagnostics.
+- **M2 — Active:** AvaloniaEdit, document/tab lifecycle, TextMate syntax themes, improved editor gutter/current-line presentation, unsaved-change protection, document-session restoration, and the first Roslyn-backed C# syntax-diagnostics boundary are in place; next are live analysis/Problems integration, editor navigation/search behavior, and semantic C# language intelligence.
+- **M3:** build, run, diagnostics; the command-bar UI shell is already present but execution controls intentionally remain disabled until this slice.
 - **M4:** Test Explorer.
 - **M5:** debugging.
 - **M6:** terminal, Git, NuGet.
