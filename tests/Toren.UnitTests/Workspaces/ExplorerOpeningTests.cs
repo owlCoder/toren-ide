@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Contracts;
 using Toren.App.Documents.Models;
 using Toren.App.ViewModels;
@@ -86,16 +87,19 @@ public sealed class ExplorerOpeningTests
         IWorkspaceTreeService tree,
         IRecentWorkspaceStore recent,
         IDotNetSdkResolver sdkResolver,
-        IDocumentSessionStore? documentSessionStore = null) =>
-        new(
+        IDocumentSessionStore? documentSessionStore = null)
+    {
+        var syntaxService = new FakeCSharpSyntaxService();
+        return new MainWindowViewModel(
             new FakeDotNetEnvironmentService(),
             sdkResolver,
             new WorkspaceClassifier(),
             tree,
             recent,
             documentSessionStore ?? new FakeDocumentSessionStore(new DocumentSessionState([], null)),
-            new FakeCSharpSyntaxService(),
+            new DocumentDiagnosticsCoordinator(syntaxService, TimeSpan.Zero),
             new DocumentHostViewModel(new FakeTextDocumentStore()));
+    }
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService
     {
