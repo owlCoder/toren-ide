@@ -4,15 +4,24 @@ namespace Toren.App.ViewModels;
 
 public sealed class AboutWindowViewModel
 {
-    public string ProductName => "Toren IDE";
+    public AboutWindowViewModel()
+    {
+        ProductName = "Toren IDE";
+        Version = GetProductVersion();
+        Description = "A cross-platform, local-first development environment for modern .NET and ASP.NET Core.";
+        License = "Open source under the Apache License 2.0.";
+        Repository = "github.com/owlCoder/toren-ide";
+    }
 
-    public string Version { get; } = GetProductVersion();
+    public string ProductName { get; }
 
-    public string Description => "A cross-platform, local-first development environment for modern .NET and ASP.NET Core.";
+    public string Version { get; }
 
-    public string License => "Open source under the Apache License 2.0.";
+    public string Description { get; }
 
-    public string Repository => "github.com/owlCoder/toren-ide";
+    public string License { get; }
+
+    public string Repository { get; }
 
     private static string GetProductVersion()
     {
