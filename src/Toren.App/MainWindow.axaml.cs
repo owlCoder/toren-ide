@@ -7,6 +7,18 @@ namespace Toren.App;
 
 public sealed partial class MainWindow : Window
 {
+    private static readonly IReadOnlyList<string> SupportedWorkspacePatterns =
+        new[] { "*.sln", "*.slnx", "*.csproj" };
+
+    private static readonly IReadOnlyList<FilePickerFileType> SupportedWorkspaceFileTypes =
+        new[]
+        {
+            new FilePickerFileType(".NET workspace")
+            {
+                Patterns = SupportedWorkspacePatterns,
+            },
+        };
+
     private readonly MainWindowViewModel _viewModel;
 
     public MainWindow(MainWindowViewModel viewModel)
@@ -34,10 +46,9 @@ public sealed partial class MainWindow : Window
                 AllowMultiple = false,
             });
 
-        var folder = folders.FirstOrDefault();
-        if (folder is not null)
+        if (folders.Count > 0)
         {
-            _viewModel.OpenDirectory(folder.Path.LocalPath);
+            _viewModel.OpenDirectory(folders[0].Path.LocalPath);
         }
     }
 
@@ -48,22 +59,15 @@ public sealed partial class MainWindow : Window
             {
                 Title = "Open .NET solution or project",
                 AllowMultiple = false,
-                FileTypeFilter = new[]
-                {
-                    new FilePickerFileType(".NET workspace")
-                    {
-                        Patterns = new[] { "*.sln", "*.slnx", "*.csproj" },
-                    },
-                },
+                FileTypeFilter = SupportedWorkspaceFileTypes,
             });
 
-        var file = files.FirstOrDefault();
-        if (file is null)
+        if (files.Count == 0)
         {
             return;
         }
 
-        if (!_viewModel.TryOpenWorkspaceFile(file.Path.LocalPath))
+        if (!_viewModel.TryOpenWorkspaceFile(files[0].Path.LocalPath))
         {
             _viewModel.SetStatus("The selected file is not a supported .NET workspace.");
         }
