@@ -14,6 +14,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **Done** — activity rail disabled/planned states render without native-theme visual artifacts;
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
+- **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
 - **Done in Q0, pending cross-platform visual review** — consistent Toren vector activity and aligned action icons, compact shell surfaces and typography, a shell-colored Open menu in the title bar, interactive Welcome with balanced columns and honest planned states, closable document tab, tool tabs without theme underlines, and a simplified About window with one close control.
@@ -26,7 +27,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
 | Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
-| Workspace/project model | Partial | Lazy Explorer shows physical files and solution projects from `dotnet sln list`; reference expansion now uses evaluated MSBuild `ProjectReference`, `PackageReference`, and `FrameworkReference` items; broader evaluated graph metadata remains |
+| Workspace/project model | Partial | Lazy Explorer shows physical files and solution projects through a dedicated solution provider; project labels use shortest unique names; reference expansion uses evaluated MSBuild `ProjectReference`, `PackageReference`, and `FrameworkReference` items behind a dedicated adapter; broader evaluated graph metadata remains |
 | Recent workspaces/session restore | Partial | Recent workspaces persist in OS application data and the last available workspace is restored; document session state remains |
 | AvaloniaEdit integration | Planned | Real editable documents and tabs |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
@@ -54,7 +55,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
 - **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
-- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, and evaluated reference expansion are in place, with broader evaluated graph metadata and remaining workflow details next.
+- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, concise project labels, clean provider boundaries, and evaluated reference expansion are in place, with broader evaluated graph metadata and remaining workflow details next.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.

@@ -1,10 +1,5 @@
 using System.Collections.Frozen;
 using System.Security;
-using System.Text.Json;
-using System.Xml;
-using System.Xml.Linq;
-using Toren.Core.Execution.Contracts;
-using Toren.Core.Execution.Models;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Errors;
@@ -12,14 +7,17 @@ using Toren.Workspaces.Models;
 
 namespace Toren.Workspaces.Services;
 
-public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorkspaceTreeService
+public sealed class WorkspaceTreeService(
+    ISolutionProjectProvider solutionProjectProvider,
+    IProjectReferenceProvider projectReferenceProvider) : IWorkspaceTreeService
 {
-    private const string EvaluatedReferenceItems = "ProjectReference,PackageReference,FrameworkReference";
-
     private static readonly FrozenSet<string> ExcludedDirectories =
         new[] { ".git", "bin", "obj" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private readonly IProcessRunner _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
+    private readonly ISolutionProjectProvider _solutionProjectProvider = solutionProjectProvider
+        ?? throw new ArgumentNullException(nameof(solutionProjectProvider));
+    private readonly IProjectReferenceProvider _projectReferenceProvider = projectReferenceProvider
+        ?? throw new ArgumentNullException(nameof(projectReferenceProvider));
 
     public Result<WorkspaceNode> CreateRoot(WorkspaceDescriptor workspace)
     {
@@ -59,7 +57,7 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
             WorkspaceNodeKind.Solution => await ReadSolutionAsync(node.Path, cancellationToken).ConfigureAwait(false),
             WorkspaceNodeKind.Project => await Task.Run(
                 () => ReadProject(node.Path, cancellationToken), cancellationToken).ConfigureAwait(false),
-            WorkspaceNodeKind.References => await ReadEvaluatedReferencesAsync(node.Path, cancellationToken).ConfigureAwait(false),
+            WorkspaceNodeKind.References => await ReadReferencesAsync(node.Path, cancellationToken).ConfigureAwait(false),
             _ => Result.Success<IReadOnlyList<WorkspaceNode>>([]),
         };
     }
@@ -124,70 +122,52 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
             return Result.Failure<IReadOnlyList<WorkspaceNode>>(WorkspaceTreeErrors.PathUnavailable(path));
         }
 
-        var execution = await _processRunner.RunAsync(
-            ProcessRequest.Create("dotnet", "sln", path, "list"),
-            cancellationToken).ConfigureAwait(false);
-
-        if (!execution.IsSuccess)
+        var projectPaths = await _solutionProjectProvider
+            .GetProjectPathsAsync(path, cancellationToken)
+            .ConfigureAwait(false);
+        if (!projectPaths.IsSuccess)
         {
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.SolutionListFailed(execution.Error.Message));
+            return Result.Failure<IReadOnlyList<WorkspaceNode>>(projectPaths.Error);
         }
 
-        if (!execution.Value.Succeeded)
-        {
-            var details = GetProcessFailureDetails(execution.Value);
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.SolutionListFailed(details));
-        }
-
-        var solutionDirectory = Path.GetDirectoryName(path) ?? throw new InvalidOperationException("Solution has no directory.");
-        var projects = execution.Value.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim())
-            .Where(line => line.EndsWith("proj", StringComparison.OrdinalIgnoreCase))
-            .Select(line => line.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar))
-            .Select(line => Path.GetFullPath(Path.Combine(solutionDirectory, line)))
-            .Select(projectPath => new WorkspaceNode(
+        var displayNames = ProjectDisplayNameFormatter.Format(projectPaths.Value);
+        var projects = projectPaths.Value
+            .Select((projectPath, index) => new WorkspaceNode(
                 projectPath,
-                Path.GetFileNameWithoutExtension(projectPath),
+                displayNames[index],
                 WorkspaceNodeKind.Project))
             .ToArray();
 
         return Result.Success<IReadOnlyList<WorkspaceNode>>(projects);
     }
 
-    private static Result<IReadOnlyList<WorkspaceNode>> ReadProject(string path, CancellationToken cancellationToken)
+    private static Result<IReadOnlyList<WorkspaceNode>> ReadProject(
+        string path,
+        CancellationToken cancellationToken)
     {
         if (!File.Exists(path))
         {
             return Result.Failure<IReadOnlyList<WorkspaceNode>>(WorkspaceTreeErrors.PathUnavailable(path));
         }
 
-        var directory = Path.GetDirectoryName(path) ?? throw new InvalidOperationException("Project has no directory.");
+        var directory = Path.GetDirectoryName(path)
+            ?? throw new InvalidOperationException("Project has no directory.");
         var files = ReadDirectory(directory, cancellationToken);
         if (!files.IsSuccess)
         {
             return files;
         }
 
-        var references = ReadDeclaredReferences(path, cancellationToken);
-        if (!references.IsSuccess)
+        var children = new List<WorkspaceNode>
         {
-            return references;
-        }
-
-        var children = new List<WorkspaceNode>();
-        if (references.Value.Count > 0)
-        {
-            children.Add(new WorkspaceNode(path, "References", WorkspaceNodeKind.References));
-        }
-
+            new(path, "References", WorkspaceNodeKind.References),
+        };
         children.AddRange(files.Value.Where(node =>
             node.Kind is not WorkspaceNodeKind.Project and not WorkspaceNodeKind.Solution));
         return Result.Success<IReadOnlyList<WorkspaceNode>>(children);
     }
 
-    private async Task<Result<IReadOnlyList<WorkspaceNode>>> ReadEvaluatedReferencesAsync(
+    private async Task<Result<IReadOnlyList<WorkspaceNode>>> ReadReferencesAsync(
         string path,
         CancellationToken cancellationToken)
     {
@@ -196,133 +176,34 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
             return Result.Failure<IReadOnlyList<WorkspaceNode>>(WorkspaceTreeErrors.PathUnavailable(path));
         }
 
-        var execution = await _processRunner.RunAsync(
-            ProcessRequest.Create(
-                "dotnet",
-                "msbuild",
+        var references = await _projectReferenceProvider
+            .GetReferencesAsync(path, cancellationToken)
+            .ConfigureAwait(false);
+        if (!references.IsSuccess)
+        {
+            return Result.Failure<IReadOnlyList<WorkspaceNode>>(references.Error);
+        }
+
+        var nodes = references.Value
+            .Select(reference => new WorkspaceNode(
                 path,
-                "-nologo",
-                "-verbosity:quiet",
-                $"-getItem:{EvaluatedReferenceItems}"),
-            cancellationToken).ConfigureAwait(false);
-
-        if (!execution.IsSuccess)
-        {
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.ProjectEvaluationFailed(execution.Error.Message));
-        }
-
-        if (!execution.Value.Succeeded)
-        {
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.ProjectEvaluationFailed(GetProcessFailureDetails(execution.Value)));
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(execution.Value.StandardOutput);
-            if (!document.RootElement.TryGetProperty("Items", out var items))
-            {
-                return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                    WorkspaceTreeErrors.ProjectEvaluationFailed("MSBuild output did not contain evaluated items."));
-            }
-
-            var references = new List<WorkspaceNode>();
-            AddEvaluatedReferences(references, path, items, "ProjectReference");
-            AddEvaluatedReferences(references, path, items, "PackageReference");
-            AddEvaluatedReferences(references, path, items, "FrameworkReference");
-            return Result.Success<IReadOnlyList<WorkspaceNode>>(references);
-        }
-        catch (JsonException exception)
-        {
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.ProjectEvaluationFailed($"MSBuild returned invalid evaluation data: {exception.Message}"));
-        }
+                GetReferenceDisplayName(reference),
+                WorkspaceNodeKind.Reference))
+            .ToArray();
+        return Result.Success<IReadOnlyList<WorkspaceNode>>(nodes);
     }
 
-    private static void AddEvaluatedReferences(
-        List<WorkspaceNode> destination,
-        string projectPath,
-        JsonElement items,
-        string itemName)
+    private static string GetReferenceDisplayName(ProjectReferenceInfo reference)
     {
-        if (!items.TryGetProperty(itemName, out var itemGroup) || itemGroup.ValueKind != JsonValueKind.Array)
+        if (reference.Kind != ProjectReferenceKind.Project)
         {
-            return;
+            return reference.Identity;
         }
 
-        foreach (var item in itemGroup.EnumerateArray())
-        {
-            if (!item.TryGetProperty("Identity", out var identityElement))
-            {
-                continue;
-            }
-
-            var identity = identityElement.GetString();
-            if (string.IsNullOrWhiteSpace(identity))
-            {
-                continue;
-            }
-
-            destination.Add(new WorkspaceNode(
-                projectPath,
-                GetReferenceDisplayName(itemName, identity),
-                WorkspaceNodeKind.Reference));
-        }
-    }
-
-    private static Result<IReadOnlyList<WorkspaceNode>> ReadDeclaredReferences(
-        string path,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var document = XDocument.Load(path);
-            cancellationToken.ThrowIfCancellationRequested();
-            var references = document.Descendants()
-                .Where(element => element.Name.LocalName is "ProjectReference" or "PackageReference" or "FrameworkReference")
-                .Select(element => new
-                {
-                    Kind = element.Name.LocalName,
-                    Include = (string?)element.Attribute("Include"),
-                })
-                .Where(reference => !string.IsNullOrWhiteSpace(reference.Include))
-                .Select(reference => new WorkspaceNode(
-                    path,
-                    GetReferenceDisplayName(reference.Kind, reference.Include!),
-                    WorkspaceNodeKind.Reference))
-                .ToArray();
-
-            return Result.Success<IReadOnlyList<WorkspaceNode>>(references);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException or XmlException)
-        {
-            return Result.Failure<IReadOnlyList<WorkspaceNode>>(
-                WorkspaceTreeErrors.ReadFailed(path, exception.Message));
-        }
-    }
-
-    private static string GetReferenceDisplayName(string kind, string include)
-    {
-        if (!kind.Equals("ProjectReference", StringComparison.Ordinal))
-        {
-            return include;
-        }
-
-        var normalizedPath = include
+        var normalizedPath = reference.Identity
             .Replace('\\', Path.DirectorySeparatorChar)
             .Replace('/', Path.DirectorySeparatorChar);
         var projectName = Path.GetFileNameWithoutExtension(normalizedPath);
-        return string.IsNullOrWhiteSpace(projectName) ? include : projectName;
-    }
-
-    private static string GetProcessFailureDetails(ProcessResult processResult)
-    {
-        var details = string.IsNullOrWhiteSpace(processResult.StandardError)
-            ? processResult.StandardOutput.Trim()
-            : processResult.StandardError.Trim();
-        return string.IsNullOrWhiteSpace(details)
-            ? "The .NET CLI did not provide error details."
-            : details;
+        return string.IsNullOrWhiteSpace(projectName) ? reference.Identity : projectName;
     }
 }

@@ -7,8 +7,8 @@ using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.Platform.Execution.Adapters;
-using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Adapters;
+using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Services;
 
 namespace Toren.App;
@@ -27,7 +27,11 @@ public sealed partial class App : Application
             IProcessRunner processRunner = new SystemProcessRunner();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
-            IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(processRunner);
+            ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
+            IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(processRunner);
+            IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
+                solutionProjectProvider,
+                projectReferenceProvider);
             var historyPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "TorenIDE",
