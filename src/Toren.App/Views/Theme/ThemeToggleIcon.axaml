@@ -1,0 +1,21 @@
+<UserControl x:Class="Toren.App.Views.Theme.ThemeToggleIcon"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="16" Height="16" IsHitTestVisible="False">
+  <Grid Width="16" Height="16">
+    <Grid x:Name="SunIcon" Width="16" Height="16">
+      <Ellipse Width="6.5" Height="6.5"
+               Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.35"
+               HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <Path Data="M8,0.9V2.35 M8,13.65V15.1 M0.9,8H2.35 M13.65,8H15.1 M2.95,2.95L3.98,3.98 M12.02,12.02L13.05,13.05 M2.95,13.05L3.98,12.02 M12.02,3.98L13.05,2.95"
+            Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.25"
+            StrokeLineCap="Round" Fill="Transparent" />
+    </Grid>
+    <Path x:Name="MoonIcon" IsVisible="False"
+          Data="M10.9,1.8C7.1,2.25 4.15,5.5 4.15,9.4C4.15,12.95 7.05,15.85 10.6,15.85C13.05,15.85 15.2,14.45 16.3,12.4C15.35,12.95 14.25,13.25 13.1,13.25C9.7,13.25 6.95,10.5 6.95,7.1C6.95,4.95 8.05,3.05 9.75,1.95C10.15,1.85 10.5,1.8 10.9,1.8Z"
+          Fill="{DynamicResource TorenTextMutedBrush}"
+          Width="14" Height="14" Stretch="Uniform"
+          HorizontalAlignment="Center" VerticalAlignment="Center" />
+  </Grid>
+</UserControl>
