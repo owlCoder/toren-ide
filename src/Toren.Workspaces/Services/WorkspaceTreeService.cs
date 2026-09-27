@@ -241,7 +241,7 @@ public sealed class WorkspaceTreeService(IProcessRunner processRunner) : IWorksp
     }
 
     private static void AddEvaluatedReferences(
-        ICollection<WorkspaceNode> destination,
+        List<WorkspaceNode> destination,
         string projectPath,
         JsonElement items,
         string itemName)
