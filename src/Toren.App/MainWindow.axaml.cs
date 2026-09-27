@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -22,6 +23,7 @@ internal sealed partial class MainWindow : Window
         };
 
     private readonly MainWindowViewModel _viewModel;
+    private bool _synchronizingEditorText;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -33,6 +35,8 @@ internal sealed partial class MainWindow : Window
         InitializeComponent();
         WorkspaceTree.AddHandler(TreeViewItem.ExpandedEvent, WorkspaceNode_OnExpanded);
         WorkspaceTree.DoubleTapped += WorkspaceTree_OnDoubleTapped;
+        DocumentEditor.TextChanged += DocumentEditor_OnTextChanged;
+        _viewModel.Documents.PropertyChanged += Documents_OnPropertyChanged;
         KeyDown += MainWindow_OnKeyDown;
         Opened += OnOpened;
     }
@@ -40,6 +44,46 @@ internal sealed partial class MainWindow : Window
     private async void OnOpened(object? sender, EventArgs eventArgs)
     {
         await _viewModel.InitializeAsync().ConfigureAwait(true);
+    }
+
+    private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(DocumentHostViewModel.ActiveDocument))
+        {
+            SynchronizeEditorFromActiveDocument();
+        }
+    }
+
+    private void SynchronizeEditorFromActiveDocument()
+    {
+        var text = _viewModel.Documents.ActiveDocument?.Text ?? string.Empty;
+        if (DocumentEditor.Text.Equals(text, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _synchronizingEditorText = true;
+        try
+        {
+            DocumentEditor.Text = text;
+        }
+        finally
+        {
+            _synchronizingEditorText = false;
+        }
+    }
+
+    private void DocumentEditor_OnTextChanged(object? sender, EventArgs eventArgs)
+    {
+        if (_synchronizingEditorText || _viewModel.Documents.ActiveDocument is not { } document)
+        {
+            return;
+        }
+
+        if (!document.Text.Equals(DocumentEditor.Text, StringComparison.Ordinal))
+        {
+            document.Text = DocumentEditor.Text;
+        }
     }
 
     private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
