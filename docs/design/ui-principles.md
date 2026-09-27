@@ -51,6 +51,7 @@ Use a compact 4 px base grid where practical. Common spacing values are 4, 8, 12
 - Flat surfaces.
 - Borders and tonal separation before shadows.
 - Avoid card-heavy interfaces inside the editor shell.
+- Text actions with leading icons use one shared icon size and center the icon with the label; button chrome and icon weight must remain visually balanced.
 
 ### Color
 

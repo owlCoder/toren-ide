@@ -4,10 +4,10 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
-        Width="480" Height="324" CanResize="False"
+        Width="480" Height="280" CanResize="False"
         WindowDecorations="None" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Title="About Toren IDE">
-  <Grid RowDefinitions="46,*,58">
+  <Grid RowDefinitions="46,*">
     <Border Grid.Row="0" Classes="title-bar"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto">
@@ -52,18 +52,5 @@
       </Grid>
     </StackPanel>
 
-    <Border Grid.Row="2" Background="{DynamicResource TorenSurfaceBrush}"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0"
-            Padding="18,0">
-      <Button Classes="toolbar-button outline-action" HorizontalAlignment="Right"
-              VerticalAlignment="Center" MinWidth="96" IsCancel="True"
-              Click="CloseWindow_OnClick" AutomationProperties.Name="Close About window">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}"
-                Width="14" Height="14" />
-          <TextBlock Text="Close" />
-        </StackPanel>
-      </Button>
-    </Border>
   </Grid>
 </Window>

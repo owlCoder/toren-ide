@@ -10,7 +10,7 @@
     <!-- Window chrome and global actions -->
     <Border Grid.Row="0" Grid.ColumnSpan="3" Height="{StaticResource TorenTitleBarHeight}"
             Classes="shell-surface title-bar" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
         <Border Grid.Column="0" Padding="12,0,10,0" Background="Transparent"
                 PointerPressed="TitleBar_OnPointerPressed">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -27,14 +27,14 @@
         </Border>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
           <Button Classes="toolbar-button" Click="OpenFolder_OnClick" AutomationProperties.Name="Open Folder">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" Width="16" Height="16" />
+            <StackPanel Classes="action-content">
+              <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
               <TextBlock Text="Open Folder" />
             </StackPanel>
           </Button>
           <Button Classes="toolbar-button" Click="OpenWorkspaceFile_OnClick" AutomationProperties.Name="Open Solution">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" Width="16" Height="16" />
+            <StackPanel Classes="action-content">
+              <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" />
               <TextBlock Text="Open Solution" />
             </StackPanel>
           </Button>
@@ -45,14 +45,7 @@
                      FontSize="11" TextTrimming="CharacterEllipsis"
                      HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
-        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Classes="toolbar-button" Width="36" Height="36" Padding="0" Click="About_OnClick"
-                  ToolTip.Tip="About Toren IDE" AutomationProperties.Name="About Toren IDE">
-            <Path Classes="shell-icon" Data="M5.5 5.5A2.5 2.5 0 1 1 9 7.7C8.2 8.2 8 8.7 8 9.8 M8 12.6L8 12.7"
-                  Width="16" Height="16" />
-          </Button>
-        </StackPanel>
-        <StackPanel Grid.Column="4" Orientation="Horizontal">
+        <StackPanel Grid.Column="3" Orientation="Horizontal">
           <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
                   AutomationProperties.Name="Minimize window">
             <Rectangle Width="12" Height="1.5" Fill="{DynamicResource TorenTextMutedBrush}" />
@@ -116,8 +109,8 @@
                      Text="Files will appear here when a workspace is open." Margin="0,6,0,0" />
           <Button Classes="link-button" Click="OpenFolder_OnClick" HorizontalAlignment="Left"
                   AutomationProperties.Name="Open Folder">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" Width="16" Height="16" />
+            <StackPanel Classes="action-content">
+              <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
               <TextBlock Text="Open Folder" />
             </StackPanel>
           </Button>
@@ -167,15 +160,15 @@
                 <TextBlock Text="Start" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,7" />
                 <Button Classes="primary-action" Click="OpenFolder_OnClick" AutomationProperties.Name="Open Folder"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                  <StackPanel Orientation="Horizontal" Spacing="9">
-                    <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" Width="16" Height="16" />
+                  <StackPanel Classes="action-content">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconFolder}" />
                     <TextBlock Text="Open Folder" />
                   </StackPanel>
                 </Button>
                 <Button Classes="toolbar-button" Click="OpenWorkspaceFile_OnClick"
                         AutomationProperties.Name="Open Solution or Project" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                  <StackPanel Orientation="Horizontal" Spacing="9">
-                    <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" Width="16" Height="16" />
+                  <StackPanel Classes="action-content">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconSolution}" />
                     <TextBlock Text="Open Solution or Project" />
                   </StackPanel>
                 </Button>
@@ -184,8 +177,8 @@
                           AutomationProperties.Name="New Project, coming in MVP 1.0"
                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                           ToolTip.Tip="Coming in MVP 1.0" ToolTip.ShowOnDisabled="True">
-                    <StackPanel Orientation="Horizontal" Spacing="9">
-                      <Path Classes="shell-icon" Data="{StaticResource TorenIconNew}" Width="16" Height="16" />
+                    <StackPanel Classes="action-content">
+                      <Path Classes="shell-icon" Data="{StaticResource TorenIconNew}" />
                       <TextBlock Text="New Project" />
                     </StackPanel>
                   </Button>
@@ -210,22 +203,22 @@
                 <TextBlock Text="Learn" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6" />
                 <Button Classes="link-button" Tag="https://github.com/owlCoder/toren-ide/tree/main/docs"
                         AutomationProperties.Name="Toren documentation" Click="OpenLink_OnClick" ToolTip.Tip="Open Toren documentation in your browser">
-                  <StackPanel Orientation="Horizontal" Spacing="9">
-                    <Path Classes="shell-icon" Data="{StaticResource TorenIconDocs}" Width="16" Height="16" />
+                  <StackPanel Classes="action-content">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconDocs}" />
                     <TextBlock Text="Toren documentation" />
                   </StackPanel>
                 </Button>
                 <Button Classes="link-button" Tag="https://github.com/owlCoder/toren-ide#build-from-source"
                         AutomationProperties.Name="Getting started" Click="OpenLink_OnClick" ToolTip.Tip="Open the getting started instructions">
-                  <StackPanel Orientation="Horizontal" Spacing="9">
-                    <Path Classes="shell-icon" Data="{StaticResource TorenIconGuide}" Width="16" Height="16" />
+                  <StackPanel Classes="action-content">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconGuide}" />
                     <TextBlock Text="Getting started" />
                   </StackPanel>
                 </Button>
                 <Button Classes="link-button" Tag="https://github.com/owlCoder/toren-ide"
                         AutomationProperties.Name="GitHub repository" Click="OpenLink_OnClick" ToolTip.Tip="Open the Toren repository">
-                  <StackPanel Orientation="Horizontal" Spacing="9">
-                    <Path Classes="shell-icon" Data="{StaticResource TorenIconExternal}" Width="16" Height="16" />
+                  <StackPanel Classes="action-content">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconExternal}" />
                     <TextBlock Text="GitHub repository" />
                   </StackPanel>
                 </Button>
@@ -233,8 +226,8 @@
                   <Button Classes="link-button planned-action" IsEnabled="False"
                           AutomationProperties.Name="Keyboard shortcuts, coming in MVP 1.0"
                           ToolTip.Tip="Coming in MVP 1.0" ToolTip.ShowOnDisabled="True">
-                    <StackPanel Orientation="Horizontal" Spacing="9">
-                      <Path Classes="shell-icon" Data="{StaticResource TorenIconKeyboard}" Width="16" Height="16" />
+                    <StackPanel Classes="action-content">
+                      <Path Classes="shell-icon" Data="{StaticResource TorenIconKeyboard}" />
                       <TextBlock Text="Keyboard shortcuts" />
                     </StackPanel>
                   </Button>
