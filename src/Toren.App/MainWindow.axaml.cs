@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
+using Toren.App.Diagnostics.ViewModels;
 using Toren.App.ViewModels;
 using Toren.Workspaces.Models;
 using TextMateInstallation = AvaloniaEdit.TextMate.TextMate.Installation;
@@ -64,6 +65,7 @@ internal sealed partial class MainWindow : Window
     {
         _textMateInstallation.AppliedTheme -= TextMateInstallation_OnAppliedTheme;
         _textMateInstallation.Dispose();
+        _viewModel.Dispose();
         base.OnClosed(eventArgs);
     }
 
@@ -157,17 +159,20 @@ internal sealed partial class MainWindow : Window
         _textMateInstallation.SetGrammar(scopeName);
     }
 
-    private void DocumentEditor_OnTextChanged(object? sender, EventArgs eventArgs)
+    private async void DocumentEditor_OnTextChanged(object? sender, EventArgs eventArgs)
     {
         if (_synchronizingEditorText || _viewModel.Documents.ActiveDocument is not { } document)
         {
             return;
         }
 
-        if (!document.Text.Equals(DocumentEditor.Text, StringComparison.Ordinal))
+        if (document.Text.Equals(DocumentEditor.Text, StringComparison.Ordinal))
         {
-            document.Text = DocumentEditor.Text;
+            return;
         }
+
+        document.Text = DocumentEditor.Text;
+        await _viewModel.RefreshActiveDiagnosticsAsync(debounce: true).ConfigureAwait(true);
     }
 
     private void TextMateInstallation_OnAppliedTheme(object? sender, TextMateInstallation installation)
@@ -188,11 +193,8 @@ internal sealed partial class MainWindow : Window
         ApplyTextMateBrush(
             installation,
             "editor.lineHighlightBackground",
-            brush =>
-            {
-                DocumentEditor.TextArea.TextView.CurrentLineBackground = brush;
-                DocumentEditor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
-            });
+            brush => DocumentEditor.TextArea.TextView.CurrentLineBackground = brush);
+        DocumentEditor.TextArea.TextView.CurrentLineBorder = null;
         ApplyTextMateBrush(
             installation,
             "editorLineNumber.foreground",
@@ -373,7 +375,7 @@ internal sealed partial class MainWindow : Window
         }
     }
 
-    private void DocumentTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    private async void DocumentTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
         if (sender is not Control { DataContext: OpenDocumentViewModel document })
         {
@@ -383,25 +385,43 @@ internal sealed partial class MainWindow : Window
         var properties = eventArgs.GetCurrentPoint(this).Properties;
         if (properties.IsMiddleButtonPressed)
         {
-            _viewModel.CloseDocument(document);
+            await _viewModel.CloseDocumentAsync(document).ConfigureAwait(true);
             eventArgs.Handled = true;
             return;
         }
 
         if (properties.IsLeftButtonPressed)
         {
-            _viewModel.ActivateDocument(document);
+            await _viewModel.ActivateDocumentAsync(document).ConfigureAwait(true);
             eventArgs.Handled = true;
         }
     }
 
-    private void CloseDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void CloseDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is Button { DataContext: OpenDocumentViewModel document })
         {
-            _viewModel.CloseDocument(document);
+            await _viewModel.CloseDocumentAsync(document).ConfigureAwait(true);
             eventArgs.Handled = true;
         }
+    }
+
+    private void ProblemsList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (ProblemsList.SelectedItem is not ProblemItemViewModel problem
+            || _viewModel.Documents.ActiveDocument is not { } activeDocument
+            || !problem.FilePath.Equals(activeDocument.Path, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var line = Math.Clamp(problem.StartLine, 1, DocumentEditor.Document.LineCount);
+        var documentLine = DocumentEditor.Document.GetLineByNumber(line);
+        var column = Math.Clamp(problem.StartColumn, 1, documentLine.Length + 1);
+        DocumentEditor.CaretOffset = documentLine.Offset + column - 1;
+        DocumentEditor.ScrollTo(line, column);
+        DocumentEditor.Focus();
+        eventArgs.Handled = true;
     }
 
     private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs eventArgs)
