@@ -16,14 +16,15 @@ Before feature implementation continues, Toren is locking in the OSS maintainabi
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
-- **Partial** — shell density, interaction polish, keyboard behavior, focus states, and accessibility remain in the active quality round before M1 starts.
+- **Done in Q0, pending cross-platform visual review** — consistent Toren vector activity icons, compact shell surfaces and typography, interactive Welcome, closable document tab, keyboard-selectable tool tabs, and visible control focus styling.
+- **Partial** — native title-bar behavior, focus and contrast, and final spacing still need hands-on visual review on macOS, Windows, and Linux before the Q0 quality gate is closed.
 
 ## MVP 1.0 feature matrix
 
 | Area | Status | Current state / next acceptance point |
 | --- | --- | --- |
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
-| Toren visual language / shell | Partial | Shared design tokens, custom chrome, IDE regions, honest empty states, About dialog; final UI/UX polish remains active |
+| Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
 | Workspace/project model | Planned | Load solution/project graph and populate Explorer |
 | Recent workspaces/session restore | Planned | Persist IDE-only state without affecting builds |

@@ -5,7 +5,7 @@ using Toren.App.ViewModels;
 
 namespace Toren.App.Views;
 
-public sealed partial class AboutWindow : Window
+internal sealed partial class AboutWindow : Window
 {
     private AboutWindow(AboutWindowViewModel viewModel)
     {

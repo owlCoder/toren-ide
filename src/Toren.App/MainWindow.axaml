@@ -1,243 +1,264 @@
-<Window
-    x:Class="Toren.App.MainWindow"
-    x:DataType="vm:MainWindowViewModel"
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="clr-namespace:Toren.App.ViewModels"
-    Width="1440"
-    Height="900"
-    MinWidth="1080"
-    MinHeight="700"
-    CanResize="True"
-    SystemDecorations="None"
-    Title="Toren IDE">
-
-  <Grid RowDefinitions="48,*,176,26" ColumnDefinitions="48,280,*">
-    <!-- Toren title bar / command bar -->
-    <Border
-        Grid.Row="0"
-        Grid.ColumnSpan="3"
-        Classes="shell-surface title-bar"
-        BorderThickness="0,0,0,1">
+<Window x:Class="Toren.App.MainWindow"
+        x:ClassModifier="internal"
+        x:DataType="vm:MainWindowViewModel"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Toren.App.ViewModels"
+        Width="1440" Height="900" MinWidth="1080" MinHeight="700"
+        CanResize="True" WindowDecorations="None" Title="Toren IDE">
+  <Grid RowDefinitions="Auto,*,180,24" ColumnDefinitions="Auto,270,*">
+    <!-- Window chrome and global actions -->
+    <Border Grid.Row="0" Grid.ColumnSpan="3" Height="{StaticResource TorenTitleBarHeight}"
+            Classes="shell-surface title-bar" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-        <Border
-            Grid.Column="0"
-            Padding="10,0,8,0"
-            Background="Transparent"
-            PointerPressed="TitleBar_OnPointerPressed">
-          <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
-            <Border
-                Width="30"
-                Height="30"
-                Background="{DynamicResource TorenAccentMutedBrush}"
-                BorderBrush="{DynamicResource TorenAccentBrush}"
-                BorderThickness="1"
-                CornerRadius="7">
-              <TextBlock
-                  Text="T"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  FontWeight="Bold"
-                  Foreground="{DynamicResource TorenAccentBrush}" />
+        <Border Grid.Column="0" Padding="12,0,10,0" Background="Transparent"
+                PointerPressed="TitleBar_OnPointerPressed">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <Border Width="28" Height="28" CornerRadius="7"
+                    Background="{DynamicResource TorenAccentMutedBrush}"
+                    BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="1">
+              <TextBlock Text="T" FontSize="14" FontWeight="Bold"
+                         Foreground="{DynamicResource TorenAccentBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
-            <TextBlock Text="Toren IDE" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Classes="chrome-label" Text="Toren IDE" FontSize="14"
+                       FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
         </Border>
-
-        <StackPanel Grid.Column="1" Margin="10,0,0,0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
           <Button Classes="toolbar-button" Content="Open Folder" Click="OpenFolder_OnClick" />
           <Button Classes="toolbar-button" Content="Open Solution" Click="OpenWorkspaceFile_OnClick" />
         </StackPanel>
-
-        <Border
-            Grid.Column="2"
-            Margin="8,0"
-            Background="Transparent"
-            PointerPressed="TitleBar_OnPointerPressed">
-          <TextBlock
-              Text="{Binding WorkspaceTitle}"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              Classes="subtle"
-              FontSize="11" />
+        <Border Grid.Column="2" Margin="8,0" Background="Transparent"
+                PointerPressed="TitleBar_OnPointerPressed">
+          <TextBlock Classes="subtle chrome-label" Text="{Binding WorkspaceTitle}"
+                     FontSize="11" TextTrimming="CharacterEllipsis"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
-
-        <StackPanel Grid.Column="3" Margin="0,0,4,0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-          <Border Classes="card compact-card" Padding="9,5">
-            <TextBlock Classes="muted" Text="{Binding SdkSummary}" FontSize="11" />
-          </Border>
-          <Button Classes="toolbar-button" Content="?" Width="32" Padding="0" Click="About_OnClick" ToolTip.Tip="About Toren IDE" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Classes="muted" Text="{Binding SdkSummary}" FontSize="11"
+                     VerticalAlignment="Center" Margin="0,0,8,0" />
+          <Button Classes="toolbar-button" Width="32" Padding="0" Click="About_OnClick"
+                  ToolTip.Tip="About Toren IDE" AutomationProperties.Name="About Toren IDE">
+            <Path Classes="shell-icon" Data="M8 11.5V11C8 8.8 11 8.8 11 6.5A3 3 0 0 0 5 6.5 M8 15.2L8 15.3"
+                  Width="16" Height="16" />
+          </Button>
         </StackPanel>
-
-        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Stretch">
-          <Button
-              Classes="window-control"
-              Content="—"
-              Click="MinimizeWindow_OnClick"
-              ToolTip.Tip="Minimize" />
-          <Button
-              Classes="window-control"
-              Content="□"
-              Click="ToggleMaximizeWindow_OnClick"
-              ToolTip.Tip="Maximize or restore" />
-          <Button
-              Classes="window-control close"
-              Content="×"
-              Click="CloseWindow_OnClick"
-              ToolTip.Tip="Close" />
+        <StackPanel Grid.Column="4" Orientation="Horizontal">
+          <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
+                  AutomationProperties.Name="Minimize window">
+            <Path Classes="shell-icon" Data="M2 8H14" Width="14" Height="14" />
+          </Button>
+          <Button Classes="window-control" Click="ToggleMaximizeWindow_OnClick" ToolTip.Tip="Maximize or restore"
+                  AutomationProperties.Name="Maximize or restore window">
+            <Path Classes="shell-icon" Data="M3 3H13V13H3Z" Width="14" Height="14" />
+          </Button>
+          <Button Classes="window-control close" Click="CloseWindow_OnClick" ToolTip.Tip="Close"
+                  AutomationProperties.Name="Close window">
+            <Path Classes="shell-icon" Data="M3 3L13 13 M13 3L3 13" Width="14" Height="14" />
+          </Button>
         </StackPanel>
       </Grid>
     </Border>
 
-    <!-- Activity bar -->
-    <Border
-        Grid.Row="1"
-        Grid.RowSpan="2"
-        Grid.Column="0"
-        Classes="shell-surface activity-rail"
-        BorderThickness="0,0,1,0">
+    <!-- Activity bar: Toren-owned 18 px path icons with one visual weight -->
+    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="0"
+            Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
+            BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-        <Button Grid.Row="0" Classes="activity-button active" Content="▤" ToolTip.Tip="Explorer" />
-        <Button Grid.Row="1" Classes="activity-button" Content="⑂" ToolTip.Tip="Source Control — planned for MVP 1.0" IsEnabled="False" />
-        <Button Grid.Row="2" Classes="activity-button" Content="✓" ToolTip.Tip="Tests — planned for MVP 1.0" IsEnabled="False" />
-        <Button Grid.Row="3" Classes="activity-button" Content="▷" ToolTip.Tip="Debug — planned for MVP 1.0" IsEnabled="False" />
-        <Button Grid.Row="5" Classes="activity-button" Content="⚙" ToolTip.Tip="Settings — planned for MVP 1.0" IsEnabled="False" />
+        <Button Grid.Row="0" Classes="activity-button active" ToolTip.Tip="Explorer"
+                AutomationProperties.Name="Explorer" IsTabStop="False">
+          <Path Classes="shell-icon" Data="M2 3H14V13H2Z M5 3V13 M7.5 6H12 M7.5 9H12" />
+        </Button>
+        <Button Grid.Row="1" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Source control — coming in MVP 1.0" AutomationProperties.Name="Source control, coming in MVP 1.0">
+          <Path Classes="shell-icon" Data="M5 3V11A2 2 0 0 0 7 13H11 M5 3A1.5 1.5 0 1 0 5 6A1.5 1.5 0 1 0 5 3 M11 10A1.5 1.5 0 1 0 11 13A1.5 1.5 0 1 0 11 10" />
+        </Button>
+        <Button Grid.Row="2" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Tests — coming in MVP 1.0" AutomationProperties.Name="Tests, coming in MVP 1.0">
+          <Path Classes="shell-icon" Data="M2 8L6 12L14 4" />
+        </Button>
+        <Button Grid.Row="3" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Debug — coming in MVP 1.0" AutomationProperties.Name="Debug, coming in MVP 1.0">
+          <Path Classes="shell-icon" Data="M4 2L13 8L4 14Z" />
+        </Button>
+        <Button Grid.Row="5" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Settings — coming in MVP 1.0" AutomationProperties.Name="Settings, coming in MVP 1.0">
+          <Path Classes="shell-icon" Data="M8 2V4 M8 12V14 M2 8H4 M12 8H14 M3.8 3.8L5.2 5.2 M10.8 10.8L12.2 12.2 M12.2 3.8L10.8 5.2 M5.2 10.8L3.8 12.2 M8 5.5A2.5 2.5 0 1 0 8 10.5A2.5 2.5 0 1 0 8 5.5" />
+        </Button>
       </Grid>
     </Border>
 
-    <!-- Explorer -->
-    <Border
-        Grid.Row="1"
-        Grid.RowSpan="2"
-        Grid.Column="1"
-        Classes="shell-surface"
-        BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="42,Auto,*,Auto">
-        <Border Padding="14,0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-          <TextBlock Classes="tool-title" Text="EXPLORER" VerticalAlignment="Center" />
+    <!-- Explorer: compact tree-ready side panel -->
+    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
+            BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
+                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="tool-title" Text="EXPLORER" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Classes="subtle" Text="WORKSPACE" FontSize="10" VerticalAlignment="Center" />
+          </Grid>
         </Border>
-
-        <StackPanel Grid.Row="1" Margin="14,14,14,8" Spacing="5">
-          <TextBlock Text="{Binding WorkspaceTitle}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11" TextWrapping="Wrap" MaxLines="3" />
+        <StackPanel Grid.Row="1" Margin="14,16,14,12" Spacing="5">
+          <TextBlock Text="{Binding WorkspaceTitle}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11"
+                     TextWrapping="Wrap" MaxLines="3" />
         </StackPanel>
-
-        <StackPanel Grid.Row="2" Margin="14,12" Spacing="12" VerticalAlignment="Top">
-          <Border Classes="card" Padding="14">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Start a workspace" FontWeight="SemiBold" FontSize="13" />
-              <TextBlock
-                  Classes="muted"
-                  Text="Open a standard .NET folder, solution, or project. Toren never converts your project into a proprietary format."
-                  FontSize="11"
-                  TextWrapping="Wrap" />
-              <Button Classes="primary-action" Content="Open Folder" HorizontalAlignment="Stretch" Click="OpenFolder_OnClick" />
-              <Button Classes="toolbar-button" Content="Open Solution or Project" HorizontalAlignment="Stretch" Click="OpenWorkspaceFile_OnClick" />
-            </StackPanel>
-          </Border>
+        <StackPanel Grid.Row="2" Margin="14,10" Spacing="10" VerticalAlignment="Top">
+          <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />
+          <TextBlock Classes="section-label" Text="GET STARTED" Margin="0,5,0,0" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Open a folder, solution, or project to show its files here." />
+          <Button Classes="primary-action" Content="Open Folder" Click="OpenFolder_OnClick"
+                  HorizontalAlignment="Stretch" />
+          <Button Classes="toolbar-button" Content="Open Solution or Project"
+                  Click="OpenWorkspaceFile_OnClick" HorizontalAlignment="Stretch" />
         </StackPanel>
-
-        <Border Grid.Row="3" Padding="14,10" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
-          <TextBlock Classes="subtle" Text=".sln  ·  .slnx  ·  .csproj" FontSize="10" />
+        <Border Grid.Row="3" Padding="14,10" BorderBrush="{DynamicResource TorenBorderBrush}"
+                BorderThickness="0,1,0,0">
+          <TextBlock Classes="subtle" Text="Standard .NET workspaces" FontSize="11" />
         </Border>
       </Grid>
     </Border>
 
-    <!-- Document area -->
+    <!-- Document host: the tab pattern reserves space for future file icons and dirty state. -->
     <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="38,*">
-      <Border
-          Grid.Row="0"
-          Background="{DynamicResource TorenSurfaceBrush}"
-          BorderBrush="{DynamicResource TorenBorderBrush}"
-          BorderThickness="0,0,0,1">
-        <Border
-            MinWidth="126"
-            HorizontalAlignment="Left"
-            Padding="14,0"
-            Background="{DynamicResource TorenBackgroundBrush}"
-            BorderBrush="{DynamicResource TorenAccentBrush}"
-            BorderThickness="0,0,0,2">
-          <TextBlock Text="Welcome" FontSize="12" VerticalAlignment="Center" />
+      <Border Grid.Row="0" Background="{DynamicResource TorenSurfaceBrush}"
+              BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+        <Border IsVisible="{Binding IsWelcomeOpen}" MinWidth="156" HorizontalAlignment="Left"
+                Background="{DynamicResource TorenBackgroundBrush}"
+                BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="0,0,0,2"
+                PointerPressed="WelcomeTab_OnPointerPressed">
+          <Grid ColumnDefinitions="18,*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
+            <Path Grid.Column="0" Classes="shell-icon" Width="14" Height="14"
+                  Stroke="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center"
+                  Data="M2 3H14V13H2Z M5 3V13" />
+            <TextBlock Grid.Column="1" Text="Welcome" FontSize="12" VerticalAlignment="Center" />
+            <Ellipse Grid.Column="2" Width="6" Height="6" IsVisible="False"
+                     Fill="{DynamicResource TorenTextMutedBrush}" VerticalAlignment="Center" />
+            <Button Grid.Column="3" Classes="tab-close" Width="26" Height="26" MinHeight="26"
+                    Padding="0" Click="CloseWelcome_OnClick" ToolTip.Tip="Close Welcome"
+                    AutomationProperties.Name="Close Welcome tab">
+              <Path Classes="shell-icon" Data="M3 3L13 13 M13 3L3 13" Width="12" Height="12" />
+            </Button>
+          </Grid>
         </Border>
       </Border>
-
       <Grid Grid.Row="1" Background="{DynamicResource TorenBackgroundBrush}">
-        <StackPanel
-            Width="620"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Spacing="20">
-          <StackPanel Spacing="6">
-            <TextBlock Text="Toren IDE" FontSize="32" FontWeight="SemiBold" />
-            <TextBlock
-                Classes="muted"
-                Text="Modern .NET development without project lock-in."
-                FontSize="15" />
-          </StackPanel>
-
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="primary-action" Content="Open Folder" Click="OpenFolder_OnClick" />
-            <Button Classes="toolbar-button" Content="Open Solution or Project" Click="OpenWorkspaceFile_OnClick" />
-          </StackPanel>
-
-          <Grid Margin="0,8,0,0" ColumnDefinitions="*,*" ColumnSpacing="12">
-            <Border Grid.Column="0" Classes="card" Padding="16">
-              <StackPanel Spacing="8">
-                <TextBlock Classes="section-label" Text="CURRENT SESSION" />
-                <TextBlock Text="{Binding EditorText}" FontSize="12" TextWrapping="Wrap" />
+        <ScrollViewer IsVisible="{Binding IsWelcomeOpen}" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel MaxWidth="880" Margin="48,54,48,40" HorizontalAlignment="Center" Spacing="32">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Toren IDE" FontSize="30" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" FontSize="14"
+                         Text="Modern .NET development without project lock-in." />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
+              <StackPanel Grid.Column="0" Spacing="12">
+                <TextBlock Text="Start" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <Button Classes="primary-action" Content="Open Folder" Click="OpenFolder_OnClick"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                <Button Classes="toolbar-button" Content="Open Solution or Project"
+                        Click="OpenWorkspaceFile_OnClick" HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <Button Classes="toolbar-button" Content="New Project" IsEnabled="False"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                          ToolTip.Tip="Coming in MVP 1.0" ToolTip.ShowOnDisabled="True" />
+                  <TextBlock Grid.Column="1" Classes="subtle" Text="Coming in MVP 1.0"
+                             FontSize="11" VerticalAlignment="Center" />
+                </Grid>
               </StackPanel>
-            </Border>
-
-            <Border Grid.Column="1" Classes="card" Padding="16">
-              <StackPanel Spacing="8">
-                <TextBlock Classes="section-label" Text="PROJECT COMPATIBILITY" />
-                <TextBlock
-                    Text="Standard .NET projects stay compatible with the dotnet CLI, Visual Studio, Rider, and VS Code."
-                    Classes="muted"
-                    FontSize="12"
-                    TextWrapping="Wrap" />
+              <StackPanel Grid.Column="1" Spacing="12">
+                <TextBlock Text="Recent" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <Border Classes="card" Padding="16">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="No recent workspaces yet" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Recent folders, solutions, and projects will appear here when session history is available." />
+                  </StackPanel>
+                </Border>
               </StackPanel>
-            </Border>
-          </Grid>
+            </Grid>
+            <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="32">
+              <StackPanel Grid.Column="0" Spacing="5">
+                <TextBlock Text="Learn" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <Button Classes="link-button" Content="Toren documentation" Tag="https://github.com/owlCoder/toren-ide/tree/main/docs"
+                        Click="OpenLink_OnClick" ToolTip.Tip="Open Toren documentation in your browser" />
+                <Button Classes="link-button" Content="Getting started" Tag="https://github.com/owlCoder/toren-ide#build-from-source"
+                        Click="OpenLink_OnClick" ToolTip.Tip="Open the getting started instructions" />
+                <Button Classes="link-button" Content="GitHub repository" Tag="https://github.com/owlCoder/toren-ide"
+                        Click="OpenLink_OnClick" ToolTip.Tip="Open the Toren repository" />
+                <Button Classes="link-button" Content="Keyboard shortcuts — coming in MVP 1.0"
+                        IsEnabled="False" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="13">
+                <TextBlock Text="Environment" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <Grid ColumnDefinitions="70,*" RowDefinitions="Auto,Auto" RowSpacing="11">
+                  <TextBlock Classes="subtle" Text="SDK" FontSize="12" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding SdkSummary}" FontSize="12" />
+                  <TextBlock Grid.Row="1" Classes="subtle" Text="Platform" FontSize="12" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Classes="muted" Text="{Binding PlatformSummary}" FontSize="12" />
+                </Grid>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+        <StackPanel IsVisible="{Binding IsWelcomeClosed}" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Spacing="8">
+          <TextBlock Text="No document open" FontSize="15" FontWeight="SemiBold"
+                     HorizontalAlignment="Center" />
+          <TextBlock Classes="muted" Text="Open a workspace to get started."
+                     FontSize="12" HorizontalAlignment="Center" />
         </StackPanel>
       </Grid>
     </Grid>
 
-    <!-- Bottom tool window -->
-    <Border
-        Grid.Row="2"
-        Grid.Column="2"
-        Classes="shell-surface"
-        BorderThickness="0,1,0,0">
-      <Grid RowDefinitions="36,*">
-        <StackPanel Margin="14,0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-          <TextBlock Text="PROBLEMS" FontSize="11" Classes="muted" />
-          <TextBlock Text="OUTPUT" FontSize="11" Foreground="{DynamicResource TorenAccentBrush}" FontWeight="SemiBold" />
-          <TextBlock Text="TERMINAL" FontSize="11" Classes="muted" />
-          <TextBlock Text="TESTS" FontSize="11" Classes="muted" />
-        </StackPanel>
-        <Border Grid.Row="1" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0" Padding="16,12">
-          <StackPanel Spacing="6">
-            <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
-            <TextBlock Classes="muted" Text="Build, restore, test, and tool output will appear here as those capabilities are implemented." FontSize="11" />
-          </StackPanel>
-        </Border>
+    <!-- Tool window: TabControl supplies keyboard selection and future badge room. -->
+    <Border Grid.Row="2" Grid.Column="2" Classes="shell-surface" BorderThickness="0,1,0,0">
+      <Grid RowDefinitions="3,*">
+        <Border Height="3" Background="{DynamicResource TorenBorderStrongBrush}" Opacity="0.45" />
+        <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
+          <TabItem Header="Problems">
+            <StackPanel Margin="17,14" Spacing="6">
+              <TextBlock Text="No problems to show" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="Diagnostics will appear here when project analysis is available." FontSize="11" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Output">
+            <StackPanel Margin="17,14" Spacing="6">
+              <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="Build and tool output will appear here when those capabilities are available." FontSize="11" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Terminal">
+            <StackPanel Margin="17,14" Spacing="6">
+              <TextBlock Text="Terminal is coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="The integrated shell is not available yet." FontSize="11" />
+            </StackPanel>
+          </TabItem>
+          <TabItem Header="Tests">
+            <StackPanel Margin="17,14" Spacing="6">
+              <TextBlock Text="Tests are coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="Test discovery and results are not available yet." FontSize="11" />
+            </StackPanel>
+          </TabItem>
+        </TabControl>
       </Grid>
     </Border>
 
-    <!-- Status bar -->
-    <Border
-        Grid.Row="3"
-        Grid.ColumnSpan="3"
-        Background="{DynamicResource TorenSurfaceRaisedBrush}"
-        BorderBrush="{DynamicResource TorenBorderBrush}"
-        BorderThickness="0,1,0,0">
-      <Grid Margin="10,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+    <!-- Compact status bar: only known state is displayed. -->
+    <Border Grid.Row="3" Grid.ColumnSpan="3" Background="{DynamicResource TorenSurfaceRaisedBrush}"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
+      <Grid Margin="12,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
         <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
-          <TextBlock Text="●" Foreground="{DynamicResource TorenSuccessBrush}" FontSize="8" />
-          <TextBlock Text="{Binding StatusText}" FontSize="10" />
+          <Ellipse Width="6" Height="6" Fill="{DynamicResource TorenSuccessBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding StatusText}" FontSize="11" MaxWidth="640"
+                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Grid.Column="2" Classes="subtle" Text="Toren IDE · Preview" FontSize="10" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+                   VerticalAlignment="Center" />
       </Grid>
     </Border>
   </Grid>

@@ -7,7 +7,7 @@ using Toren.App.Views;
 
 namespace Toren.App;
 
-public sealed partial class MainWindow : Window
+internal sealed partial class MainWindow : Window
 {
     private static readonly IReadOnlyList<string> SupportedWorkspacePatterns =
         new[] { "*.sln", "*.slnx", "*.csproj" };
@@ -46,6 +46,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (eventArgs.ClickCount == 2)
+        {
+            ToggleWindowState();
+            return;
+        }
+
         BeginMoveDrag(eventArgs);
     }
 
@@ -55,6 +61,11 @@ public sealed partial class MainWindow : Window
     }
 
     private void ToggleMaximizeWindow_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ToggleWindowState();
+    }
+
+    private void ToggleWindowState()
     {
         WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
@@ -105,5 +116,33 @@ public sealed partial class MainWindow : Window
     private async void About_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         await AboutWindow.ShowAsync(this).ConfigureAwait(true);
+    }
+
+    private void CloseWelcome_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        _viewModel.CloseWelcome();
+    }
+
+    private void WelcomeTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (eventArgs.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+        {
+            _viewModel.CloseWelcome();
+            eventArgs.Handled = true;
+        }
+    }
+
+    private async void OpenLink_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { Tag: string url })
+        {
+            return;
+        }
+
+        var launched = await Launcher.LaunchUriAsync(new Uri(url)).ConfigureAwait(true);
+        if (!launched)
+        {
+            _viewModel.SetStatus("Could not open the link in a browser.");
+        }
     }
 }

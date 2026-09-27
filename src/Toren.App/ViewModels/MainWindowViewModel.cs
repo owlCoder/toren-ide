@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
@@ -11,6 +12,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDotNetEnvironmentService _dotNetEnvironmentService;
     private readonly IWorkspaceClassifier _workspaceClassifier;
+    private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
+        : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
+        : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
+        : RuntimeInformation.OSDescription;
 
     [ObservableProperty]
     private string _workspaceTitle = "No workspace open";
@@ -25,7 +30,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _statusText = "Ready";
 
     [ObservableProperty]
-    private string _editorText = "Toren is ready. Open a folder, solution, or project to begin.";
+    [NotifyPropertyChangedFor(nameof(IsWelcomeClosed))]
+    private bool _isWelcomeOpen = true;
 
     public MainWindowViewModel(
         IDotNetEnvironmentService dotNetEnvironmentService,
@@ -36,6 +42,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     public ObservableCollection<DotNetSdkInfo> InstalledSdks { get; } = new();
+
+    public bool IsWelcomeClosed => !IsWelcomeOpen;
+
+    public string PlatformSummary => _platformSummary;
+
+    public void CloseWelcome() => IsWelcomeOpen = false;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -88,6 +100,5 @@ public sealed partial class MainWindowViewModel : ObservableObject
         WorkspaceTitle = workspace.DisplayName;
         WorkspacePath = workspace.Path;
         StatusText = $"Opened {workspace.Kind}: {workspace.Path}";
-        EditorText = $"{workspace.DisplayName}\n{workspace.Kind}\n{workspace.Path}";
     }
 }
