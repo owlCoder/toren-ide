@@ -1,0 +1,76 @@
+<Window
+    x:Class="Toren.App.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="1280"
+    Height="800"
+    MinWidth="960"
+    MinHeight="620"
+    Title="Toren IDE">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Padding="12,8" BorderBrush="#40444B" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="Toren IDE" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Content="Open Folder..." Click="OpenFolder_OnClick" />
+          <Button Content="Open Solution / Project..." Click="OpenWorkspaceFile_OnClick" />
+        </StackPanel>
+
+        <TextBlock
+            Grid.Column="2"
+            Text="{Binding SdkSummary}"
+            VerticalAlignment="Center"
+            Opacity="0.8" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="280,*,300">
+      <Border Grid.Column="0" Padding="14" BorderBrush="#40444B" BorderThickness="0,0,1,0">
+        <StackPanel Spacing="10">
+          <TextBlock Text="EXPLORER" FontSize="12" FontWeight="SemiBold" Opacity="0.7" />
+          <TextBlock Text="{Binding WorkspaceTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding WorkspacePath}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
+          <Separator />
+          <TextBlock
+              Text="The workspace tree is the next vertical slice. The current foundation already keeps workspace selection independent from the UI."
+              TextWrapping="Wrap"
+              Opacity="0.75" />
+        </StackPanel>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Border Padding="10,7" BorderBrush="#40444B" BorderThickness="0,0,0,1">
+          <TextBlock Text="Welcome" FontWeight="SemiBold" />
+        </Border>
+        <TextBox
+            Grid.Row="1"
+            Margin="12"
+            Text="{Binding EditorText}"
+            AcceptsReturn="True"
+            IsReadOnly="True"
+            TextWrapping="NoWrap" />
+      </Grid>
+
+      <Border Grid.Column="2" Padding="14" BorderBrush="#40444B" BorderThickness="1,0,0,0">
+        <StackPanel Spacing="10">
+          <TextBlock Text=".NET ENVIRONMENT" FontSize="12" FontWeight="SemiBold" Opacity="0.7" />
+          <ListBox ItemsSource="{Binding InstalledSdks}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,4" Spacing="2">
+                  <TextBlock Text="{Binding Version}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding BasePath}" FontSize="11" Opacity="0.65" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Padding="10,5" BorderBrush="#40444B" BorderThickness="0,1,0,0">
+      <TextBlock Text="{Binding StatusText}" FontSize="11" />
+    </Border>
+  </Grid>
+</Window>
