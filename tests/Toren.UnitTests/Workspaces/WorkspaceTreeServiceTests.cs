@@ -136,7 +136,8 @@ public sealed class WorkspaceTreeServiceTests
             Assert.Multiple(() =>
             {
                 Assert.That(references.IsSuccess, Is.True);
-                Assert.That(references.Value!.Select(node => node.Name), Is.EqualTo(new[] { "Active" }));
+                Assert.That(references.Value, Has.Count.EqualTo(1));
+                Assert.That(references.Value![0].Name, Is.EqualTo("Active"));
             });
         }
         finally
