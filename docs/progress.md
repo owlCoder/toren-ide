@@ -26,7 +26,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
 | Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
-| Workspace/project model | Partial | Lazy Explorer shows physical files, solution projects from `dotnet sln list`, and declared project references; evaluated MSBuild graph remains |
+| Workspace/project model | Partial | Lazy Explorer shows physical files and solution projects from `dotnet sln list`; reference expansion now uses evaluated MSBuild `ProjectReference`, `PackageReference`, and `FrameworkReference` items; broader evaluated graph metadata remains |
 | Recent workspaces/session restore | Partial | Recent workspaces persist in OS application data and the last available workspace is restored; document session state remains |
 | AvaloniaEdit integration | Planned | Real editable documents and tabs |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
@@ -54,7 +54,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
 - **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
-- **M1 — Active:** workspace and project system; lazy Explorer and workspace history are in place, with evaluated project graph and remaining workflow details next.
+- **M1 — Active:** workspace and project system; lazy Explorer, workspace history, and evaluated reference expansion are in place, with broader evaluated graph metadata and remaining workflow details next.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.

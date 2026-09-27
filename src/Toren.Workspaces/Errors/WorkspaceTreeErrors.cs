@@ -13,4 +13,6 @@ public static class WorkspaceTreeErrors
     public static OperationError SolutionListFailed(string details) =>
         OperationError.Create("workspace.solution.list.failed", $"Could not list solution projects: {details}");
 
+    public static OperationError ProjectEvaluationFailed(string details) =>
+        OperationError.Create("workspace.project.evaluate.failed", $"Could not evaluate project references: {details}");
 }

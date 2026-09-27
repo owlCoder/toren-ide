@@ -81,7 +81,7 @@ public sealed class WorkspaceTreeServiceTests
     }
 
     [Test]
-    public async Task ProjectChildrenExposeConciseReferenceNamesAndPhysicalFiles()
+    public async Task ProjectChildrenExposeEvaluatedReferenceNamesAndPhysicalFiles()
     {
         var root = CreateTemporaryDirectory();
         try
@@ -91,7 +91,9 @@ public sealed class WorkspaceTreeServiceTests
                 project,
                 "<Project><ItemGroup><ProjectReference Include=\"../Lib/ParcelBox.Application.csproj\" /><PackageReference Include=\"NUnit\" Version=\"4.0\" /><FrameworkReference Include=\"Microsoft.AspNetCore.App\" /></ItemGroup></Project>");
             File.WriteAllText(Path.Combine(root, "Program.cs"), "class Program {}");
-            var service = new WorkspaceTreeService(new FakeProcessRunner(string.Empty));
+            var runner = new FakeProcessRunner(
+                "{\"Items\":{\"ProjectReference\":[{\"Identity\":\"../Lib/ParcelBox.Application.csproj\"}],\"PackageReference\":[{\"Identity\":\"NUnit\"}],\"FrameworkReference\":[{\"Identity\":\"Microsoft.AspNetCore.App\"}]}}");
+            var service = new WorkspaceTreeService(runner);
 
             var children = await service.GetChildrenAsync(new WorkspaceNode(project, "App", WorkspaceNodeKind.Project));
             var references = await service.GetChildrenAsync(new WorkspaceNode(project, "References", WorkspaceNodeKind.References));
@@ -104,6 +106,63 @@ public sealed class WorkspaceTreeServiceTests
                 Assert.That(
                     string.Join(",", references.Value!.Select(node => node.Name)),
                     Is.EqualTo("ParcelBox.Application,NUnit,Microsoft.AspNetCore.App"));
+                Assert.That(
+                    string.Join("|", runner.LastRequest!.Arguments),
+                    Is.EqualTo($"msbuild|{project}|-nologo|-verbosity:quiet|-getItem:ProjectReference,PackageReference,FrameworkReference"));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ReferenceExpansionUsesEvaluatedItemsInsteadOfInactiveDeclarations()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var project = Path.Combine(root, "App.csproj");
+            File.WriteAllText(
+                project,
+                "<Project><ItemGroup><ProjectReference Include=\"Active.csproj\" /><ProjectReference Include=\"Inactive.csproj\" Condition=\"'$(Configuration)' == 'Never'\" /></ItemGroup></Project>");
+            var runner = new FakeProcessRunner(
+                "{\"Items\":{\"ProjectReference\":[{\"Identity\":\"Active.csproj\"}],\"PackageReference\":[],\"FrameworkReference\":[]}}");
+            var service = new WorkspaceTreeService(runner);
+
+            var references = await service.GetChildrenAsync(new WorkspaceNode(project, "References", WorkspaceNodeKind.References));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(references.IsSuccess, Is.True);
+                Assert.That(references.Value!.Select(node => node.Name), Is.EqualTo(new[] { "Active" }));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ReferenceExpansionReportsMsBuildEvaluationFailure()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var project = Path.Combine(root, "App.csproj");
+            File.WriteAllText(project, "<Project />");
+            var service = new WorkspaceTreeService(
+                new FakeProcessRunner(string.Empty, exitCode: 1, standardError: "evaluation failed"));
+
+            var references = await service.GetChildrenAsync(new WorkspaceNode(project, "References", WorkspaceNodeKind.References));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(references.IsFailure, Is.True);
+                Assert.That(references.Error.Code, Is.EqualTo("workspace.project.evaluate.failed"));
+                Assert.That(references.Error.Message, Does.Contain("evaluation failed"));
             });
         }
         finally
@@ -132,14 +191,17 @@ public sealed class WorkspaceTreeServiceTests
         return path;
     }
 
-    private sealed class FakeProcessRunner(string output) : IProcessRunner
+    private sealed class FakeProcessRunner(
+        string output,
+        int exitCode = 0,
+        string standardError = "") : IProcessRunner
     {
         public ProcessRequest? LastRequest { get; private set; }
 
         public Task<Result<ProcessResult>> RunAsync(ProcessRequest request, CancellationToken cancellationToken = default)
         {
             LastRequest = request;
-            return Task.FromResult(Result.Success(new ProcessResult(0, output, string.Empty)));
+            return Task.FromResult(Result.Success(new ProcessResult(exitCode, output, standardError)));
         }
     }
 }
