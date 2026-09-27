@@ -101,6 +101,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             if (ActivateWorkspace(workspace, closeWelcome: false))
             {
                 StatusText = $"Restored {workspace.DisplayName}";
+                await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
                 break;
             }
         }
@@ -149,6 +150,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return false;
         }
 
+        await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
+
         var recorded = await _recentWorkspaceStore.RecordAsync(workspace, cancellationToken).ConfigureAwait(true);
         if (recorded.IsSuccess)
         {
@@ -190,5 +193,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         HasRecentWorkspaces = RecentWorkspaces.Count > 0;
+    }
+
+    private async Task ExpandRootAsync(CancellationToken cancellationToken)
+    {
+        var root = Explorer.Roots[0];
+        // Start loading before expansion so the routed UI event cannot start a duplicate request.
+        var load = ExpandNodeAsync(root, cancellationToken);
+        root.IsExpanded = true;
+        await load.ConfigureAwait(true);
     }
 }

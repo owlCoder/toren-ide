@@ -28,7 +28,7 @@ public sealed partial class ExplorerViewModel(IWorkspaceTreeService workspaceTre
         }
 
         Roots.Clear();
-        Roots.Add(new WorkspaceNodeViewModel(result.Value, isExpanded: true));
+        Roots.Add(new WorkspaceNodeViewModel(result.Value));
         IsWorkspaceOpen = true;
         return result;
     }
