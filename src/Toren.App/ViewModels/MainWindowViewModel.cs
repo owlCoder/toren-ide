@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.App.Documents.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
+using Toren.Language.CSharp.Contracts;
+using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
 
@@ -16,6 +18,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IWorkspaceClassifier _workspaceClassifier;
     private readonly IRecentWorkspaceStore _recentWorkspaceStore;
     private readonly IDocumentSessionStore _documentSessionStore;
+    private readonly ICSharpSyntaxService _cSharpSyntaxService;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
@@ -53,6 +56,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IWorkspaceTreeService workspaceTreeService,
         IRecentWorkspaceStore recentWorkspaceStore,
         IDocumentSessionStore documentSessionStore,
+        ICSharpSyntaxService cSharpSyntaxService,
         DocumentHostViewModel documents)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
@@ -60,6 +64,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _workspaceClassifier = workspaceClassifier ?? throw new ArgumentNullException(nameof(workspaceClassifier));
         _recentWorkspaceStore = recentWorkspaceStore ?? throw new ArgumentNullException(nameof(recentWorkspaceStore));
         _documentSessionStore = documentSessionStore ?? throw new ArgumentNullException(nameof(documentSessionStore));
+        _cSharpSyntaxService = cSharpSyntaxService ?? throw new ArgumentNullException(nameof(cSharpSyntaxService));
         Documents = documents ?? throw new ArgumentNullException(nameof(documents));
         Explorer = new ExplorerViewModel(workspaceTreeService);
     }
@@ -67,6 +72,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<DotNetSdkInfo> InstalledSdks { get; } = new();
 
     public ObservableCollection<WorkspaceDescriptor> RecentWorkspaces { get; } = new();
+
+    public ObservableCollection<CSharpDiagnostic> ActiveDiagnostics { get; } = new();
 
     public ExplorerViewModel Explorer { get; }
 
@@ -98,6 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         Documents.Deactivate();
+        ActiveDiagnostics.Clear();
         IsWelcomeSelected = true;
     }
 
@@ -146,6 +154,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         await RestoreDocumentSessionAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshActiveDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public async Task OpenDirectoryAsync(string path, CancellationToken cancellationToken = default)
@@ -202,12 +211,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         IsWelcomeSelected = false;
+        await RefreshActiveDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
         StatusText = $"Opened {opened.Value.Title}";
     }
 
     public void ActivateDocument(OpenDocumentViewModel document)
     {
         Documents.Activate(document);
+        ActiveDiagnostics.Clear();
         IsWelcomeSelected = false;
     }
 
@@ -222,6 +233,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        ActiveDiagnostics.Clear();
         StatusText = $"Closed {document.Title}";
         if (Documents.ActiveDocument is null && IsWelcomeOpen)
         {
@@ -232,9 +244,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public async Task SaveActiveDocumentAsync(CancellationToken cancellationToken = default)
     {
         var saved = await Documents.SaveActiveAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = saved.IsSuccess
-            ? $"Saved {saved.Value.Title}"
-            : saved.Error.Message;
+        if (saved.IsSuccess)
+        {
+            await RefreshActiveDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
+            StatusText = $"Saved {saved.Value.Title}";
+        }
+        else
+        {
+            StatusText = saved.Error.Message;
+        }
     }
 
     public async Task<bool> PersistDocumentSessionAsync(CancellationToken cancellationToken = default)
@@ -327,6 +345,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             IsWelcomeSelected = false;
             StatusText = $"Restored {restoredCount} document tab{(restoredCount == 1 ? string.Empty : "s")}.";
+        }
+    }
+
+    private async Task RefreshActiveDiagnosticsAsync(CancellationToken cancellationToken)
+    {
+        ActiveDiagnostics.Clear();
+        var document = Documents.ActiveDocument;
+        if (document is null
+            || !Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var diagnostics = await _cSharpSyntaxService
+            .AnalyzeAsync(document.Text, cancellationToken)
+            .ConfigureAwait(true);
+        foreach (var diagnostic in diagnostics)
+        {
+            ActiveDiagnostics.Add(diagnostic);
         }
     }
 

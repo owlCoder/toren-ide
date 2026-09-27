@@ -2,6 +2,7 @@
   <Project Path="src/Toren.App/Toren.App.csproj" />
   <Project Path="src/Toren.Core/Toren.Core.csproj" />
   <Project Path="src/Toren.DotNet/Toren.DotNet.csproj" />
+  <Project Path="src/Toren.Language/Toren.Language.csproj" />
   <Project Path="src/Toren.Platform/Toren.Platform.csproj" />
   <Project Path="src/Toren.Workspaces/Toren.Workspaces.csproj" />
   <Project Path="tests/Toren.UnitTests/Toren.UnitTests.csproj" />

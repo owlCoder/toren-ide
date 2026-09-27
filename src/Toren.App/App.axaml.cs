@@ -8,6 +8,8 @@ using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
+using Toren.Language.CSharp.Contracts;
+using Toren.Language.CSharp.Services;
 using Toren.Platform.Execution.Adapters;
 using Toren.Workspaces.Adapters;
 using Toren.Workspaces.Contracts;
@@ -43,6 +45,7 @@ public sealed partial class App : Application
             ITextDocumentStore textDocumentStore = new FileTextDocumentStore();
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
+            ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             var documentHost = new DocumentHostViewModel(textDocumentStore);
 
             var viewModel = new MainWindowViewModel(
@@ -52,6 +55,7 @@ public sealed partial class App : Application
                 workspaceTreeService,
                 recentWorkspaceStore,
                 documentSessionStore,
+                cSharpSyntaxService,
                 documentHost);
             desktop.MainWindow = new MainWindow(viewModel);
         }

@@ -5,6 +5,8 @@ using Toren.App.ViewModels;
 using Toren.Core.Results;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
+using Toren.Language.CSharp.Contracts;
+using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
 using Toren.Workspaces.Services;
@@ -92,6 +94,7 @@ public sealed class ExplorerOpeningTests
             tree,
             recent,
             documentSessionStore ?? new FakeDocumentSessionStore(new DocumentSessionState([], null)),
+            new FakeCSharpSyntaxService(),
             new DocumentHostViewModel(new FakeTextDocumentStore()));
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService
@@ -167,5 +170,13 @@ public sealed class ExplorerOpeningTests
             DocumentSessionState state,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success(state));
+    }
+
+    private sealed class FakeCSharpSyntaxService : ICSharpSyntaxService
+    {
+        public Task<IReadOnlyList<CSharpDiagnostic>> AnalyzeAsync(
+            string sourceText,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<CSharpDiagnostic>>([]);
     }
 }

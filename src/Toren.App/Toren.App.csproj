@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Toren.DotNet/Toren.DotNet.csproj" />
+    <ProjectReference Include="../Toren.Language/Toren.Language.csproj" />
     <ProjectReference Include="../Toren.Platform/Toren.Platform.csproj" />
     <ProjectReference Include="../Toren.Workspaces/Toren.Workspaces.csproj" />
   </ItemGroup>
