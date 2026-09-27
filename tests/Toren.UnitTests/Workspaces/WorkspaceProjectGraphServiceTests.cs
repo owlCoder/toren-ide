@@ -17,10 +17,12 @@ public sealed class WorkspaceProjectGraphServiceTests
         var root = Path.Combine(Path.GetTempPath(), "ParcelBox");
         var api = Path.Combine(root, "ParcelBox.Api", "ParcelBox.Api.csproj");
         var locker = Path.Combine(root, "ParcelBox.Simulators.LockerControl", "ParcelBox.Simulators.LockerControl.csproj");
+        var folderProvider = new FakeFolderProjectProvider([]);
         var solutionProvider = new FakeSolutionProjectProvider([api, locker]);
         var metadataProvider = new FakeProjectMetadataProvider();
         var referenceProvider = new FakeProjectReferenceProvider(api, locker);
         var service = new WorkspaceProjectGraphService(
+            folderProvider,
             solutionProvider,
             metadataProvider,
             referenceProvider);
@@ -41,6 +43,7 @@ public sealed class WorkspaceProjectGraphServiceTests
             Assert.That(string.Join("|", result.Value.Projects[0].Metadata.TargetFrameworks), Is.EqualTo("net10.0"));
             Assert.That(result.Value.Projects[0].References, Has.Count.EqualTo(1));
             Assert.That(result.Value.Projects[0].References[0].ResolvedPath, Is.EqualTo(locker));
+            Assert.That(folderProvider.CallCount, Is.Zero);
             Assert.That(solutionProvider.CallCount, Is.EqualTo(1));
             Assert.That(metadataProvider.CallCount, Is.EqualTo(2));
             Assert.That(referenceProvider.CallCount, Is.EqualTo(2));
@@ -48,13 +51,15 @@ public sealed class WorkspaceProjectGraphServiceTests
     }
 
     [Test]
-    public async Task ProjectWorkspaceDoesNotInvokeSolutionProvider()
+    public async Task ProjectWorkspaceDoesNotInvokeDiscoveryProviders()
     {
         var projectPath = Path.Combine(Path.GetTempPath(), "ParcelBox.Api.csproj");
+        var folderProvider = new FakeFolderProjectProvider([]);
         var solutionProvider = new FakeSolutionProjectProvider([]);
         var metadataProvider = new FakeProjectMetadataProvider();
         var referenceProvider = new FakeProjectReferenceProvider(string.Empty, string.Empty);
         var service = new WorkspaceProjectGraphService(
+            folderProvider,
             solutionProvider,
             metadataProvider,
             referenceProvider);
@@ -68,6 +73,7 @@ public sealed class WorkspaceProjectGraphServiceTests
             Assert.That(result.Value!.Projects, Has.Count.EqualTo(1));
             Assert.That(result.Value.Projects[0].Path, Is.EqualTo(Path.GetFullPath(projectPath)));
             Assert.That(result.Value.Projects[0].DisplayName, Is.EqualTo("Api"));
+            Assert.That(folderProvider.CallCount, Is.Zero);
             Assert.That(solutionProvider.CallCount, Is.Zero);
             Assert.That(metadataProvider.CallCount, Is.EqualTo(1));
             Assert.That(referenceProvider.CallCount, Is.EqualTo(1));
@@ -75,12 +81,15 @@ public sealed class WorkspaceProjectGraphServiceTests
     }
 
     [Test]
-    public async Task FolderWorkspaceKeepsGraphEmptyWithoutEagerProjectDiscovery()
+    public async Task FolderWorkspaceDiscoversProjectsThroughFolderProvider()
     {
+        var projectPath = Path.Combine(Path.GetTempPath(), "src", "ParcelBox.Api", "ParcelBox.Api.csproj");
+        var folderProvider = new FakeFolderProjectProvider([projectPath]);
         var solutionProvider = new FakeSolutionProjectProvider([]);
         var metadataProvider = new FakeProjectMetadataProvider();
         var referenceProvider = new FakeProjectReferenceProvider(string.Empty, string.Empty);
         var service = new WorkspaceProjectGraphService(
+            folderProvider,
             solutionProvider,
             metadataProvider,
             referenceProvider);
@@ -91,10 +100,12 @@ public sealed class WorkspaceProjectGraphServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value!.Projects, Is.Empty);
+            Assert.That(result.Value!.Projects, Has.Count.EqualTo(1));
+            Assert.That(result.Value.Projects[0].DisplayName, Is.EqualTo("Api"));
+            Assert.That(folderProvider.CallCount, Is.EqualTo(1));
             Assert.That(solutionProvider.CallCount, Is.Zero);
-            Assert.That(metadataProvider.CallCount, Is.Zero);
-            Assert.That(referenceProvider.CallCount, Is.Zero);
+            Assert.That(metadataProvider.CallCount, Is.EqualTo(1));
+            Assert.That(referenceProvider.CallCount, Is.EqualTo(1));
         });
     }
 
@@ -103,6 +114,7 @@ public sealed class WorkspaceProjectGraphServiceTests
     {
         var projectPath = Path.Combine(Path.GetTempPath(), "Broken.csproj");
         var service = new WorkspaceProjectGraphService(
+            new FakeFolderProjectProvider([]),
             new FakeSolutionProjectProvider([]),
             new FailingProjectMetadataProvider(),
             new FakeProjectReferenceProvider(string.Empty, string.Empty));
@@ -128,6 +140,20 @@ public sealed class WorkspaceProjectGraphServiceTests
             DirectoryBuildPropsPath: null,
             DirectoryBuildTargetsPath: null,
             DirectoryPackagesPropsPath: null);
+
+    private sealed class FakeFolderProjectProvider(IReadOnlyList<string> projects) : IFolderProjectProvider
+    {
+        public int CallCount { get; private set; }
+
+        public Task<Result<IReadOnlyList<string>>> GetProjectPathsAsync(
+            string folderPath,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            return Task.FromResult(Result.Success(projects));
+        }
+    }
 
     private sealed class FakeSolutionProjectProvider(IReadOnlyList<string> projects) : ISolutionProjectProvider
     {

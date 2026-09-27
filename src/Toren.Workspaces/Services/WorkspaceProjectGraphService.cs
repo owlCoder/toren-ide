@@ -5,10 +5,13 @@ using Toren.Workspaces.Models;
 namespace Toren.Workspaces.Services;
 
 public sealed class WorkspaceProjectGraphService(
+    IFolderProjectProvider folderProjectProvider,
     ISolutionProjectProvider solutionProjectProvider,
     IProjectMetadataProvider projectMetadataProvider,
     IProjectReferenceProvider projectReferenceProvider) : IWorkspaceProjectGraphService
 {
+    private readonly IFolderProjectProvider _folderProjectProvider = folderProjectProvider
+        ?? throw new ArgumentNullException(nameof(folderProjectProvider));
     private readonly ISolutionProjectProvider _solutionProjectProvider = solutionProjectProvider
         ?? throw new ArgumentNullException(nameof(solutionProjectProvider));
     private readonly IProjectMetadataProvider _projectMetadataProvider = projectMetadataProvider
@@ -69,7 +72,9 @@ public sealed class WorkspaceProjectGraphService(
     {
         return workspace.Kind switch
         {
-            WorkspaceKind.Folder => Result.Success<IReadOnlyList<string>>([]),
+            WorkspaceKind.Folder => await _folderProjectProvider
+                .GetProjectPathsAsync(workspace.Path, cancellationToken)
+                .ConfigureAwait(false),
             WorkspaceKind.Project => Result.Success<IReadOnlyList<string>>([Path.GetFullPath(workspace.Path)]),
             WorkspaceKind.Solution or WorkspaceKind.SolutionX => await _solutionProjectProvider
                 .GetProjectPathsAsync(workspace.Path, cancellationToken)
