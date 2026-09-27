@@ -15,5 +15,6 @@
     <FluentTheme />
     <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     <StyleInclude Source="avares://Toren.App/Styles/TorenStyles.axaml" />
+    <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />
   </Application.Styles>
 </Application>
