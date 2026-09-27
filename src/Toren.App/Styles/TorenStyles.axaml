@@ -113,6 +113,19 @@
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
   </Style>
+  <Style Selector="MenuFlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+  </Style>
+  <Style Selector="MenuFlyoutPresenter MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="MenuFlyoutPresenter MenuItem:pointerover /template/ Border#PART_LayoutRoot, MenuFlyoutPresenter MenuItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
+  </Style>
   <Style Selector="Button.toolbar-button:pointerover /template/ ContentPresenter, Button.link-button:pointerover /template/ ContentPresenter, Button.tab-close:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
