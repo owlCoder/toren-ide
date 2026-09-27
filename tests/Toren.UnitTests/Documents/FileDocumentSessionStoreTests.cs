@@ -20,13 +20,14 @@ public sealed class FileDocumentSessionStoreTests
 
             var saved = await store.SaveAsync(new DocumentSessionState([first, second], second));
             var loaded = await store.LoadAsync();
+            var restored = loaded.Value!;
 
             Assert.Multiple(() =>
             {
                 Assert.That(saved.IsSuccess, Is.True);
                 Assert.That(loaded.IsSuccess, Is.True);
-                Assert.That(loaded.Value.OpenDocumentPaths, Is.EqualTo(new[] { first, second }));
-                Assert.That(loaded.Value.ActiveDocumentPath, Is.EqualTo(second));
+                Assert.That(restored.OpenDocumentPaths, Is.EqualTo(new[] { first, second }));
+                Assert.That(restored.ActiveDocumentPath, Is.EqualTo(second));
             });
         }
         finally
