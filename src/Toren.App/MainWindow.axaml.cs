@@ -1,9 +1,14 @@
 using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using AvaloniaEdit.Highlighting;
+using Avalonia.Styling;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.TextMate;
+using TextMateSharp.Grammars;
 using Toren.App.ViewModels;
 using Toren.Workspaces.Models;
 
@@ -24,9 +29,12 @@ internal sealed partial class MainWindow : Window
         };
 
     private readonly MainWindowViewModel _viewModel;
+    private readonly RegistryOptions _registryOptions;
+    private readonly TextMate.TextMate.Installation _textMateInstallation;
     private bool _synchronizingEditorText;
     private bool _sessionCloseInProgress;
     private bool _sessionPersistedForClose;
+    private bool _isDarkTheme = true;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -36,6 +44,12 @@ internal sealed partial class MainWindow : Window
         DataContext = viewModel;
 
         InitializeComponent();
+        _registryOptions = new RegistryOptions(ThemeName.DarkPlus);
+        _textMateInstallation = DocumentEditor.InstallTextMate(_registryOptions);
+        _textMateInstallation.AppliedTheme += TextMateInstallation_OnAppliedTheme;
+        ConfigureEditor();
+        ApplyTheme(isDark: true);
+
         WorkspaceTree.AddHandler(TreeViewItem.ExpandedEvent, WorkspaceNode_OnExpanded);
         WorkspaceTree.DoubleTapped += WorkspaceTree_OnDoubleTapped;
         DocumentEditor.TextChanged += DocumentEditor_OnTextChanged;
@@ -43,6 +57,26 @@ internal sealed partial class MainWindow : Window
         KeyDown += MainWindow_OnKeyDown;
         Closing += MainWindow_OnClosing;
         Opened += OnOpened;
+    }
+
+    protected override void OnClosed(EventArgs eventArgs)
+    {
+        _textMateInstallation.AppliedTheme -= TextMateInstallation_OnAppliedTheme;
+        _textMateInstallation.Dispose();
+        base.OnClosed(eventArgs);
+    }
+
+    private void ConfigureEditor()
+    {
+        DocumentEditor.Options.HighlightCurrentLine = true;
+        DocumentEditor.Options.EnableTextDragDrop = true;
+        DocumentEditor.TextArea.RightClickMovesCaret = true;
+        DocumentEditor.LineNumbersMargin = new Thickness(10, 0, 12, 0);
+
+        foreach (var margin in DocumentEditor.TextArea.LeftMargins.OfType<LineNumberMargin>())
+        {
+            margin.MinWidthInDigits = 3;
+        }
     }
 
     private async void OnOpened(object? sender, EventArgs eventArgs)
@@ -88,9 +122,7 @@ internal sealed partial class MainWindow : Window
     private void SynchronizeEditorFromActiveDocument()
     {
         var document = _viewModel.Documents.ActiveDocument;
-        DocumentEditor.SyntaxHighlighting = document is null
-            ? null
-            : HighlightingManager.Instance.GetDefinitionByExtension(Path.GetExtension(document.Path));
+        ApplyGrammar(document?.Path);
 
         var text = document?.Text ?? string.Empty;
         if (DocumentEditor.Text.Equals(text, StringComparison.Ordinal))
@@ -109,6 +141,21 @@ internal sealed partial class MainWindow : Window
         }
     }
 
+    private void ApplyGrammar(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            _textMateInstallation.SetGrammar(null);
+            return;
+        }
+
+        var language = _registryOptions.GetLanguageByExtension(Path.GetExtension(path));
+        var scopeName = language is null
+            ? null
+            : _registryOptions.GetScopeByLanguageId(language.Id);
+        _textMateInstallation.SetGrammar(scopeName);
+    }
+
     private void DocumentEditor_OnTextChanged(object? sender, EventArgs eventArgs)
     {
         if (_synchronizingEditorText || _viewModel.Documents.ActiveDocument is not { } document)
@@ -120,6 +167,91 @@ internal sealed partial class MainWindow : Window
         {
             document.Text = DocumentEditor.Text;
         }
+    }
+
+    private void TextMateInstallation_OnAppliedTheme(object? sender, TextMate.TextMate.Installation installation)
+    {
+        ApplyTextMateBrush(
+            installation,
+            "editor.background",
+            brush =>
+            {
+                DocumentEditor.Background = brush;
+                DocumentEditor.TextArea.Background = brush;
+            });
+        ApplyTextMateBrush(installation, "editor.foreground", brush => DocumentEditor.Foreground = brush);
+        ApplyTextMateBrush(
+            installation,
+            "editor.selectionBackground",
+            brush => DocumentEditor.TextArea.SelectionBrush = brush);
+        ApplyTextMateBrush(
+            installation,
+            "editor.lineHighlightBackground",
+            brush =>
+            {
+                DocumentEditor.TextArea.TextView.CurrentLineBackground = brush;
+                DocumentEditor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
+            });
+        ApplyTextMateBrush(
+            installation,
+            "editorLineNumber.foreground",
+            brush => DocumentEditor.LineNumbersForeground = brush);
+    }
+
+    private static bool ApplyTextMateBrush(
+        TextMate.TextMate.Installation installation,
+        string colorKey,
+        Action<IBrush> apply)
+    {
+        if (!installation.TryGetThemeColor(colorKey, out var colorValue)
+            || !Color.TryParse(colorValue, out var color))
+        {
+            return false;
+        }
+
+        apply(new SolidColorBrush(color));
+        return true;
+    }
+
+    private void ApplyTheme(bool isDark)
+    {
+        _isDarkTheme = isDark;
+        if (Application.Current is { } application)
+        {
+            application.RequestedThemeVariant = isDark
+                ? ThemeVariant.Dark
+                : ThemeVariant.Light;
+        }
+
+        _textMateInstallation.SetTheme(
+            _registryOptions.LoadTheme(isDark ? ThemeName.DarkPlus : ThemeName.LightPlus));
+        ThemeSunIcon.IsVisible = isDark;
+        ThemeMoonIcon.IsVisible = !isDark;
+        ToolTip.SetTip(
+            ThemeToggleButton,
+            isDark ? "Switch to light theme" : "Switch to dark theme");
+    }
+
+    private void ToggleTheme_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ApplyTheme(!_isDarkTheme);
+    }
+
+    private async void SaveActiveDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        await _viewModel.SaveActiveDocumentAsync().ConfigureAwait(true);
+    }
+
+    private void Undo_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        DocumentEditor.Undo();
+        DocumentEditor.Focus();
+    }
+
+    private void Redo_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        DocumentEditor.Redo();
+        DocumentEditor.Focus();
     }
 
     private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
