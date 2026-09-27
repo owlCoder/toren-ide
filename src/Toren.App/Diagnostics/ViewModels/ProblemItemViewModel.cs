@@ -10,7 +10,7 @@ public sealed class ProblemItemViewModel
         ArgumentNullException.ThrowIfNull(diagnostic);
 
         FilePath = filePath;
-        FileName = Path.GetFileName(filePath);
+        FileName = Path.GetFileName(filePath) ?? filePath;
         Code = diagnostic.Id;
         Message = diagnostic.Message;
         Severity = diagnostic.Severity;
