@@ -9,19 +9,21 @@ Status legend: **Done** = implemented and validated in CI; **Partial** = useful 
 Before feature implementation continues, Toren is locking in the OSS maintainability and UI/UX baseline:
 
 - **Done** — cross-platform Avalonia shell and shared design tokens;
-- **Done** — macOS application identity and Toren-specific About dialog/menu;
+- **Done** — Toren-specific application identity and About experience;
+- **Done** — custom Toren window chrome/title bars for the main shell and application dialogs;
+- **Done** — activity rail disabled/planned states render without native-theme visual artifacts;
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
-- **Partial** — keyboard/accessibility polish will continue as real controls replace placeholders.
+- **Partial** — shell density, interaction polish, keyboard behavior, focus states, and accessibility remain in the active quality round before M1 starts.
 
 ## MVP 1.0 feature matrix
 
 | Area | Status | Current state / next acceptance point |
 | --- | --- | --- |
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
-| Toren visual language / shell | Done | Design tokens, IDE regions, honest empty states, About dialog |
+| Toren visual language / shell | Partial | Shared design tokens, custom chrome, IDE regions, honest empty states, About dialog; final UI/UX polish remains active |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
 | Workspace/project model | Planned | Load solution/project graph and populate Explorer |
 | Recent workspaces/session restore | Planned | Persist IDE-only state without affecting builds |
@@ -50,8 +52,8 @@ Before feature implementation continues, Toren is locking in the OSS maintainabi
 ## Delivery slices
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
-- **Q0 — Done:** maintainability, Result pattern, source layout, UI/UX baseline, Toren About/identity.
-- **M1 — Next:** workspace and project system.
+- **Q0 — Active:** maintainability, Result pattern, source layout, application identity, custom chrome, and final UI/UX hardening before feature work resumes.
+- **M1 — Next after Q0:** workspace and project system.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.
