@@ -5,6 +5,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
         xmlns:icons="clr-namespace:Toren.App.Views.Explorer"
+        xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         Width="1440" Height="900" MinWidth="1080" MinHeight="700"
         CanResize="True" WindowDecorations="None" Title="Toren IDE">
   <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
@@ -155,32 +156,68 @@
       </Grid>
     </Border>
 
-    <!-- Document host: the tab pattern reserves space for future file icons and dirty state. -->
+    <!-- Document host: real files open as tabs and are edited with AvaloniaEdit. -->
     <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="Auto,*">
       <Border Grid.Row="0" Height="{StaticResource TorenPanelHeaderHeight}"
               Background="{DynamicResource TorenSurfaceBrush}"
               BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-        <Border IsVisible="{Binding IsWelcomeOpen}" MinWidth="156" HorizontalAlignment="Left"
-                Background="{DynamicResource TorenBackgroundBrush}"
-                BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="0,0,0,2"
-                PointerPressed="WelcomeTab_OnPointerPressed">
-          <Grid ColumnDefinitions="18,*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
-            <Path Grid.Column="0" Classes="shell-icon" Width="14" Height="14"
-                  Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center"
-                  Data="{StaticResource TorenIconWelcome}" />
-            <TextBlock Grid.Column="1" Text="Welcome" FontSize="12" VerticalAlignment="Center" />
-            <Ellipse Grid.Column="2" Width="6" Height="6" IsVisible="False"
-                     Fill="{DynamicResource TorenTextMutedBrush}" VerticalAlignment="Center" />
-            <Button Grid.Column="3" Classes="tab-close" Width="26" Height="26" MinHeight="26"
-                    Padding="0" Click="CloseWelcome_OnClick" ToolTip.Tip="Close Welcome"
-                    AutomationProperties.Name="Close Welcome tab">
-              <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
-            </Button>
-          </Grid>
-        </Border>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal">
+            <Border IsVisible="{Binding IsWelcomeOpen}" MinWidth="156"
+                    Background="{DynamicResource TorenBackgroundBrush}"
+                    PointerPressed="WelcomeTab_OnPointerPressed">
+              <Grid RowDefinitions="*,2">
+                <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="7" Margin="12,0,6,0">
+                  <Path Grid.Column="0" Classes="shell-icon" Width="14" Height="14"
+                        Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center"
+                        Data="{StaticResource TorenIconWelcome}" />
+                  <TextBlock Grid.Column="1" Text="Welcome" FontSize="12" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Classes="tab-close" Width="26" Height="26" MinHeight="26"
+                          Padding="0" Click="CloseWelcome_OnClick" ToolTip.Tip="Close Welcome"
+                          AutomationProperties.Name="Close Welcome tab">
+                    <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
+                  </Button>
+                </Grid>
+                <Border Grid.Row="1" Height="2" Background="{DynamicResource TorenAccentBrush}"
+                        IsVisible="{Binding IsWelcomeSelected}" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Documents.OpenDocuments}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:OpenDocumentViewModel">
+                  <Border MinWidth="130" MaxWidth="240"
+                          Background="{DynamicResource TorenSurfaceBrush}"
+                          BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1,0,0,0"
+                          PointerPressed="DocumentTab_OnPointerPressed" ToolTip.Tip="{Binding Path}">
+                    <Grid RowDefinitions="*,2">
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
+                        <TextBlock Grid.Column="0" Text="{Binding Title}" FontSize="12"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <Ellipse Grid.Column="1" Width="6" Height="6" IsVisible="{Binding IsDirty}"
+                                 Fill="{DynamicResource TorenTextMutedBrush}" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Classes="tab-close" Width="26" Height="26" MinHeight="26"
+                                Padding="0" Click="CloseDocument_OnClick" ToolTip.Tip="Close document"
+                                AutomationProperties.Name="Close document tab">
+                          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
+                        </Button>
+                      </Grid>
+                      <Border Grid.Row="1" Height="2" Background="{DynamicResource TorenAccentBrush}"
+                              IsVisible="{Binding IsActive}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
       </Border>
       <Grid Grid.Row="1" Background="{DynamicResource TorenBackgroundBrush}">
-        <ScrollViewer IsVisible="{Binding IsWelcomeOpen}" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer IsVisible="{Binding IsWelcomeContentVisible}" HorizontalScrollBarVisibility="Disabled">
           <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="48,48,48,32"
                 RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="28">
             <StackPanel Grid.Row="0" Spacing="8">
@@ -301,9 +338,19 @@
                     VerticalAlignment="Center" Spacing="8">
           <TextBlock Text="No document open" FontSize="15" FontWeight="SemiBold"
                      HorizontalAlignment="Center" />
-          <TextBlock Classes="muted" Text="Open a workspace to get started."
+          <TextBlock Classes="muted" Text="Double-click a file in Explorer to open it."
                      FontSize="12" HorizontalAlignment="Center" />
         </StackPanel>
+        <ae:TextEditor IsVisible="{Binding Documents.HasActiveDocument}"
+                       Text="{Binding Documents.ActiveDocument.Text, Mode=TwoWay}"
+                       ShowLineNumbers="True"
+                       FontFamily="Menlo, Cascadia Code, Consolas, monospace"
+                       FontSize="13"
+                       Background="{DynamicResource TorenBackgroundBrush}"
+                       Foreground="{DynamicResource TorenTextBrush}"
+                       LineNumbersForeground="{DynamicResource TorenTextSubtleBrush}"
+                       HorizontalScrollBarVisibility="Auto"
+                       VerticalScrollBarVisibility="Auto" />
       </Grid>
     </Grid>
 

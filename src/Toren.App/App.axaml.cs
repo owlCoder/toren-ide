@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Toren.App.Documents.Adapters;
+using Toren.App.Documents.Contracts;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
@@ -38,13 +40,16 @@ public sealed partial class App : Application
                 "TorenIDE",
                 "recent-workspaces.json");
             IRecentWorkspaceStore recentWorkspaceStore = new FileRecentWorkspaceStore(historyPath);
+            ITextDocumentStore textDocumentStore = new FileTextDocumentStore();
+            var documentHost = new DocumentHostViewModel(textDocumentStore);
 
             var viewModel = new MainWindowViewModel(
                 dotNetEnvironmentService,
                 dotNetSdkResolver,
                 workspaceClassifier,
                 workspaceTreeService,
-                recentWorkspaceStore);
+                recentWorkspaceStore,
+                documentHost);
             desktop.MainWindow = new MainWindow(viewModel);
         }
 

@@ -32,6 +32,8 @@ internal sealed partial class MainWindow : Window
 
         InitializeComponent();
         WorkspaceTree.AddHandler(TreeViewItem.ExpandedEvent, WorkspaceNode_OnExpanded);
+        WorkspaceTree.DoubleTapped += WorkspaceTree_OnDoubleTapped;
+        KeyDown += MainWindow_OnKeyDown;
         Opened += OnOpened;
     }
 
@@ -132,13 +134,74 @@ internal sealed partial class MainWindow : Window
         }
     }
 
+    private async void WorkspaceTree_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (WorkspaceTree.SelectedItem is WorkspaceNodeViewModel node)
+        {
+            await _viewModel.OpenDocumentAsync(node).ConfigureAwait(true);
+            eventArgs.Handled = true;
+        }
+    }
+
     private void WelcomeTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
     {
-        if (eventArgs.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+        var properties = eventArgs.GetCurrentPoint(this).Properties;
+        if (properties.IsMiddleButtonPressed)
         {
             _viewModel.CloseWelcome();
             eventArgs.Handled = true;
+            return;
         }
+
+        if (properties.IsLeftButtonPressed)
+        {
+            _viewModel.ActivateWelcome();
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void DocumentTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
+    {
+        if (sender is not Control { DataContext: OpenDocumentViewModel document })
+        {
+            return;
+        }
+
+        var properties = eventArgs.GetCurrentPoint(this).Properties;
+        if (properties.IsMiddleButtonPressed)
+        {
+            _viewModel.CloseDocument(document);
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (properties.IsLeftButtonPressed)
+        {
+            _viewModel.ActivateDocument(document);
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void CloseDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { DataContext: OpenDocumentViewModel document })
+        {
+            _viewModel.CloseDocument(document);
+            eventArgs.Handled = true;
+        }
+    }
+
+    private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        var saveModifier = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control)
+            || eventArgs.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        if (eventArgs.Key != Key.S || !saveModifier)
+        {
+            return;
+        }
+
+        await _viewModel.SaveActiveDocumentAsync().ConfigureAwait(true);
+        eventArgs.Handled = true;
     }
 
     private async void OpenLink_OnClick(object? sender, RoutedEventArgs eventArgs)

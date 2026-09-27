@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using Toren.App.Documents.Contracts;
+using Toren.App.Documents.Models;
 using Toren.App.ViewModels;
 using Toren.Core.Results;
 using Toren.DotNet.Environment.Contracts;
@@ -59,7 +61,13 @@ public sealed class ExplorerOpeningTests
         IWorkspaceTreeService tree,
         IRecentWorkspaceStore recent,
         IDotNetSdkResolver sdkResolver) =>
-        new(new FakeDotNetEnvironmentService(), sdkResolver, new WorkspaceClassifier(), tree, recent);
+        new(
+            new FakeDotNetEnvironmentService(),
+            sdkResolver,
+            new WorkspaceClassifier(),
+            tree,
+            recent,
+            new DocumentHostViewModel(new FakeTextDocumentStore()));
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService
     {
@@ -109,5 +117,19 @@ public sealed class ExplorerOpeningTests
             LastWorkingDirectory = workingDirectory;
             return Task.FromResult(Result.Success("10.0.200"));
         }
+    }
+
+    private sealed class FakeTextDocumentStore : ITextDocumentStore
+    {
+        public Task<Result<TextDocumentContent>> LoadAsync(
+            string path,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(
+                new TextDocumentContent(path, string.Empty, TextDocumentEncoding.Utf8)));
+
+        public Task<Result<TextDocumentContent>> SaveAsync(
+            TextDocumentContent document,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(document));
     }
 }

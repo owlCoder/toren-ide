@@ -33,7 +33,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWelcomeClosed))]
+    [NotifyPropertyChangedFor(nameof(IsWelcomeContentVisible))]
     private bool _isWelcomeOpen = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsWelcomeContentVisible))]
+    private bool _isWelcomeSelected = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecentEmpty))]
@@ -44,12 +49,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IDotNetSdkResolver dotNetSdkResolver,
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceTreeService workspaceTreeService,
-        IRecentWorkspaceStore recentWorkspaceStore)
+        IRecentWorkspaceStore recentWorkspaceStore,
+        DocumentHostViewModel documents)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
         _workspaceClassifier = workspaceClassifier ?? throw new ArgumentNullException(nameof(workspaceClassifier));
         _recentWorkspaceStore = recentWorkspaceStore ?? throw new ArgumentNullException(nameof(recentWorkspaceStore));
+        Documents = documents ?? throw new ArgumentNullException(nameof(documents));
         Explorer = new ExplorerViewModel(workspaceTreeService);
     }
 
@@ -59,13 +66,36 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public ExplorerViewModel Explorer { get; }
 
+    public DocumentHostViewModel Documents { get; }
+
     public bool IsWelcomeClosed => !IsWelcomeOpen;
+
+    public bool IsWelcomeContentVisible => IsWelcomeOpen && IsWelcomeSelected;
 
     public bool IsRecentEmpty => !HasRecentWorkspaces;
 
     public string PlatformSummary => _platformSummary;
 
-    public void CloseWelcome() => IsWelcomeOpen = false;
+    public void CloseWelcome()
+    {
+        IsWelcomeOpen = false;
+        IsWelcomeSelected = false;
+        if (Documents.ActiveDocument is null && Documents.OpenDocuments.Count > 0)
+        {
+            Documents.Activate(Documents.OpenDocuments[^1]);
+        }
+    }
+
+    public void ActivateWelcome()
+    {
+        if (!IsWelcomeOpen)
+        {
+            return;
+        }
+
+        Documents.Deactivate();
+        IsWelcomeSelected = true;
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -147,6 +177,59 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    public async Task OpenDocumentAsync(
+        WorkspaceNodeViewModel node,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (node.Node.Kind is not WorkspaceNodeKind.File and not WorkspaceNodeKind.SymbolicLink)
+        {
+            return;
+        }
+
+        var opened = await Documents.OpenAsync(node.Node.Path, cancellationToken).ConfigureAwait(true);
+        if (!opened.IsSuccess)
+        {
+            StatusText = opened.Error.Message;
+            return;
+        }
+
+        IsWelcomeSelected = false;
+        StatusText = $"Opened {opened.Value.Title}";
+    }
+
+    public void ActivateDocument(OpenDocumentViewModel document)
+    {
+        Documents.Activate(document);
+        IsWelcomeSelected = false;
+    }
+
+    public void CloseDocument(OpenDocumentViewModel document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!Documents.TryClose(document))
+        {
+            StatusText = document.IsDirty
+                ? $"Save changes to {document.Title} before closing it."
+                : $"Could not close {document.Title}.";
+            return;
+        }
+
+        StatusText = $"Closed {document.Title}";
+        if (Documents.ActiveDocument is null && IsWelcomeOpen)
+        {
+            IsWelcomeSelected = true;
+        }
+    }
+
+    public async Task SaveActiveDocumentAsync(CancellationToken cancellationToken = default)
+    {
+        var saved = await Documents.SaveActiveAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = saved.IsSuccess
+            ? $"Saved {saved.Value.Title}"
+            : saved.Error.Message;
+    }
+
     private async Task<bool> OpenWorkspaceAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken)
     {
         if (!ActivateWorkspace(workspace, closeWelcome: true))
@@ -184,6 +267,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         if (closeWelcome)
         {
             IsWelcomeOpen = false;
+            IsWelcomeSelected = false;
         }
         StatusText = $"Opened {workspace.Kind}: {workspace.Path}";
         return true;

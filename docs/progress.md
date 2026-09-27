@@ -19,6 +19,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **Done** — evaluated folder/solution/project graph composition is isolated behind `IWorkspaceProjectGraphService`; graph models remain data-only and project-reference edges carry resolved paths;
 - **Done** — plain-folder project discovery is isolated behind `IFolderProjectProvider` and skips generated/IDE directories plus reparse points;
 - **Done** — workspace SDK resolution is isolated behind `IDotNetSdkResolver` and uses the workspace directory so standard `global.json` selection rules stay authoritative;
+- **Done** — text-file I/O is isolated behind `ITextDocumentStore`; document models are data-only and UTF-8/UTF-16 encoding is preserved on save;
 - **Done** — strict analyzers, warnings-as-errors, NUnit tests, Windows/macOS/Linux CI;
 - **Done** — standard `.sln`, `.slnx`, `.csproj` interoperability remains an invariant;
 - **Done in Q0, pending cross-platform visual review** — consistent Toren vector activity and aligned action icons, compact shell surfaces and typography, a shell-colored Open menu in the title bar, interactive Welcome with balanced columns and honest planned states, closable document tab, tool tabs without theme underlines, and a simplified About window with one close control.
@@ -32,8 +33,8 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 | Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
 | Workspace/project model | Done | Lazy Explorer, folder/solution/direct-project discovery, concise project labels, evaluated references/metadata, resolved project-reference edges, and on-demand data-only project graph are implemented behind clean provider/service boundaries |
-| Recent workspaces/session restore | Done | Recent workspaces persist in OS application data and the last available workspace is restored; document-tab restoration will begin with the M2 document lifecycle because real documents do not exist yet |
-| AvaloniaEdit integration | Planned | Real editable documents and tabs |
+| Recent workspaces/session restore | Done | Recent workspaces persist in OS application data and the last available workspace is restored; document-tab restoration follows after the M2 document lifecycle stabilizes |
+| AvaloniaEdit integration | Partial | Explorer files open into real tabs backed by AvaloniaEdit; dirty state, active-tab switching, encoding-safe load/save, close protection, and Ctrl/Cmd+S are in place; syntax highlighting and richer editor behavior remain |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
 | Search / Go to File / symbols | Planned | Workspace-wide navigation |
 | .NET SDK discovery | Partial | Installed SDK discovery and workspace-specific `dotnet --version` resolution are in place; running in the workspace directory honors normal `global.json` selection; missing-SDK doctor/remediation remains |
@@ -60,7 +61,7 @@ The OSS maintainability and UI/UX baseline is in place. Cross-platform visual re
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
 - **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
 - **M1 — Done:** folder/solution/project opening, lazy Explorer, recent-workspace restore, clean discovery/evaluation provider boundaries, evaluated project metadata/references, resolved reference edges, and on-demand workspace project graph are in place.
-- **M2 — Next:** AvaloniaEdit, real document/tab lifecycle, file opening/saving, then Roslyn-backed C# language intelligence and navigation.
+- **M2 — Active:** AvaloniaEdit and the first real document/tab lifecycle are in place; next are syntax/language integration, document-session restoration, navigation, and Roslyn-backed C# intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.
 - **M5:** debugging.
