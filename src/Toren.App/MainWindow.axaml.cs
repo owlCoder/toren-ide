@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
@@ -11,6 +12,8 @@ using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
 using Toren.App.Diagnostics.ViewModels;
 using Toren.App.ViewModels;
+using Toren.App.Views.Problems;
+using Toren.App.Views.Theme;
 using Toren.Workspaces.Models;
 using TextMateInstallation = AvaloniaEdit.TextMate.TextMate.Installation;
 
@@ -33,6 +36,7 @@ internal sealed partial class MainWindow : Window
     private readonly MainWindowViewModel _viewModel;
     private readonly RegistryOptions _registryOptions;
     private readonly TextMateInstallation _textMateInstallation;
+    private readonly ThemeToggleIcon _themeToggleIcon;
     private bool _synchronizingEditorText;
     private bool _sessionCloseInProgress;
     private bool _sessionPersistedForClose;
@@ -46,6 +50,10 @@ internal sealed partial class MainWindow : Window
         DataContext = viewModel;
 
         InitializeComponent();
+        InstallProblemsPanel();
+        _themeToggleIcon = new ThemeToggleIcon();
+        ThemeToggleButton.Content = _themeToggleIcon;
+
         _registryOptions = new RegistryOptions(ThemeName.DarkPlus);
         _textMateInstallation = DocumentEditor.InstallTextMate(_registryOptions);
         _textMateInstallation.AppliedTheme += TextMateInstallation_OnAppliedTheme;
@@ -67,6 +75,23 @@ internal sealed partial class MainWindow : Window
         _textMateInstallation.Dispose();
         _viewModel.Dispose();
         base.OnClosed(eventArgs);
+    }
+
+    private void InstallProblemsPanel()
+    {
+        var toolTabs = this.GetLogicalDescendants()
+            .OfType<TabControl>()
+            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
+        var problemsTab = toolTabs?.Items.OfType<TabItem>().FirstOrDefault();
+        if (problemsTab is null)
+        {
+            return;
+        }
+
+        var panel = new ProblemsPanel();
+        panel.ProblemActivated += NavigateToProblem;
+        problemsTab.Content = panel;
+        toolTabs!.SelectedIndex = 0;
     }
 
     private void ConfigureEditor()
@@ -228,8 +253,7 @@ internal sealed partial class MainWindow : Window
 
         _textMateInstallation.SetTheme(
             _registryOptions.LoadTheme(isDark ? ThemeName.DarkPlus : ThemeName.LightPlus));
-        ThemeSunIcon.IsVisible = isDark;
-        ThemeMoonIcon.IsVisible = !isDark;
+        _themeToggleIcon.SetDarkMode(isDark);
         ToolTip.SetTip(
             ThemeToggleButton,
             isDark ? "Switch to light theme" : "Switch to dark theme");
@@ -406,10 +430,9 @@ internal sealed partial class MainWindow : Window
         }
     }
 
-    private void ProblemsList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    private void NavigateToProblem(ProblemItemViewModel problem)
     {
-        if (ProblemsList.SelectedItem is not ProblemItemViewModel problem
-            || _viewModel.Documents.ActiveDocument is not { } activeDocument
+        if (_viewModel.Documents.ActiveDocument is not { } activeDocument
             || !problem.FilePath.Equals(activeDocument.Path, StringComparison.Ordinal))
         {
             return;
@@ -421,7 +444,6 @@ internal sealed partial class MainWindow : Window
         DocumentEditor.CaretOffset = documentLine.Offset + column - 1;
         DocumentEditor.ScrollTo(line, column);
         DocumentEditor.Focus();
-        eventArgs.Handled = true;
     }
 
     private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs eventArgs)
