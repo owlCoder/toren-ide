@@ -6,18 +6,10 @@ namespace Toren.UnitTests.Editor;
 [TestFixture]
 public sealed class TextSearchServiceTests
 {
-    private TextSearchService _service = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _service = new TextSearchService();
-    }
-
     [Test]
     public void FindAllReturnsNonOverlappingMatches()
     {
-        var matches = _service.FindAll("alpha beta alpha", "alpha", matchCase: true);
+        var matches = TextSearchService.FindAll("alpha beta alpha", "alpha", matchCase: true);
 
         Assert.Multiple(() =>
         {
@@ -31,7 +23,7 @@ public sealed class TextSearchServiceTests
     [Test]
     public void FindAllCanIgnoreCase()
     {
-        var matches = _service.FindAll("Result result RESULT", "result", matchCase: false);
+        var matches = TextSearchService.FindAll("Result result RESULT", "result", matchCase: false);
 
         Assert.That(matches, Has.Count.EqualTo(3));
     }
@@ -39,7 +31,7 @@ public sealed class TextSearchServiceTests
     [Test]
     public void FindAllHonorsMatchCase()
     {
-        var matches = _service.FindAll("Result result RESULT", "result", matchCase: true);
+        var matches = TextSearchService.FindAll("Result result RESULT", "result", matchCase: true);
 
         Assert.That(matches, Has.Count.EqualTo(1));
         Assert.That(matches[0].Offset, Is.EqualTo(7));
@@ -49,7 +41,7 @@ public sealed class TextSearchServiceTests
     [TestCase("missing")]
     public void FindAllReturnsEmptyWhenPatternDoesNotMatch(string pattern)
     {
-        var matches = _service.FindAll("alpha beta", pattern, matchCase: false);
+        var matches = TextSearchService.FindAll("alpha beta", pattern, matchCase: false);
 
         Assert.That(matches, Is.Empty);
     }
