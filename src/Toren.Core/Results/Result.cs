@@ -4,14 +4,14 @@ namespace Toren.Core.Results;
 
 public sealed class Result<T>
 {
-    private Result(T value)
+    internal Result(T value)
     {
         IsSuccess = true;
         Value = value;
-        Error = Error.None;
+        Error = OperationError.None;
     }
 
-    private Result(Error error)
+    internal Result(OperationError error)
     {
         IsSuccess = false;
         Error = error;
@@ -24,15 +24,18 @@ public sealed class Result<T>
 
     public T? Value { get; }
 
-    public Error Error { get; }
+    public OperationError Error { get; }
+}
 
-    public static Result<T> Success(T value)
+public static class Result
+{
+    public static Result<T> Success<T>(T value)
     {
         ArgumentNullException.ThrowIfNull(value);
         return new Result<T>(value);
     }
 
-    public static Result<T> Failure(Error error)
+    public static Result<T> Failure<T>(OperationError error)
     {
         if (error.IsNone)
         {

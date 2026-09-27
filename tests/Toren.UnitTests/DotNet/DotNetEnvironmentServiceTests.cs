@@ -12,7 +12,7 @@ public sealed class DotNetEnvironmentServiceTests
     [Test]
     public async Task GetInstalledSdksReturnsParsedSdks()
     {
-        var processResult = Result<ProcessResult>.Success(
+        var processResult = Result.Success(
             new ProcessResult(0, "10.0.100 [/opt/dotnet/sdk]", string.Empty));
         var service = new DotNetEnvironmentService(new StubProcessRunner(processResult));
 
@@ -29,8 +29,8 @@ public sealed class DotNetEnvironmentServiceTests
     [Test]
     public async Task GetInstalledSdksReturnsFailureWhenProcessCannotStart()
     {
-        var processResult = Result<ProcessResult>.Failure(
-            Error.Create("process.start.failed", "dotnet was not found"));
+        var processResult = Result.Failure<ProcessResult>(
+            OperationError.Create("process.start.failed", "dotnet was not found"));
         var service = new DotNetEnvironmentService(new StubProcessRunner(processResult));
 
         var result = await service.GetInstalledSdksAsync();
@@ -45,7 +45,7 @@ public sealed class DotNetEnvironmentServiceTests
     [Test]
     public async Task GetInstalledSdksReturnsFailureForNonZeroExitCode()
     {
-        var processResult = Result<ProcessResult>.Success(
+        var processResult = Result.Success(
             new ProcessResult(1, string.Empty, "SDK discovery failed"));
         var service = new DotNetEnvironmentService(new StubProcessRunner(processResult));
 

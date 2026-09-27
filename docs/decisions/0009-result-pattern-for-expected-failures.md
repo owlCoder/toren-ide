@@ -9,7 +9,7 @@ An IDE routinely interacts with external processes, SDKs, files, Git, package fe
 
 ## Decision
 
-Toren uses an explicit `Result<T>` model for recoverable, expected failures that callers are expected to handle.
+Toren uses an explicit `Result<T>` model with `OperationError` for recoverable, expected failures that callers are expected to handle.
 
 Examples include:
 

@@ -24,14 +24,14 @@ public sealed class SystemProcessRunner : IProcessRunner
         {
             if (!process.Start())
             {
-                return Result<ProcessResult>.Failure(
-                    Error.Create(ProcessStartErrorCode, $"Failed to start process '{request.FileName}'."));
+                return Result.Failure<ProcessResult>(
+                    OperationError.Create(ProcessStartErrorCode, $"Failed to start process '{request.FileName}'."));
             }
         }
         catch (Win32Exception exception)
         {
-            return Result<ProcessResult>.Failure(
-                Error.Create(
+            return Result.Failure<ProcessResult>(
+                OperationError.Create(
                     ProcessStartErrorCode,
                     $"Unable to start process '{request.FileName}': {exception.Message}"));
         }
@@ -56,7 +56,7 @@ public sealed class SystemProcessRunner : IProcessRunner
             await standardOutput.ConfigureAwait(false),
             await standardError.ConfigureAwait(false));
 
-        return Result<ProcessResult>.Success(processResult);
+        return Result.Success(processResult);
     }
 
     private static ProcessStartInfo CreateStartInfo(ProcessRequest request)

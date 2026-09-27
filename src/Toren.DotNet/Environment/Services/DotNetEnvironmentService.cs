@@ -21,7 +21,7 @@ public sealed class DotNetEnvironmentService(IProcessRunner processRunner) : IDo
 
         if (execution.IsFailure)
         {
-            return Result<IReadOnlyList<DotNetSdkInfo>>.Failure(
+            return Result.Failure<IReadOnlyList<DotNetSdkInfo>>(
                 DotNetEnvironmentErrors.ExecutableUnavailable(execution.Error.Message));
         }
 
@@ -32,11 +32,11 @@ public sealed class DotNetEnvironmentService(IProcessRunner processRunner) : IDo
                 ? "No additional error output was provided."
                 : processResult.StandardError.Trim();
 
-            return Result<IReadOnlyList<DotNetSdkInfo>>.Failure(
+            return Result.Failure<IReadOnlyList<DotNetSdkInfo>>(
                 DotNetEnvironmentErrors.SdkDiscoveryFailed(processResult.ExitCode, details));
         }
 
-        return Result<IReadOnlyList<DotNetSdkInfo>>.Success(
+        return Result.Success<IReadOnlyList<DotNetSdkInfo>>(
             DotNetSdkListParser.Parse(processResult.StandardOutput));
     }
 }
