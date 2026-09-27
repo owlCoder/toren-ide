@@ -59,9 +59,11 @@
         <StackPanel Grid.Column="3" Orientation="Horizontal">
           <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
                   AutomationProperties.Name="Minimize window">
-            <Path Classes="shell-icon" Data="{StaticResource TorenIconWindowMinimize}"
-                  Width="14" Height="2" Stretch="Fill"
-                  HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12" />
+            <Grid Width="16" Height="16">
+              <Border Width="12" Height="1.5" CornerRadius="0.75"
+                      Background="{DynamicResource TorenTextMutedBrush}"
+                      HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" />
+            </Grid>
           </Button>
           <Button Classes="window-control" Click="ToggleMaximizeWindow_OnClick" ToolTip.Tip="Maximize or restore"
                   AutomationProperties.Name="Maximize or restore window">
