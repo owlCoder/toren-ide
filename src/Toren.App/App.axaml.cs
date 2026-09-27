@@ -2,9 +2,12 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Toren.App.ViewModels;
-using Toren.DotNet.Environment;
-using Toren.Platform.Execution;
-using Toren.Workspaces;
+using Toren.Core.Execution.Contracts;
+using Toren.DotNet.Environment.Contracts;
+using Toren.DotNet.Environment.Services;
+using Toren.Platform.Execution.Adapters;
+using Toren.Workspaces.Contracts;
+using Toren.Workspaces.Services;
 
 namespace Toren.App;
 
@@ -19,11 +22,11 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var processRunner = new SystemProcessRunner();
-            var dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
-            var workspaceClassifier = new WorkspaceClassifier();
-            var viewModel = new MainWindowViewModel(dotNetEnvironmentService, workspaceClassifier);
+            IProcessRunner processRunner = new SystemProcessRunner();
+            IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
+            IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
 
+            var viewModel = new MainWindowViewModel(dotNetEnvironmentService, workspaceClassifier);
             desktop.MainWindow = new MainWindow(viewModel);
         }
 

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Toren.DotNet.Environment;
-using Toren.Workspaces;
+using Toren.DotNet.Environment.Contracts;
+using Toren.DotNet.Environment.Models;
+using Toren.Workspaces.Contracts;
+using Toren.Workspaces.Models;
 
 namespace Toren.App.ViewModels;
 
@@ -23,7 +25,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string _statusText = "Ready";
 
     [ObservableProperty]
-    private string _editorText = "// Toren IDE\n//\n// Cross-platform, local-first .NET development.\n//\n// MVP 1.0 implementation has started.";
+    private string _editorText = "Toren is ready. Open a folder, solution, or project to begin.";
 
     public MainWindowViewModel(
         IDotNetEnvironmentService dotNetEnvironmentService,
@@ -37,27 +39,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var sdks = await _dotNetEnvironmentService
-                .GetInstalledSdksAsync(cancellationToken)
-                .ConfigureAwait(true);
+        var sdkResult = await _dotNetEnvironmentService
+            .GetInstalledSdksAsync(cancellationToken)
+            .ConfigureAwait(true);
 
-            InstalledSdks.Clear();
-            foreach (var sdk in sdks)
-            {
-                InstalledSdks.Add(sdk);
-            }
-
-            SdkSummary = sdks.Count == 0
-                ? ".NET SDK: not found"
-                : $".NET SDK: {sdks[sdks.Count - 1].Version}";
-        }
-        catch (DotNetToolchainException exception)
+        if (sdkResult.IsFailure)
         {
             SdkSummary = ".NET SDK: unavailable";
-            StatusText = exception.Message;
+            StatusText = sdkResult.Error.Message;
+            return;
         }
+
+        InstalledSdks.Clear();
+        foreach (var sdk in sdkResult.Value)
+        {
+            InstalledSdks.Add(sdk);
+        }
+
+        SdkSummary = sdkResult.Value.Count == 0
+            ? ".NET SDK: not found"
+            : $".NET SDK: {sdkResult.Value[^1].Version}";
     }
 
     public void OpenDirectory(string path)
@@ -87,6 +88,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
         WorkspaceTitle = workspace.DisplayName;
         WorkspacePath = workspace.Path;
         StatusText = $"Opened {workspace.Kind}: {workspace.Path}";
-        EditorText = $"// {workspace.DisplayName}\n// {workspace.Kind}\n// {workspace.Path}\n\n// Workspace loading and project-tree discovery are implemented in the next vertical slice.";
+        EditorText = $"{workspace.DisplayName}\n{workspace.Kind}\n{workspace.Path}";
     }
 }

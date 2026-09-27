@@ -1,4 +1,6 @@
-namespace Toren.Workspaces;
+using Toren.Workspaces.Models;
+
+namespace Toren.Workspaces.Contracts;
 
 public interface IWorkspaceClassifier
 {
