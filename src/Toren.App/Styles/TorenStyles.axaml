@@ -28,6 +28,15 @@
     <x:Double x:Key="TorenToolWindowHeight">168</x:Double>
     <x:Double x:Key="TorenStatusBarHeight">24</x:Double>
     <x:Double x:Key="TorenControlHeight">32</x:Double>
+    <!-- Toren-owned line icons. Keep the geometry on a 16 x 16 grid. -->
+    <StreamGeometry x:Key="TorenIconFolder">M2 5H6L7.5 7H14V13H2Z M2 5V3H6L7.5 5H14</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconSolution">M4 2H10L13 5V14H4Z M10 2V5H13 M6 8H11 M6 11H10</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconNew">M8 3V13 M3 8H13</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconDocs">M2 3H7C8 3 8 4 8 4C8 4 8 3 9 3H14V13H9C8 13 8 14 8 14C8 14 8 13 7 13H2Z M8 4V14</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconGuide">M3 2H13V14H3Z M6 5L10 8L6 11Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconExternal">M9 3H13V7 M13 3L7.5 8.5 M12 9V13H3V4H7</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconKeyboard">M2 4H14V12H2Z M4 6H5 M7 6H8 M10 6H11 M4 8H5 M7 8H8 M10 8H11 M5 10H11</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconClose">M3 3L13 13 M13 3L3 13</StreamGeometry>
   </Styles.Resources>
 
   <Style Selector="Window">
@@ -92,7 +101,13 @@
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentHoverBrush}" />
   </Style>
-  <Style Selector="Button:focus-visible /template/ ContentPresenter, TabItem:focus-visible /template/ ContentPresenter">
+  <Style Selector="Button.primary-action Path.shell-icon">
+    <Setter Property="Stroke" Value="{DynamicResource TorenAccentBrush}" />
+  </Style>
+  <Style Selector="Button.outline-action">
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
@@ -109,6 +124,9 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
     <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.planned-action:disabled Path.shell-icon">
+    <Setter Property="Stroke" Value="{DynamicResource TorenTextSubtleBrush}" />
   </Style>
   <Style Selector="Button.window-control">
     <Setter Property="Background" Value="Transparent" />
@@ -171,18 +189,34 @@
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
     <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Padding" Value="16,7" />
+    <Setter Property="Padding" Value="14,7" />
     <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="TabHeaderRoot"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Header}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
   </Style>
-  <Style Selector="TabControl.tool-tabs TabItem:pointerover /template/ ContentPresenter">
+  <Style Selector="TabControl.tool-tabs TabItem:pointerover">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem:selected">
-    <Setter Property="Foreground" Value="{DynamicResource TorenAccentBrush}" />
-    <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+  </Style>
+  <Style Selector="TabControl.tool-tabs TabItem:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
   </Style>
   <Style Selector="TextBlock.tool-title, TextBlock.section-label">
     <Setter Property="FontSize" Value="11" />

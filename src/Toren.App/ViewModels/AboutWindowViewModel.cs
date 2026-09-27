@@ -9,7 +9,7 @@ public sealed class AboutWindowViewModel
         ProductName = "Toren IDE";
         Version = GetProductVersion();
         Description = "A cross-platform, local-first development environment for modern .NET and ASP.NET Core.";
-        License = "Open source under the Apache License 2.0.";
+        License = "Apache License 2.0";
         Repository = "github.com/owlCoder/toren-ide";
     }
 

@@ -1,102 +1,69 @@
-<Window
-    x:Class="Toren.App.Views.AboutWindow"
-    x:ClassModifier="internal"
+<Window x:Class="Toren.App.Views.AboutWindow"
+        x:ClassModifier="internal"
         x:DataType="vm:AboutWindowViewModel"
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="clr-namespace:Toren.App.ViewModels"
-    Width="500"
-    Height="370"
-    CanResize="False"
-    WindowDecorations="None"
-    ShowInTaskbar="False"
-    WindowStartupLocation="CenterOwner"
-    Title="About Toren IDE">
-
-  <Grid RowDefinitions="46,Auto,*,Auto">
-    <Border
-        Grid.Row="0"
-        Classes="title-bar"
-        BorderBrush="{DynamicResource TorenBorderBrush}"
-        BorderThickness="0,0,0,1">
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Toren.App.ViewModels"
+        Width="480" Height="324" CanResize="False"
+        WindowDecorations="None" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Title="About Toren IDE">
+  <Grid RowDefinitions="46,*,58">
+    <Border Grid.Row="0" Classes="title-bar"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto">
-        <Border
-            Grid.Column="0"
-            Padding="14,0"
-            Background="Transparent"
-            PointerPressed="TitleBar_OnPointerPressed">
-          <TextBlock
-              Text="About Toren IDE"
-              VerticalAlignment="Center"
-              FontSize="12"
-              FontWeight="SemiBold"
-              Classes="muted" />
+        <Border Padding="16,0" Background="Transparent"
+                PointerPressed="TitleBar_OnPointerPressed">
+          <TextBlock Text="About Toren IDE" Classes="muted chrome-label"
+                     FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
         </Border>
-        <Button
-            Grid.Column="1"
-            Classes="window-control close"
-            Width="42"
-            Height="46"
-            Click="CloseWindow_OnClick"
-            ToolTip.Tip="Close"
-            AutomationProperties.Name="Close About window">
-          <Path Classes="shell-icon" Data="M3 3L13 13 M13 3L3 13" Width="14" Height="14" />
+        <Button Grid.Column="1" Classes="window-control close" Width="44" Height="46"
+                Click="CloseWindow_OnClick" ToolTip.Tip="Close"
+                AutomationProperties.Name="Close About window">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}"
+                Width="14" Height="14" />
         </Button>
       </Grid>
     </Border>
 
-    <Border
-        Grid.Row="1"
-        Padding="22,18"
-        Background="{DynamicResource TorenSurfaceBrush}"
-        BorderBrush="{DynamicResource TorenBorderBrush}"
-        BorderThickness="0,0,0,1">
+    <StackPanel Grid.Row="1" Margin="22,20" Spacing="15">
       <StackPanel Orientation="Horizontal" Spacing="14">
-        <Border
-            Width="44"
-            Height="44"
-            Background="{DynamicResource TorenAccentMutedBrush}"
-            BorderBrush="{DynamicResource TorenAccentBrush}"
-            BorderThickness="1"
-            CornerRadius="10">
-          <TextBlock
-              Text="T"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              FontSize="22"
-              FontWeight="Bold"
-              Foreground="{DynamicResource TorenAccentBrush}" />
+        <Border Width="44" Height="44" CornerRadius="9"
+                Background="{DynamicResource TorenAccentMutedBrush}"
+                BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="1">
+          <TextBlock Text="T" FontSize="22" FontWeight="Bold"
+                     Foreground="{DynamicResource TorenAccentBrush}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
         <StackPanel VerticalAlignment="Center" Spacing="2">
           <TextBlock Text="{Binding ProductName}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding Version, StringFormat='Version {0}'}" Classes="muted" FontSize="12" />
+          <TextBlock Text="{Binding Version, StringFormat='Version {0}'}"
+                     Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
-    </Border>
-
-    <StackPanel Grid.Row="2" Margin="22,20" Spacing="14">
-      <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="13" />
-      <Border Classes="card" Padding="14">
-        <StackPanel Spacing="8">
-          <TextBlock Text="Open source" Classes="section-label" />
-          <TextBlock Text="{Binding License}" FontSize="12" />
-          <TextBlock Text="{Binding Repository}" Classes="muted" FontSize="12" />
-        </StackPanel>
-      </Border>
+      <TextBlock Text="{Binding Description}" Classes="muted"
+                 FontSize="13" TextWrapping="Wrap" />
+      <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />
+      <Grid ColumnDefinitions="76,*" RowDefinitions="Auto,Auto" RowSpacing="11">
+        <TextBlock Text="License" Classes="section-label" />
+        <TextBlock Grid.Column="1" Text="{Binding License}" FontSize="12" />
+        <TextBlock Grid.Row="1" Text="Source" Classes="section-label" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Repository}"
+                   Classes="muted" FontSize="12" />
+      </Grid>
     </StackPanel>
 
-    <Border
-        Grid.Row="3"
-        Padding="18,12"
-        Background="{DynamicResource TorenSurfaceBrush}"
-        BorderBrush="{DynamicResource TorenBorderBrush}"
-        BorderThickness="0,1,0,0">
-      <Button
-          Classes="primary-action"
-          Content="Close"
-          HorizontalAlignment="Right"
-          IsCancel="True"
-          MinWidth="84" />
+    <Border Grid.Row="2" Background="{DynamicResource TorenSurfaceBrush}"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0"
+            Padding="18,0">
+      <Button Classes="toolbar-button outline-action" HorizontalAlignment="Right"
+              VerticalAlignment="Center" MinWidth="96" IsCancel="True"
+              Click="CloseWindow_OnClick" AutomationProperties.Name="Close About window">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}"
+                Width="14" Height="14" />
+          <TextBlock Text="Close" />
+        </StackPanel>
+      </Button>
     </Border>
   </Grid>
 </Window>
