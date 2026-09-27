@@ -7,7 +7,7 @@ internal static class ProjectDisplayNameFormatter
         ArgumentNullException.ThrowIfNull(projectPaths);
 
         var names = projectPaths
-            .Select(Path.GetFileNameWithoutExtension)
+            .Select(path => Path.GetFileNameWithoutExtension(path) ?? string.Empty)
             .ToArray();
         var displayNames = new string[names.Length];
 
@@ -24,7 +24,7 @@ internal static class ProjectDisplayNameFormatter
         var segments = names[index].Split('.', StringSplitOptions.RemoveEmptyEntries);
         for (var segmentCount = 1; segmentCount <= segments.Length; segmentCount++)
         {
-            var candidate = string.Join('.', segments[^segmentCount..]);
+            var candidate = string.Join(".", segments[^segmentCount..]);
             var matchCount = names.Count(name => HasSuffix(name, candidate));
             if (matchCount == 1)
             {
