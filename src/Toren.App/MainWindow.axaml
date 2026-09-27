@@ -8,7 +8,11 @@
         xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         Width="1440" Height="900" MinWidth="1080" MinHeight="700"
         CanResize="True" WindowDecorations="None" Title="Toren IDE">
-  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
+  <Window.Styles>
+    <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
     <!-- Window chrome and global actions -->
     <Border Grid.Row="0" Grid.ColumnSpan="3" Height="{StaticResource TorenTitleBarHeight}"
             Classes="shell-surface title-bar" BorderThickness="0,0,0,1">
@@ -78,8 +82,61 @@
       </Grid>
     </Border>
 
+    <!-- IDE command bar: editor actions work now; build/run controls are honest M3 placeholders. -->
+    <Border Grid.Row="1" Grid.ColumnSpan="3" Height="36" Classes="command-bar"
+            BorderThickness="0,0,0,1">
+      <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button Classes="command-button" Click="SaveActiveDocument_OnClick"
+                  IsEnabled="{Binding Documents.HasActiveDocument}"
+                  ToolTip.Tip="Save active document (Ctrl/Cmd+S)"
+                  AutomationProperties.Name="Save active document">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M5,3H17L21,7V21H3V3H5M7,5V10H17V5H7M7,13V19H17V13H7Z" />
+          </Button>
+          <Button Classes="command-button" Click="Undo_OnClick"
+                  IsEnabled="{Binding Documents.HasActiveDocument}"
+                  ToolTip.Tip="Undo" AutomationProperties.Name="Undo">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M7.5,7H13C16.31,7 19,9.69 19,13C19,16.31 16.31,19 13,19H8V17H13C15.21,17 17,15.21 17,13C17,10.79 15.21,9 13,9H7.5L11,12.5L9.59,13.91L3.67,8L9.59,2.09L11,3.5L7.5,7Z" />
+          </Button>
+          <Button Classes="command-button" Click="Redo_OnClick"
+                  IsEnabled="{Binding Documents.HasActiveDocument}"
+                  ToolTip.Tip="Redo" AutomationProperties.Name="Redo">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M16.5,7H11C7.69,7 5,9.69 5,13C5,16.31 7.69,19 11,19H16V17H11C8.79,17 7,15.21 7,13C7,10.79 8.79,9 11,9H16.5L13,12.5L14.41,13.91L20.33,8L14.41,2.09L13,3.5L16.5,7Z" />
+          </Button>
+          <Border Width="1" Height="18" Margin="5,0"
+                  Background="{DynamicResource TorenBorderBrush}" />
+          <ComboBox Classes="command-select" Width="96" SelectedIndex="0" IsEnabled="False"
+                    ToolTip.Tip="Build configurations arrive with M3" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Build configuration, coming in M3">
+            <ComboBoxItem Content="Debug" />
+            <ComboBoxItem Content="Release" />
+          </ComboBox>
+          <ComboBox Classes="command-select" Width="190" SelectedIndex="0" IsEnabled="False"
+                    ToolTip.Tip="Startup project selection arrives with M3" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Startup project, coming in M3">
+            <ComboBoxItem Content="Startup project" />
+          </ComboBox>
+          <Button Classes="command-button run" IsEnabled="False"
+                  ToolTip.Tip="Build and run arrives with M3" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="Run, coming in M3">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenSuccessBrush}"
+                  Data="M8,5V19L19,12L8,5Z" />
+          </Button>
+        </StackPanel>
+        <TextBlock Grid.Column="2" Classes="subtle" Text="Build / Run · M3"
+                   FontSize="10.5" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
     <!-- Activity bar: one 24-unit filled icon family within consistent 48 px targets. -->
-    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="0"
+    <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
             Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
             BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
@@ -107,7 +164,7 @@
     </Border>
 
     <!-- Explorer: workspace nodes are loaded as they are expanded. -->
-    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
+    <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
             Width="{StaticResource TorenExplorerWidth}" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
@@ -157,7 +214,7 @@
     </Border>
 
     <!-- Document host: real files open as tabs and are edited with AvaloniaEdit. -->
-    <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="Auto,*">
+    <Grid Grid.Row="2" Grid.Column="2" RowDefinitions="Auto,*">
       <Border Grid.Row="0" Height="{StaticResource TorenPanelHeaderHeight}"
               Background="{DynamicResource TorenSurfaceBrush}"
               BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
@@ -344,8 +401,8 @@
         <ae:TextEditor x:Name="DocumentEditor"
                        IsVisible="{Binding Documents.HasActiveDocument}"
                        ShowLineNumbers="True"
-                       FontFamily="Menlo, Cascadia Code, Consolas, monospace"
-                       FontSize="13"
+                       FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                       FontSize="13.5"
                        Background="{DynamicResource TorenBackgroundBrush}"
                        Foreground="{DynamicResource TorenTextBrush}"
                        LineNumbersForeground="{DynamicResource TorenTextSubtleBrush}"
@@ -355,7 +412,7 @@
     </Grid>
 
     <!-- Tool window: TabControl supplies keyboard selection and future badge room. -->
-    <Border Grid.Row="2" Grid.Column="2" Height="{StaticResource TorenToolWindowHeight}"
+    <Border Grid.Row="3" Grid.Column="2" Height="{StaticResource TorenToolWindowHeight}"
             Classes="shell-surface" BorderThickness="0,1,0,0">
       <Grid RowDefinitions="4,*">
         <Border Height="4" Background="{DynamicResource TorenSurfaceRaisedBrush}">
@@ -416,17 +473,29 @@
       </Grid>
     </Border>
 
-    <!-- Compact status bar: only known state is displayed. -->
-    <Border Grid.Row="3" Grid.ColumnSpan="3" Height="{StaticResource TorenStatusBarHeight}"
+    <!-- Compact status bar with theme switching and known runtime state. -->
+    <Border Grid.Row="4" Grid.ColumnSpan="3" Height="{StaticResource TorenStatusBarHeight}"
             Background="{DynamicResource TorenSurfaceRaisedBrush}"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="12,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+      <Grid Margin="12,0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
         <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
           <Ellipse Width="6" Height="6" Fill="{DynamicResource TorenSuccessBrush}" VerticalAlignment="Center" />
           <TextBlock Text="{Binding StatusText}" FontSize="11" MaxWidth="640"
                      TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+        <Button Grid.Column="2" x:Name="ThemeToggleButton" Classes="theme-toggle"
+                Click="ToggleTheme_OnClick" ToolTip.Tip="Switch theme"
+                AutomationProperties.Name="Toggle light and dark theme">
+          <Grid Width="14" Height="14">
+            <Path x:Name="ThemeSunIcon" Width="14" Height="14" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M12,7A5,5 0 1,0 12,17A5,5 0 0,0 12,7M12,2L13.1,4.4L15.5,3.3L15.2,5.9L17.8,5.6L16.7,8L19.1,9.1L17,11L19.1,12.9L16.7,14L17.8,16.4L15.2,16.1L15.5,18.7L13.1,17.6L12,20L10.9,17.6L8.5,18.7L8.8,16.1L6.2,16.4L7.3,14L4.9,12.9L7,11L4.9,9.1L7.3,8L6.2,5.6L8.8,5.9L8.5,3.3L10.9,4.4L12,2Z" />
+            <Path x:Name="ThemeMoonIcon" Width="14" Height="14" Stretch="Uniform" IsVisible="False"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M12.1,2C7.07,2 3,6.07 3,11.1C3,16.13 7.07,20.2 12.1,20.2C16.04,20.2 19.4,17.7 20.67,14.2C19.33,15.04 17.75,15.53 16.05,15.53C11.74,15.53 8.25,12.04 8.25,7.73C8.25,5.62 9.09,3.71 10.45,2.3C11,2.1 11.54,2 12.1,2Z" />
+          </Grid>
+        </Button>
+        <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>
