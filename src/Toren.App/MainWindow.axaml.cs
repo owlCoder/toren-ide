@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Toren.App.ViewModels;
+using Toren.Workspaces.Models;
 
 namespace Toren.App;
 
@@ -30,6 +31,7 @@ internal sealed partial class MainWindow : Window
         DataContext = viewModel;
 
         InitializeComponent();
+        WorkspaceTree.AddHandler(TreeViewItem.ExpandedEvent, WorkspaceNode_OnExpanded);
         Opened += OnOpened;
     }
 
@@ -87,7 +89,7 @@ internal sealed partial class MainWindow : Window
 
         if (folders.Count > 0)
         {
-            _viewModel.OpenDirectory(folders[0].Path.LocalPath);
+            await _viewModel.OpenDirectoryAsync(folders[0].Path.LocalPath).ConfigureAwait(true);
         }
     }
 
@@ -106,15 +108,28 @@ internal sealed partial class MainWindow : Window
             return;
         }
 
-        if (!_viewModel.TryOpenWorkspaceFile(files[0].Path.LocalPath))
+        await _viewModel.OpenWorkspaceFileAsync(files[0].Path.LocalPath).ConfigureAwait(true);
+    }
+
+    private async void OpenRecent_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { DataContext: WorkspaceDescriptor workspace })
         {
-            _viewModel.SetStatus("The selected file is not a supported .NET workspace.");
+            await _viewModel.OpenRecentAsync(workspace).ConfigureAwait(true);
         }
     }
 
     private void CloseWelcome_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         _viewModel.CloseWelcome();
+    }
+
+    private async void WorkspaceNode_OnExpanded(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (eventArgs.Source is TreeViewItem { DataContext: WorkspaceNodeViewModel node })
+        {
+            await _viewModel.ExpandNodeAsync(node).ConfigureAwait(true);
+        }
     }
 
     private void WelcomeTab_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)

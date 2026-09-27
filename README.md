@@ -8,7 +8,7 @@ Toren IDE is a cross-platform, local-first development environment for modern .N
 
 **MVP 1.0 is under active implementation.** Development is organized as small vertical slices that keep the repository buildable and testable across macOS, Windows, and Linux.
 
-The foundation and quality/UI baseline are in place. The next product slice is the real workspace/project model and Explorer. See [`docs/progress.md`](docs/progress.md) for the live feature matrix and [`docs/roadmap.md`](docs/roadmap.md) for delivery slices.
+The foundation and quality/UI baseline are in place. M1 workspace work is underway: Explorer can browse folders, solutions, and project files, while recent workspaces are stored outside projects. See [`docs/progress.md`](docs/progress.md) for the live feature matrix and [`docs/roadmap.md`](docs/roadmap.md) for delivery slices.
 
 ## Product principles
 

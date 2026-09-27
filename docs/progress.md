@@ -6,7 +6,7 @@ Status legend: **Done** = implemented and validated in CI; **Partial** = useful 
 
 ## Current quality gate
 
-Before feature implementation continues, Toren is locking in the OSS maintainability and UI/UX baseline:
+The OSS maintainability and UI/UX baseline is in place. Cross-platform visual review remains open while M1 workspace work proceeds:
 
 - **Done** — cross-platform Avalonia shell and shared design tokens;
 - **Done** — Toren-specific application identity and About experience;
@@ -26,8 +26,8 @@ Before feature implementation continues, Toren is locking in the OSS maintainabi
 | Cross-platform app foundation | Done | Builds/tests on macOS, Windows, Linux |
 | Toren visual language / shell | Partial | Shared tokens, Toren vector icons, interactive Welcome, closable tab, Explorer and tool-window polish; cross-platform visual review remains |
 | Workspace classification | Done | Folder / `.sln` / `.slnx` / `.csproj` detection |
-| Workspace/project model | Planned | Load solution/project graph and populate Explorer |
-| Recent workspaces/session restore | Planned | Persist IDE-only state without affecting builds |
+| Workspace/project model | Partial | Lazy Explorer shows physical files, solution projects from `dotnet sln list`, and declared project references; evaluated MSBuild graph remains |
+| Recent workspaces/session restore | Partial | Recent workspaces persist in OS application data and the last available workspace is restored; document session state remains |
 | AvaloniaEdit integration | Planned | Real editable documents and tabs |
 | C# language intelligence | Planned | Roslyn-backed completion, diagnostics, navigation, rename |
 | Search / Go to File / symbols | Planned | Workspace-wide navigation |
@@ -53,8 +53,8 @@ Before feature implementation continues, Toren is locking in the OSS maintainabi
 ## Delivery slices
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.
-- **Q0 — Active:** maintainability, Result pattern, source layout, application identity, custom chrome, and final UI/UX hardening before feature work resumes.
-- **M1 — Next after Q0:** workspace and project system.
+- **Q0 — UI round delivered:** owner visual review on macOS is complete; cross-platform visual review remains open.
+- **M1 — Active:** workspace and project system; lazy Explorer and workspace history are in place, with evaluated project graph and remaining workflow details next.
 - **M2:** editor and C# language intelligence.
 - **M3:** build, run, diagnostics.
 - **M4:** Test Explorer.

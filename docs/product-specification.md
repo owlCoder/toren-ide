@@ -505,6 +505,8 @@ The dependency policy must ensure that bundled dependencies and redistributed co
 
 ## 27. Initial implementation milestones
 
+These are the original milestone sketches. The current delivery order and status are maintained in `docs/roadmap.md` and `docs/progress.md`.
+
 ### M0 — Repository and architecture bootstrap
 
 - product specification;

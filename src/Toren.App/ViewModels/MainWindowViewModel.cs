@@ -12,6 +12,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDotNetEnvironmentService _dotNetEnvironmentService;
     private readonly IWorkspaceClassifier _workspaceClassifier;
+    private readonly IRecentWorkspaceStore _recentWorkspaceStore;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
@@ -33,17 +34,31 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsWelcomeClosed))]
     private bool _isWelcomeOpen = true;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRecentEmpty))]
+    private bool _hasRecentWorkspaces;
+
     public MainWindowViewModel(
         IDotNetEnvironmentService dotNetEnvironmentService,
-        IWorkspaceClassifier workspaceClassifier)
+        IWorkspaceClassifier workspaceClassifier,
+        IWorkspaceTreeService workspaceTreeService,
+        IRecentWorkspaceStore recentWorkspaceStore)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _workspaceClassifier = workspaceClassifier ?? throw new ArgumentNullException(nameof(workspaceClassifier));
+        _recentWorkspaceStore = recentWorkspaceStore ?? throw new ArgumentNullException(nameof(recentWorkspaceStore));
+        Explorer = new ExplorerViewModel(workspaceTreeService);
     }
 
     public ObservableCollection<DotNetSdkInfo> InstalledSdks { get; } = new();
 
+    public ObservableCollection<WorkspaceDescriptor> RecentWorkspaces { get; } = new();
+
+    public ExplorerViewModel Explorer { get; }
+
     public bool IsWelcomeClosed => !IsWelcomeOpen;
+
+    public bool IsRecentEmpty => !HasRecentWorkspaces;
 
     public string PlatformSummary => _platformSummary;
 
@@ -59,34 +74,57 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             SdkSummary = ".NET SDK: unavailable";
             StatusText = sdkResult.Error.Message;
+        }
+        else
+        {
+            InstalledSdks.Clear();
+            foreach (var sdk in sdkResult.Value)
+            {
+                InstalledSdks.Add(sdk);
+            }
+
+            SdkSummary = sdkResult.Value.Count == 0
+                ? ".NET SDK: not found"
+                : $".NET SDK: {sdkResult.Value[^1].Version}";
+        }
+
+        var recent = await _recentWorkspaceStore.LoadAsync(cancellationToken).ConfigureAwait(true);
+        if (!recent.IsSuccess)
+        {
+            StatusText = recent.Error.Message;
             return;
         }
 
-        InstalledSdks.Clear();
-        foreach (var sdk in sdkResult.Value)
+        SetRecentWorkspaces(recent.Value);
+        foreach (var workspace in recent.Value)
         {
-            InstalledSdks.Add(sdk);
+            if (ActivateWorkspace(workspace, closeWelcome: false))
+            {
+                StatusText = $"Restored {workspace.DisplayName}";
+                break;
+            }
         }
-
-        SdkSummary = sdkResult.Value.Count == 0
-            ? ".NET SDK: not found"
-            : $".NET SDK: {sdkResult.Value[^1].Version}";
     }
 
-    public void OpenDirectory(string path)
+    public async Task OpenDirectoryAsync(string path, CancellationToken cancellationToken = default)
     {
-        OpenWorkspace(_workspaceClassifier.ClassifyDirectory(path));
+        await OpenWorkspaceAsync(_workspaceClassifier.ClassifyDirectory(path), cancellationToken).ConfigureAwait(true);
     }
 
-    public bool TryOpenWorkspaceFile(string path)
+    public async Task OpenWorkspaceFileAsync(string path, CancellationToken cancellationToken = default)
     {
         if (!_workspaceClassifier.TryClassifyFile(path, out var descriptor) || descriptor is null)
         {
-            return false;
+            StatusText = "The selected file is not a supported .NET workspace.";
+            return;
         }
 
-        OpenWorkspace(descriptor);
-        return true;
+        await OpenWorkspaceAsync(descriptor, cancellationToken).ConfigureAwait(true);
+    }
+
+    public async Task OpenRecentAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken = default)
+    {
+        await OpenWorkspaceAsync(workspace, cancellationToken).ConfigureAwait(true);
     }
 
     public void SetStatus(string message)
@@ -95,10 +133,62 @@ public sealed partial class MainWindowViewModel : ObservableObject
         StatusText = message;
     }
 
-    private void OpenWorkspace(WorkspaceDescriptor workspace)
+    public async Task ExpandNodeAsync(WorkspaceNodeViewModel node, CancellationToken cancellationToken = default)
     {
+        var result = await Explorer.ExpandAsync(node, cancellationToken).ConfigureAwait(true);
+        if (result.IsFailure)
+        {
+            StatusText = result.Error.Message;
+        }
+    }
+
+    private async Task<bool> OpenWorkspaceAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken)
+    {
+        if (!ActivateWorkspace(workspace, closeWelcome: true))
+        {
+            return false;
+        }
+
+        var recorded = await _recentWorkspaceStore.RecordAsync(workspace, cancellationToken).ConfigureAwait(true);
+        if (recorded.IsSuccess)
+        {
+            SetRecentWorkspaces(recorded.Value);
+        }
+        else
+        {
+            StatusText = recorded.Error.Message;
+        }
+
+        return true;
+    }
+
+    private bool ActivateWorkspace(WorkspaceDescriptor workspace, bool closeWelcome)
+    {
+        var result = Explorer.Open(workspace);
+        if (!result.IsSuccess)
+        {
+            StatusText = result.Error.Message;
+            return false;
+        }
+
         WorkspaceTitle = workspace.DisplayName;
         WorkspacePath = workspace.Path;
+        if (closeWelcome)
+        {
+            IsWelcomeOpen = false;
+        }
         StatusText = $"Opened {workspace.Kind}: {workspace.Path}";
+        return true;
+    }
+
+    private void SetRecentWorkspaces(IReadOnlyList<WorkspaceDescriptor> workspaces)
+    {
+        RecentWorkspaces.Clear();
+        foreach (var workspace in workspaces)
+        {
+            RecentWorkspaces.Add(workspace);
+        }
+
+        HasRecentWorkspaces = RecentWorkspaces.Count > 0;
     }
 }

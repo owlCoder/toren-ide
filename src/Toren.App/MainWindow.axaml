@@ -100,7 +100,7 @@
       </Grid>
     </Border>
 
-    <!-- Explorer: compact tree-ready side panel -->
+    <!-- Explorer: workspace nodes are loaded as they are expanded. -->
     <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
             Width="{StaticResource TorenExplorerWidth}" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -113,10 +113,11 @@
           <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11"
                      TextWrapping="Wrap" MaxLines="3" />
         </StackPanel>
-        <StackPanel Grid.Row="2" Margin="14,8" Spacing="9" VerticalAlignment="Top">
+        <StackPanel Grid.Row="2" Margin="14,8" Spacing="9" VerticalAlignment="Top"
+                    IsVisible="{Binding Explorer.IsEmpty}">
           <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />
           <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                     Text="Files will appear here when a workspace is open." Margin="0,6,0,0" />
+                     Text="Open a workspace to browse its files and projects." Margin="0,6,0,0" />
           <Button Classes="link-button" Click="OpenFolder_OnClick" HorizontalAlignment="Left"
                   AutomationProperties.Name="Open Folder">
             <StackPanel Classes="action-content">
@@ -125,6 +126,34 @@
             </StackPanel>
           </Button>
         </StackPanel>
+        <TreeView Grid.Row="2" x:Name="WorkspaceTree" Classes="explorer-tree"
+                  ItemsSource="{Binding Explorer.Roots}" IsVisible="{Binding Explorer.IsWorkspaceOpen}"
+                  Margin="4,0,4,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <TreeView.ItemTemplate>
+            <TreeDataTemplate ItemsSource="{Binding Children}">
+              <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                <Grid Width="16" Height="16" VerticalAlignment="Center">
+                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsFolder}"
+                        Data="{StaticResource TorenIconFolder}" />
+                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsSolution}"
+                        Data="{StaticResource TorenIconSolution}" />
+                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsProject}"
+                        Data="{StaticResource TorenIconProject}" />
+                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsReferences}"
+                        Data="{StaticResource TorenIconReference}" />
+                  <Path Classes="shell-icon" Width="16" Height="16" IsVisible="{Binding IsFile}"
+                        Data="{StaticResource TorenIconFile}" />
+                </Grid>
+                <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
+                           IsVisible="{Binding IsContent}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted" Text="{Binding Name}" FontSize="11" VerticalAlignment="Center"
+                           IsVisible="{Binding IsPlaceholder}"
+                           TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </TreeDataTemplate>
+          </TreeView.ItemTemplate>
+        </TreeView>
         <Border Grid.Row="3" Padding="14,10" BorderBrush="{DynamicResource TorenBorderBrush}"
                 BorderThickness="0,1,0,0">
           <TextBlock Classes="subtle" Text="Standard .NET workspaces" FontSize="11" />
@@ -198,13 +227,30 @@
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="16">
                 <TextBlock Text="Recent" FontSize="15" FontWeight="SemiBold" />
-                <Border Classes="card" Padding="16">
+                <Border Classes="card" Padding="16" IsVisible="{Binding IsRecentEmpty}">
                   <StackPanel Spacing="7">
                     <TextBlock Text="No recent workspaces yet" FontSize="13" FontWeight="SemiBold" />
                     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                               Text="Recent folders, solutions, and projects will appear here when session history is available." />
+                               Text="Folders, solutions, and projects you open will appear here." />
                   </StackPanel>
                 </Border>
+                <ItemsControl ItemsSource="{Binding RecentWorkspaces}" IsVisible="{Binding HasRecentWorkspaces}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Classes="link-button" Click="OpenRecent_OnClick"
+                              HorizontalContentAlignment="Left" ToolTip.Tip="{Binding Path}">
+                        <StackPanel Classes="action-content">
+                          <Path Classes="shell-icon" Data="{StaticResource TorenIconRecent}" />
+                          <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding DisplayName}" FontSize="12" />
+                            <TextBlock Classes="subtle" Text="{Binding Path}" FontSize="11"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="320" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </StackPanel>
             </Grid>
             <Border Grid.Row="2" Height="1" Background="{DynamicResource TorenBorderBrush}" />

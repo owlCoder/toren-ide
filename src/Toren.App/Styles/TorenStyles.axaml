@@ -31,6 +31,10 @@
     <!-- Toren-owned line icons. Keep the geometry on a 16 x 16 grid. -->
     <StreamGeometry x:Key="TorenIconFolder">M2 5H6L7.5 7H14V13H2Z M2 5V3H6L7.5 5H14</StreamGeometry>
     <StreamGeometry x:Key="TorenIconSolution">M4 2H10L13 5V14H4Z M10 2V5H13 M6 8H11 M6 11H10</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconProject">M2 3H14V13H2Z M5 6H11 M5 9H11</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconReference">M3 5H7L9 7H13 M3 11H7L9 9H13</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconFile">M4 2H10L13 5V14H4Z M10 2V5H13</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconRecent">M8 2A6 6 0 1 0 8 14A6 6 0 1 0 8 2 M8 4V8L10.5 9.5</StreamGeometry>
     <StreamGeometry x:Key="TorenIconNew">M8 3V13 M3 8H13</StreamGeometry>
     <StreamGeometry x:Key="TorenIconDocs">M2 3H7C8 3 8 4 8 4C8 4 8 3 9 3H14V13H9C8 13 8 14 8 14C8 14 8 13 7 13H2Z M8 4V14</StreamGeometry>
     <StreamGeometry x:Key="TorenIconGuide">M3 2H13V14H3Z M6 5L10 8L6 11Z</StreamGeometry>
@@ -124,6 +128,23 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="MenuFlyoutPresenter MenuItem:pointerover /template/ Border#PART_LayoutRoot, MenuFlyoutPresenter MenuItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
+  </Style>
+  <Style Selector="TreeView.explorer-tree">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+  <Style Selector="TreeView.explorer-tree TreeViewItem">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+  </Style>
+  <Style Selector="TreeView.explorer-tree TreeViewItem /template/ Border#PART_LayoutRoot:pointerover">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="TreeView.explorer-tree TreeViewItem:selected /template/ Border#PART_LayoutRoot">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
   </Style>
   <Style Selector="Button.toolbar-button:pointerover /template/ ContentPresenter, Button.link-button:pointerover /template/ ContentPresenter, Button.tab-close:pointerover /template/ ContentPresenter">
