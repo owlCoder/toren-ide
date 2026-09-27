@@ -5,10 +5,10 @@
              xmlns:vm="clr-namespace:Toren.App.ViewModels"
              Width="18" Height="18" IsHitTestVisible="False">
   <UserControl.Resources>
-    <!-- Toren-owned structural Explorer glyphs. They intentionally use restrained outlines
-         instead of the fuller shell/file-type icon language. -->
-    <StreamGeometry x:Key="TorenExplorerSolution">M4 5H20V9H4Z M4 11H11V19H4Z M13 11H20V19H13Z</StreamGeometry>
-    <StreamGeometry x:Key="TorenExplorerProject">M5 4H19V20H5Z M8 8H16 M8 12H16 M8 16H13</StreamGeometry>
+    <!-- Toren-owned structural Explorer glyphs. Solution and project stay in one restrained
+         outline family, while remaining distinct at compact IDE sizes. -->
+    <StreamGeometry x:Key="TorenExplorerSolution">M4 7H16V19H4Z M8 4H20V16H16 M8 7V4 M7 11H13 M7 15H11</StreamGeometry>
+    <StreamGeometry x:Key="TorenExplorerProject">M5 5H19V19H5Z M5 9H19 M8 7H10</StreamGeometry>
     <StreamGeometry x:Key="TorenExplorerReferences">M5 5H9V9H5Z M15 5H19V9H15Z M10 15H14V19H10Z M9 7H15 M7 9V12H12V15 M17 9V12H12</StreamGeometry>
   </UserControl.Resources>
 
@@ -20,6 +20,14 @@
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Stretch" Value="Uniform" />
       <Setter Property="Opacity" Value="0.86" />
+    </Style>
+    <Style Selector="Path.explorer-icon.solution">
+      <Setter Property="Width" Value="15" />
+      <Setter Property="Height" Value="15" />
+    </Style>
+    <Style Selector="Path.explorer-icon.project, Path.explorer-icon.test-project">
+      <Setter Property="Width" Value="14.5" />
+      <Setter Property="Height" Value="14.5" />
     </Style>
     <Style Selector="Path.explorer-icon.reference-item">
       <Setter Property="Width" Value="14" />
@@ -36,10 +44,10 @@
 
     <Path Classes="explorer-icon solution" Data="{StaticResource TorenExplorerSolution}"
           IsVisible="{Binding IsSolution}" Fill="Transparent"
-          Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.45" Opacity="0.92" />
+          Stroke="{DynamicResource TorenIconSolutionBrush}" StrokeThickness="1.45" Opacity="0.78" />
     <Path Classes="explorer-icon project" Data="{StaticResource TorenExplorerProject}"
           IsVisible="{Binding IsProject}" Fill="Transparent"
-          Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.45" Opacity="0.9" />
+          Stroke="{DynamicResource TorenIconProjectBrush}" StrokeThickness="1.45" Opacity="0.78" />
     <Path Classes="explorer-icon test-project" Data="{StaticResource TorenExplorerProject}"
           IsVisible="{Binding IsTestProject}" Fill="Transparent"
           Stroke="{DynamicResource TorenSuccessBrush}" StrokeThickness="1.45" Opacity="0.78" />
