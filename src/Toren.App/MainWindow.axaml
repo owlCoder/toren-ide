@@ -4,76 +4,208 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="clr-namespace:Toren.App.ViewModels"
-    xmlns:dotnet="clr-namespace:Toren.DotNet.Environment;assembly=Toren.DotNet"
-    Width="1280"
-    Height="800"
-    MinWidth="960"
-    MinHeight="620"
+    Width="1380"
+    Height="860"
+    MinWidth="1024"
+    MinHeight="680"
     Title="Toren IDE">
 
-  <Grid RowDefinitions="Auto,*,Auto">
-    <Border Grid.Row="0" Padding="12,8" BorderBrush="#40444B" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="Toren IDE" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Button Content="Open Folder..." Click="OpenFolder_OnClick" />
-          <Button Content="Open Solution / Project..." Click="OpenWorkspaceFile_OnClick" />
+  <Grid RowDefinitions="48,*,156,24" ColumnDefinitions="48,264,*">
+    <!-- Command bar -->
+    <Border
+        Grid.Row="0"
+        Grid.ColumnSpan="3"
+        Classes="shell-surface"
+        BorderThickness="0,0,0,1">
+      <Grid Margin="10,0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+          <Border
+              Width="28"
+              Height="28"
+              Background="{DynamicResource TorenAccentMutedBrush}"
+              BorderBrush="{DynamicResource TorenAccentBrush}"
+              BorderThickness="1"
+              CornerRadius="6">
+            <TextBlock
+                Text="T"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Foreground="{DynamicResource TorenAccentBrush}" />
+          </Border>
+          <TextBlock Text="Toren" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock
-            Grid.Column="2"
-            Text="{Binding SdkSummary}"
-            VerticalAlignment="Center"
-            Opacity="0.8" />
+        <Border Grid.Column="1" Margin="8,10" Width="1" Background="{DynamicResource TorenBorderBrush}" />
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button Classes="toolbar-button" Content="Open Folder" Click="OpenFolder_OnClick" />
+          <Button Classes="toolbar-button" Content="Open Solution" Click="OpenWorkspaceFile_OnClick" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Classes="muted" Text="{Binding SdkSummary}" FontSize="12" VerticalAlignment="Center" />
+          <Border
+              Padding="8,4"
+              Background="{DynamicResource TorenSurfaceRaisedBrush}"
+              BorderBrush="{DynamicResource TorenBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="5">
+            <TextBlock Text="MVP 1.0" FontSize="11" Classes="muted" />
+          </Border>
+        </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="280,*,300">
-      <Border Grid.Column="0" Padding="14" BorderBrush="#40444B" BorderThickness="0,0,1,0">
-        <StackPanel Spacing="10">
-          <TextBlock Text="EXPLORER" FontSize="12" FontWeight="SemiBold" Opacity="0.7" />
-          <TextBlock Text="{Binding WorkspaceTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding WorkspacePath}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
-          <Separator />
-          <TextBlock
-              Text="The workspace tree is the next vertical slice. The current foundation already keeps workspace selection independent from the UI."
-              TextWrapping="Wrap"
-              Opacity="0.75" />
-        </StackPanel>
-      </Border>
-
-      <Grid Grid.Column="1" RowDefinitions="Auto,*">
-        <Border Padding="10,7" BorderBrush="#40444B" BorderThickness="0,0,0,1">
-          <TextBlock Text="Welcome" FontWeight="SemiBold" />
-        </Border>
-        <TextBox
-            Grid.Row="1"
-            Margin="12"
-            Text="{Binding EditorText}"
-            AcceptsReturn="True"
-            IsReadOnly="True"
-            TextWrapping="NoWrap" />
+    <!-- Activity bar -->
+    <Border
+        Grid.Row="1"
+        Grid.RowSpan="2"
+        Grid.Column="0"
+        Classes="shell-surface"
+        BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+        <Button Grid.Row="0" Classes="activity-button" Content="EX" ToolTip.Tip="Explorer" />
+        <Button Grid.Row="1" Classes="activity-button" Content="SC" ToolTip.Tip="Source Control" />
+        <Button Grid.Row="2" Classes="activity-button" Content="TS" ToolTip.Tip="Tests" />
+        <Button Grid.Row="3" Classes="activity-button" Content="DB" ToolTip.Tip="Debug" />
+        <Button Grid.Row="5" Classes="activity-button" Content="⚙" ToolTip.Tip="Settings" />
       </Grid>
+    </Border>
 
-      <Border Grid.Column="2" Padding="14" BorderBrush="#40444B" BorderThickness="1,0,0,0">
-        <StackPanel Spacing="10">
-          <TextBlock Text=".NET ENVIRONMENT" FontSize="12" FontWeight="SemiBold" Opacity="0.7" />
-          <ListBox ItemsSource="{Binding InstalledSdks}">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="dotnet:DotNetSdkInfo">
-                <StackPanel Margin="0,4" Spacing="2">
-                  <TextBlock Text="{Binding Version}" FontWeight="SemiBold" />
-                  <TextBlock Text="{Binding BasePath}" FontSize="11" Opacity="0.65" TextWrapping="Wrap" />
-                </StackPanel>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
+    <!-- Primary sidebar -->
+    <Border
+        Grid.Row="1"
+        Grid.RowSpan="2"
+        Grid.Column="1"
+        Classes="shell-surface"
+        BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="42,Auto,*,Auto">
+        <Border Padding="14,0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+          <TextBlock Classes="tool-title" Text="EXPLORER" VerticalAlignment="Center" />
+        </Border>
+
+        <StackPanel Grid.Row="1" Margin="14,14,14,10" Spacing="6">
+          <TextBlock Text="{Binding WorkspaceTitle}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11" TextWrapping="Wrap" MaxLines="3" />
         </StackPanel>
+
+        <Grid Grid.Row="2" Margin="14,4,14,14">
+          <Border
+              Background="{DynamicResource TorenBackgroundBrush}"
+              BorderBrush="{DynamicResource TorenBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              Padding="12">
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+              <TextBlock Text="Workspace" FontWeight="SemiBold" />
+              <TextBlock
+                  Classes="muted"
+                  Text="Open a folder, solution, or project. The project tree will populate here as the workspace model is implemented."
+                  FontSize="11"
+                  TextWrapping="Wrap" />
+              <Button Classes="primary-action" Content="Open Folder" HorizontalAlignment="Stretch" Click="OpenFolder_OnClick" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="14,10" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
+          <TextBlock Classes="muted" Text="Standard .sln / .slnx / .csproj" FontSize="10" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- Editor/document area -->
+    <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="38,*">
+      <Border
+          Grid.Row="0"
+          Background="{DynamicResource TorenSurfaceBrush}"
+          BorderBrush="{DynamicResource TorenBorderBrush}"
+          BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="Auto,*">
+          <Border
+              Grid.Column="0"
+              MinWidth="124"
+              Padding="14,0"
+              Background="{DynamicResource TorenBackgroundBrush}"
+              BorderBrush="{DynamicResource TorenAccentBrush}"
+              BorderThickness="0,0,0,2">
+            <TextBlock Text="Welcome" FontSize="12" VerticalAlignment="Center" />
+          </Border>
+        </Grid>
       </Border>
+
+      <Grid Grid.Row="1" Background="{DynamicResource TorenBackgroundBrush}">
+        <StackPanel
+            Width="560"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="18">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Toren IDE" FontSize="30" FontWeight="SemiBold" />
+            <TextBlock
+                Classes="muted"
+                Text="A focused, cross-platform development environment for modern .NET."
+                FontSize="14" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary-action" Content="Open Folder" Click="OpenFolder_OnClick" />
+            <Button Classes="toolbar-button" Content="Open Solution or Project" Click="OpenWorkspaceFile_OnClick" />
+          </StackPanel>
+
+          <Border
+              Margin="0,10,0,0"
+              Padding="14"
+              Background="{DynamicResource TorenSurfaceBrush}"
+              BorderBrush="{DynamicResource TorenBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="6">
+            <StackPanel Spacing="7">
+              <TextBlock Classes="tool-title" Text="CURRENT SESSION" />
+              <TextBlock Text="{Binding EditorText}" FontFamily="Menlo,Consolas,monospace" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
     </Grid>
 
-    <Border Grid.Row="2" Padding="10,5" BorderBrush="#40444B" BorderThickness="0,1,0,0">
-      <TextBlock Text="{Binding StatusText}" FontSize="11" />
+    <!-- Bottom panel -->
+    <Border
+        Grid.Row="2"
+        Grid.Column="2"
+        Classes="shell-surface"
+        BorderThickness="0,1,0,0">
+      <Grid RowDefinitions="34,*">
+        <StackPanel Margin="12,0" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+          <TextBlock Text="PROBLEMS" FontSize="11" Classes="muted" />
+          <TextBlock Text="OUTPUT" FontSize="11" Classes="muted" />
+          <TextBlock Text="TERMINAL" FontSize="11" Foreground="{DynamicResource TorenAccentBrush}" FontWeight="SemiBold" />
+          <TextBlock Text="TESTS" FontSize="11" Classes="muted" />
+        </StackPanel>
+        <Border Grid.Row="1" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0" Padding="14,10">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="muted" Text="Terminal and tool windows arrive in later MVP slices." FontSize="11" />
+            <TextBlock Text="$ toren" FontFamily="Menlo,Consolas,monospace" FontSize="12" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- Status bar -->
+    <Border
+        Grid.Row="3"
+        Grid.ColumnSpan="3"
+        Background="{DynamicResource TorenSurfaceRaisedBrush}"
+        BorderBrush="{DynamicResource TorenBorderBrush}"
+        BorderThickness="0,1,0,0">
+      <Grid Margin="10,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="●" Foreground="{DynamicResource TorenSuccessBrush}" FontSize="9" />
+          <TextBlock Text="{Binding StatusText}" FontSize="10" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Classes="muted" Text="UTF-8   LF   C#" FontSize="10" VerticalAlignment="Center" />
+      </Grid>
     </Border>
   </Grid>
 </Window>
