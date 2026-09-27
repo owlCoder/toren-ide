@@ -2,9 +2,9 @@ using Toren.App.Editor.Models;
 
 namespace Toren.App.Editor.Services;
 
-public sealed class TextSearchService
+public static class TextSearchService
 {
-    public IReadOnlyList<TextSearchMatch> FindAll(
+    public static IReadOnlyList<TextSearchMatch> FindAll(
         string text,
         string pattern,
         bool matchCase)
