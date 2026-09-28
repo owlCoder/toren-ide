@@ -9,4 +9,9 @@ public interface ICSharpSemanticContextProvider
         CSharpSourceDocument activeDocument,
         IReadOnlyList<CSharpSourceDocument> openDocuments,
         CancellationToken cancellationToken = default);
+
+    Task<CSharpSemanticContext?> CreateWorkspaceAsync(
+        string workspacePath,
+        IReadOnlyList<CSharpSourceDocument> openDocuments,
+        CancellationToken cancellationToken = default);
 }
