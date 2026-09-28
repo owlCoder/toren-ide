@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -40,13 +41,14 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
         ArgumentOutOfRangeException.ThrowIfGreaterThan(position, compilationContext.SourceText.Length);
 
         var line = GetLineForPosition(compilationContext.SourceText, position);
+        var root = compilationContext.ActiveTree.GetRoot(cancellationToken);
         return compilationContext.Compilation
             .GetDiagnostics(cancellationToken)
             .Where(diagnostic =>
                 diagnostic.Location.IsInSource
                 && ReferenceEquals(diagnostic.Location.SourceTree, compilationContext.ActiveTree)
                 && IsOnLine(diagnostic.Location.SourceSpan.Start, line.Start, line.EndIncludingLineBreak))
-            .SelectMany(diagnostic => CreateActions(compilationContext, diagnostic, cancellationToken))
+            .SelectMany(diagnostic => CreateActions(compilationContext, root, diagnostic, cancellationToken))
             .DistinctBy(action => action.Id)
             .OrderBy(action => action.Edit.StartOffset)
             .ThenBy(action => action.Title, StringComparer.Ordinal)
@@ -54,7 +56,7 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
     }
 
     private static Microsoft.CodeAnalysis.Text.TextLine GetLineForPosition(
-        Microsoft.CodeAnalysis.Text.SourceText sourceText,
+        SourceText sourceText,
         int position)
     {
         if (sourceText.Length == 0)
@@ -70,7 +72,8 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
         diagnosticPosition >= lineStart && diagnosticPosition <= lineEnd;
 
     private static IEnumerable<CSharpCodeActionInfo> CreateActions(
-        RoslynCompilationContext context,
+        RoslynCompilationContext compilationContext,
+        SyntaxNode root,
         Diagnostic diagnostic,
         CancellationToken cancellationToken)
     {
@@ -78,23 +81,34 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
         if (insertionAction is not null)
         {
             yield return insertionAction;
-            yield break;
         }
 
-        if (diagnostic.Id == TypeOrNamespaceNotFoundDiagnosticId)
+        if (diagnostic.Id == UnnecessaryUsingDiagnosticId)
         {
-            foreach (var action in CreateAddUsingActions(context, diagnostic, cancellationToken))
+            if (CreateRemoveUnnecessaryUsingAction(
+                    compilationContext,
+                    root,
+                    diagnostic) is { } removeUsingAction)
             {
-                yield return action;
+                yield return removeUsingAction;
             }
 
             yield break;
         }
 
-        if (diagnostic.Id == UnnecessaryUsingDiagnosticId
-            && CreateRemoveUnnecessaryUsingAction(context, diagnostic, cancellationToken) is { } removeUsingAction)
+        if (diagnostic.Id != TypeOrNamespaceNotFoundDiagnosticId
+            || root is not CompilationUnitSyntax compilationUnit)
         {
-            yield return removeUsingAction;
+            yield break;
+        }
+
+        foreach (var action in CreateAddUsingActions(
+                     compilationContext,
+                     compilationUnit,
+                     diagnostic,
+                     cancellationToken))
+        {
+            yield return action;
         }
     }
 
@@ -119,6 +133,216 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
             _ => null,
         };
 
+    private static IEnumerable<CSharpCodeActionInfo> CreateAddUsingActions(
+        RoslynCompilationContext compilationContext,
+        CompilationUnitSyntax compilationUnit,
+        Diagnostic diagnostic,
+        CancellationToken cancellationToken)
+    {
+        var span = diagnostic.Location.SourceSpan;
+        if (span.Start >= compilationContext.SourceText.Length)
+        {
+            yield break;
+        }
+
+        var token = compilationUnit.FindToken(span.Start);
+        var simpleName = token.Parent?
+            .AncestorsAndSelf()
+            .OfType<SimpleNameSyntax>()
+            .FirstOrDefault(candidate => candidate.Identifier.Span.IntersectsWith(span));
+        if (simpleName is null)
+        {
+            yield break;
+        }
+
+        var identifier = simpleName.Identifier.ValueText;
+        var arity = simpleName is GenericNameSyntax genericName
+            ? genericName.TypeArgumentList.Arguments.Count
+            : 0;
+        var currentNamespace = compilationContext.SemanticModel
+            .GetEnclosingSymbol(span.Start, cancellationToken)?
+            .ContainingNamespace?
+            .ToDisplayString() ?? string.Empty;
+        var existingNamespaces = compilationUnit.Usings
+            .Where(usingDirective => usingDirective.Alias is null && usingDirective.Name is not null)
+            .Select(usingDirective => usingDirective.Name!.ToString())
+            .ToHashSet(StringComparer.Ordinal);
+        var namespaceNames = FindTypeCandidates(
+                compilationContext.Compilation.GlobalNamespace,
+                identifier,
+                arity,
+                cancellationToken)
+            .Where(type => IsAccessibleUsingCandidate(compilationContext, type))
+            .Select(type => type.ContainingNamespace.ToDisplayString())
+            .Where(namespaceName =>
+                !string.IsNullOrWhiteSpace(namespaceName)
+                && !namespaceName.Equals(currentNamespace, StringComparison.Ordinal)
+                && !existingNamespaces.Contains(namespaceName))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(namespaceName => namespaceName, StringComparer.Ordinal)
+            .ToArray();
+
+        foreach (var namespaceName in namespaceNames)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var edit = CreateUsingEdit(compilationContext, compilationUnit, namespaceName);
+            yield return new CSharpCodeActionInfo(
+                $"csharp.add-using:{namespaceName}:{edit.StartOffset}",
+                $"Add using {namespaceName}",
+                diagnostic.Id,
+                edit);
+        }
+    }
+
+    private static IEnumerable<INamedTypeSymbol> FindTypeCandidates(
+        INamespaceSymbol namespaceSymbol,
+        string identifier,
+        int arity,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var type in namespaceSymbol.GetTypeMembers(identifier, arity))
+        {
+            yield return type;
+        }
+
+        foreach (var childNamespace in namespaceSymbol.GetNamespaceMembers())
+        {
+            foreach (var type in FindTypeCandidates(
+                         childNamespace,
+                         identifier,
+                         arity,
+                         cancellationToken))
+            {
+                yield return type;
+            }
+        }
+    }
+
+    private static bool IsAccessibleUsingCandidate(
+        RoslynCompilationContext compilationContext,
+        INamedTypeSymbol type)
+    {
+        if (type.ContainingType is not null || type.ContainingNamespace.IsGlobalNamespace)
+        {
+            return false;
+        }
+
+        if (type.DeclaredAccessibility == Accessibility.Public)
+        {
+            return true;
+        }
+
+        return type.DeclaredAccessibility == Accessibility.Internal
+            && SymbolEqualityComparer.Default.Equals(
+                type.ContainingAssembly,
+                compilationContext.Compilation.Assembly);
+    }
+
+    private static CSharpTextEdit CreateUsingEdit(
+        RoslynCompilationContext compilationContext,
+        CompilationUnitSyntax compilationUnit,
+        string namespaceName)
+    {
+        var editOffset = GetUsingInsertionOffset(compilationUnit);
+        var newLine = GetPreferredNewLine(compilationContext.SourceText);
+        var needsLeadingNewLine = editOffset > 0
+            && compilationContext.SourceText[editOffset - 1] is not '\r' and not '\n';
+        var newText = $"{(needsLeadingNewLine ? newLine : string.Empty)}using {namespaceName};{newLine}";
+        return new CSharpTextEdit(
+            compilationContext.ActiveTree.FilePath,
+            editOffset,
+            0,
+            newText);
+    }
+
+    private static int GetUsingInsertionOffset(CompilationUnitSyntax compilationUnit)
+    {
+        if (compilationUnit.Usings.Count > 0)
+        {
+            return compilationUnit.Usings[^1].FullSpan.End;
+        }
+
+        if (compilationUnit.Externs.Count > 0)
+        {
+            return compilationUnit.Externs[^1].FullSpan.End;
+        }
+
+        if (compilationUnit.AttributeLists.Count > 0)
+        {
+            return compilationUnit.AttributeLists[0].SpanStart;
+        }
+
+        return compilationUnit.Members.Count > 0
+            ? compilationUnit.Members[0].SpanStart
+            : 0;
+    }
+
+    private static string GetPreferredNewLine(SourceText sourceText)
+    {
+        foreach (var line in sourceText.Lines)
+        {
+            if (line.EndIncludingLineBreak > line.End)
+            {
+                return sourceText.ToString(TextSpan.FromBounds(line.End, line.EndIncludingLineBreak));
+            }
+        }
+
+        return Environment.NewLine;
+    }
+
+    private static CSharpCodeActionInfo? CreateRemoveUnnecessaryUsingAction(
+        RoslynCompilationContext compilationContext,
+        SyntaxNode root,
+        Diagnostic diagnostic)
+    {
+        var diagnosticNode = root.FindNode(
+            diagnostic.Location.SourceSpan,
+            getInnermostNodeForTie: true);
+        var usingDirective = diagnosticNode
+            .AncestorsAndSelf()
+            .OfType<UsingDirectiveSyntax>()
+            .FirstOrDefault();
+        if (usingDirective is null)
+        {
+            return null;
+        }
+
+        var line = compilationContext.SourceText.Lines.GetLineFromPosition(usingDirective.SpanStart);
+        var beforeUsing = compilationContext.SourceText.ToString(
+            TextSpan.FromBounds(line.Start, usingDirective.SpanStart));
+        var afterUsing = compilationContext.SourceText.ToString(
+            TextSpan.FromBounds(usingDirective.Span.End, line.End));
+
+        int startOffset;
+        int length;
+        if (string.IsNullOrWhiteSpace(beforeUsing) && string.IsNullOrWhiteSpace(afterUsing))
+        {
+            startOffset = line.Start;
+            length = line.EndIncludingLineBreak - line.Start;
+        }
+        else
+        {
+            startOffset = usingDirective.SpanStart;
+            length = usingDirective.Span.Length;
+            if (usingDirective.Span.End < line.End
+                && char.IsWhiteSpace(compilationContext.SourceText[usingDirective.Span.End]))
+            {
+                length++;
+            }
+        }
+
+        return new CSharpCodeActionInfo(
+            $"csharp.remove-unnecessary-using:{startOffset}:{length}",
+            "Remove unnecessary using",
+            diagnostic.Id,
+            new CSharpTextEdit(
+                compilationContext.ActiveTree.FilePath,
+                startOffset,
+                length,
+                string.Empty));
+    }
+
     private static CSharpCodeActionInfo CreateInsertionAction(
         Diagnostic diagnostic,
         string actionId,
@@ -136,143 +360,4 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
                 0,
                 newText));
     }
-
-    private static IEnumerable<CSharpCodeActionInfo> CreateAddUsingActions(
-        RoslynCompilationContext context,
-        Diagnostic diagnostic,
-        CancellationToken cancellationToken)
-    {
-        var root = context.ActiveTree.GetRoot(cancellationToken);
-        var diagnosticNode = root.FindNode(
-            diagnostic.Location.SourceSpan,
-            getInnermostNodeForTie: true);
-        var simpleName = diagnosticNode
-            .AncestorsAndSelf()
-            .OfType<SimpleNameSyntax>()
-            .FirstOrDefault();
-        if (simpleName is null)
-        {
-            yield break;
-        }
-
-        var identifier = simpleName.Identifier.ValueText;
-        if (string.IsNullOrWhiteSpace(identifier))
-        {
-            yield break;
-        }
-
-        var namespaces = context.Compilation
-            .GetSymbolsWithName(identifier, SymbolFilter.Type, cancellationToken)
-            .OfType<INamedTypeSymbol>()
-            .Where(symbol => symbol.CanBeReferencedByName)
-            .Select(symbol => symbol.ContainingNamespace?.ToDisplayString())
-            .Where(namespaceName => !string.IsNullOrWhiteSpace(namespaceName))
-            .Select(namespaceName => namespaceName!)
-            .Where(namespaceName => !NamespaceAlreadyImported(root, namespaceName))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(namespaceName => namespaceName, StringComparer.Ordinal)
-            .ToArray();
-
-        foreach (var namespaceName in namespaces)
-        {
-            var edit = CreateUsingInsertionEdit(context, root, namespaceName);
-            yield return new CSharpCodeActionInfo(
-                $"csharp.add-using:{namespaceName}:{diagnostic.Location.SourceSpan.Start}",
-                $"Add using {namespaceName}",
-                diagnostic.Id,
-                edit);
-        }
-    }
-
-    private static bool NamespaceAlreadyImported(SyntaxNode root, string namespaceName) =>
-        root.DescendantNodes()
-            .OfType<UsingDirectiveSyntax>()
-            .Any(usingDirective =>
-                usingDirective.Alias is null
-                && usingDirective.StaticKeyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.None)
-                && usingDirective.Name?.ToString().Equals(namespaceName, StringComparison.Ordinal) == true);
-
-    private static CSharpTextEdit CreateUsingInsertionEdit(
-        RoslynCompilationContext context,
-        SyntaxNode root,
-        string namespaceName)
-    {
-        var compilationUnit = (CompilationUnitSyntax)root;
-        var newline = DetectNewline(context.SourceText.ToString());
-        var existingUsings = compilationUnit.Usings;
-        if (existingUsings.Count > 0)
-        {
-            var lastUsing = existingUsings[^1];
-            var insertionOffset = lastUsing.FullSpan.End;
-            return new CSharpTextEdit(
-                context.ActiveTree.FilePath,
-                insertionOffset,
-                0,
-                $"using {namespaceName};{newline}");
-        }
-
-        var firstMember = compilationUnit.Members.FirstOrDefault();
-        var offset = firstMember?.FullSpan.Start ?? 0;
-        return new CSharpTextEdit(
-            context.ActiveTree.FilePath,
-            offset,
-            0,
-            $"using {namespaceName};{newline}{(offset == 0 ? string.Empty : newline)}");
-    }
-
-    private static CSharpCodeActionInfo? CreateRemoveUnnecessaryUsingAction(
-        RoslynCompilationContext context,
-        Diagnostic diagnostic,
-        CancellationToken cancellationToken)
-    {
-        var root = context.ActiveTree.GetRoot(cancellationToken);
-        var diagnosticNode = root.FindNode(
-            diagnostic.Location.SourceSpan,
-            getInnermostNodeForTie: true);
-        var usingDirective = diagnosticNode
-            .AncestorsAndSelf()
-            .OfType<UsingDirectiveSyntax>()
-            .FirstOrDefault();
-        if (usingDirective is null)
-        {
-            return null;
-        }
-
-        var line = context.SourceText.Lines.GetLineFromPosition(usingDirective.SpanStart);
-        var beforeUsing = context.SourceText.ToString(
-            Microsoft.CodeAnalysis.Text.TextSpan.FromBounds(line.Start, usingDirective.SpanStart));
-        var afterUsing = context.SourceText.ToString(
-            Microsoft.CodeAnalysis.Text.TextSpan.FromBounds(usingDirective.Span.End, line.End));
-
-        int startOffset;
-        int length;
-        if (string.IsNullOrWhiteSpace(beforeUsing) && string.IsNullOrWhiteSpace(afterUsing))
-        {
-            startOffset = line.Start;
-            length = line.EndIncludingLineBreak - line.Start;
-        }
-        else
-        {
-            startOffset = usingDirective.SpanStart;
-            length = usingDirective.Span.Length;
-            if (usingDirective.Span.End < line.End
-                && char.IsWhiteSpace(context.SourceText[usingDirective.Span.End]))
-            {
-                length++;
-            }
-        }
-
-        return new CSharpCodeActionInfo(
-            $"csharp.remove-unnecessary-using:{startOffset}:{length}",
-            "Remove unnecessary using",
-            diagnostic.Id,
-            new CSharpTextEdit(
-                context.ActiveTree.FilePath,
-                startOffset,
-                length,
-                string.Empty));
-    }
-
-    private static string DetectNewline(string text) =>
-        text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
 }
