@@ -36,9 +36,16 @@ public sealed partial class App : Application
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
+            IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
+            IProjectMetadataProvider projectMetadataProvider = new MsBuildProjectMetadataProvider(processRunner);
             IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(processRunner);
             IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
                 solutionProjectProvider,
+                projectReferenceProvider);
+            IWorkspaceProjectGraphService projectGraphService = new WorkspaceProjectGraphService(
+                folderProjectProvider,
+                solutionProjectProvider,
+                projectMetadataProvider,
                 projectReferenceProvider);
             IWorkspaceFileProvider workspaceFileProvider = new FileSystemWorkspaceFileProvider();
             IWorkspaceFileSearchService workspaceFileSearchService = new WorkspaceFileSearchService();
@@ -55,6 +62,12 @@ public sealed partial class App : Application
             IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
                 new DocumentDiagnosticsCoordinator(cSharpSyntaxService);
             var documentHost = new DocumentHostViewModel(textDocumentStore);
+            var cSharpSemanticContextProvider = new CSharpSemanticContextProvider(
+                workspaceClassifier,
+                projectGraphService,
+                workspaceFileProvider,
+                textDocumentStore,
+                documentHost);
 
             var viewModel = new MainWindowViewModel(
                 dotNetEnvironmentService,
@@ -66,25 +79,37 @@ public sealed partial class App : Application
                 documentDiagnosticsCoordinator,
                 documentHost);
             var mainWindow = new MainWindow(viewModel);
+
+            string? GetWorkspacePath() =>
+                viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null;
+
+            async Task OpenDocumentPathAsync(string path)
+            {
+                var opened = await viewModel.Documents.OpenAsync(path).ConfigureAwait(true);
+                if (!opened.IsSuccess)
+                {
+                    viewModel.SetStatus(opened.Error.Message);
+                    return;
+                }
+
+                await viewModel.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
+                viewModel.SetStatus($"Opened {opened.Value.Title}");
+            }
+
             EditorSearchController.Attach(mainWindow);
-            CSharpNavigationController.Attach(mainWindow, cSharpSemanticService);
+            CSharpNavigationController.Attach(
+                mainWindow,
+                cSharpSemanticService,
+                cSharpSemanticContextProvider,
+                GetWorkspacePath,
+                () => viewModel.Documents.ActiveDocument,
+                OpenDocumentPathAsync);
             WorkspaceQuickOpenController.Attach(
                 mainWindow,
                 workspaceFileProvider,
                 workspaceFileSearchService,
-                () => viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null,
-                async path =>
-                {
-                    var opened = await viewModel.Documents.OpenAsync(path).ConfigureAwait(true);
-                    if (!opened.IsSuccess)
-                    {
-                        viewModel.SetStatus(opened.Error.Message);
-                        return;
-                    }
-
-                    await viewModel.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
-                    viewModel.SetStatus($"Opened {opened.Value.Title}");
-                },
+                GetWorkspacePath,
+                OpenDocumentPathAsync,
                 viewModel.SetStatus);
             desktop.MainWindow = mainWindow;
         }
