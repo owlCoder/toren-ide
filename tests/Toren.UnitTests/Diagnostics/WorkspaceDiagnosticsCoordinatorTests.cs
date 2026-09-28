@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Toren.App.Diagnostics.Services;
 using Toren.App.Editor.Contracts;
 using Toren.App.Editor.Models;
+using Toren.Core.Results;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -38,18 +39,54 @@ public sealed class WorkspaceDiagnosticsCoordinatorTests
         var result = await coordinator.AnalyzeLatestAsync(Path.GetFullPath("workspace"), []);
 
         Assert.That(result, Is.Not.Null);
+        var documentDiagnostics = result!.DocumentDiagnostics;
         Assert.Multiple(() =>
         {
-            Assert.That(result, Has.Count.EqualTo(3));
+            Assert.That(documentDiagnostics, Has.Count.EqualTo(3));
+            Assert.That(result.WorkspaceDiagnostics, Is.Empty);
             Assert.That(workspaceService.CallCount, Is.EqualTo(1));
             Assert.That(syntaxService.CallCount, Is.EqualTo(1));
-            Assert.That(result!.Single(item => item.FilePath == alphaPath).Diagnostics, Is.Empty);
+            Assert.That(documentDiagnostics.Single(item => item.FilePath == alphaPath).Diagnostics, Is.Empty);
             Assert.That(
-                result.Single(item => item.FilePath == betaPath).Diagnostics.Single().Id,
+                documentDiagnostics.Single(item => item.FilePath == betaPath).Diagnostics.Single().Id,
                 Is.EqualTo("CS0103"));
             Assert.That(
-                result.Single(item => item.FilePath == loosePath).Diagnostics.Single().Id,
+                documentDiagnostics.Single(item => item.FilePath == loosePath).Diagnostics.Single().Id,
                 Is.EqualTo("CS1002"));
+        });
+    }
+
+    [Test]
+    public async Task ProjectSystemFailureIsSurfacedAlongsideSyntaxFallback()
+    {
+        var loosePath = Path.GetFullPath("Loose.cs");
+        var projectSystemError = OperationError.Create(
+            "workspace.project.metadata.evaluate.failed",
+            "Could not evaluate project metadata: restore assets are unavailable.");
+        var semanticProvider = new FakeSemanticContextProvider(
+            new CSharpWorkspaceSemanticContexts(
+                [],
+                [new CSharpSourceDocument(loosePath, "public sealed class Loose")],
+                projectSystemError));
+        var workspaceService = new FakeWorkspaceDiagnosticService(loosePath);
+        var syntaxService = new FakeSyntaxService();
+        using var coordinator = new WorkspaceDiagnosticsCoordinator(
+            semanticProvider,
+            workspaceService,
+            syntaxService);
+
+        var result = await coordinator.AnalyzeLatestAsync(Path.GetFullPath("workspace"), []);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result!.DocumentDiagnostics, Has.Count.EqualTo(1));
+            Assert.That(result.WorkspaceDiagnostics, Has.Count.EqualTo(1));
+            Assert.That(result.WorkspaceDiagnostics[0].Code, Is.EqualTo(projectSystemError.Code));
+            Assert.That(result.WorkspaceDiagnostics[0].Message, Is.EqualTo(projectSystemError.Message));
+            Assert.That(result.WorkspaceDiagnostics[0].Source, Is.EqualTo("Project system"));
+            Assert.That(syntaxService.CallCount, Is.EqualTo(1));
+            Assert.That(workspaceService.CallCount, Is.Zero);
         });
     }
 

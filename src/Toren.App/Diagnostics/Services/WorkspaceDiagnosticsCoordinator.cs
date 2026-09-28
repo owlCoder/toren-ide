@@ -1,4 +1,5 @@
 using Toren.App.Diagnostics.Contracts;
+using Toren.App.Diagnostics.Models;
 using Toren.App.Editor.Contracts;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
@@ -25,7 +26,7 @@ public sealed class WorkspaceDiagnosticsCoordinator(
     private CancellationTokenSource? _pendingAnalysis;
     private bool _disposed;
 
-    public async Task<IReadOnlyList<CSharpDocumentDiagnostics>?> AnalyzeLatestAsync(
+    public async Task<WorkspaceDiagnosticsSnapshot?> AnalyzeLatestAsync(
         string workspacePath,
         IReadOnlyList<CSharpSourceDocument> openDocuments,
         CancellationToken cancellationToken = default)
@@ -84,11 +85,19 @@ public sealed class WorkspaceDiagnosticsCoordinator(
                 .Select(group => group.Last())
                 .OrderBy(item => item.FilePath, PathComparer)
                 .ToArray();
+            IReadOnlyList<ProblemDiagnostic> workspaceDiagnostics = contexts.ProjectSystemError.IsNone
+                ? []
+                : [new ProblemDiagnostic(
+                    contexts.ProjectSystemError.Code,
+                    contexts.ProjectSystemError.Message,
+                    ProblemSeverity.Error,
+                    "Project system")];
+            var snapshot = new WorkspaceDiagnosticsSnapshot(orderedDiagnostics, workspaceDiagnostics);
 
             lock (_gate)
             {
                 return ReferenceEquals(_pendingAnalysis, analysisCancellation)
-                    ? orderedDiagnostics
+                    ? snapshot
                     : null;
             }
         }

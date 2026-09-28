@@ -147,7 +147,12 @@ public sealed class CSharpSemanticContextProvider(
         }
 
         var graphResult = await _projectGraphService.LoadAsync(workspace, cancellationToken).ConfigureAwait(false);
-        if (!graphResult.IsSuccess || graphResult.Value.Projects.Count == 0)
+        if (!graphResult.IsSuccess)
+        {
+            return new CSharpWorkspaceSemanticContexts([], sourceDocuments, graphResult.Error);
+        }
+
+        if (graphResult.Value.Projects.Count == 0)
         {
             return new CSharpWorkspaceSemanticContexts([], sourceDocuments);
         }
@@ -187,7 +192,8 @@ public sealed class CSharpSemanticContextProvider(
             };
             projectContexts.Add(new CSharpWorkspaceProjectContext(
                 semanticContext,
-                targetDocuments.Select(static document => document.Path).ToArray()));
+                targetDocuments.Select(static document => document.Path).ToArray(),
+                projectPath));
         }
 
         var looseDocuments = ownedDocuments

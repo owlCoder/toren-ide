@@ -132,7 +132,8 @@ internal sealed class ProblemsScopeController
         _viewModel.Problems.SetScopeContext(new ProblemsScopeContext(
             currentDocumentPath,
             projectScope?.DisplayName,
-            projectScope?.FilePaths ?? []));
+            projectScope?.FilePaths ?? [],
+            projectScope?.ProjectPath));
     }
 
     private void Window_OnClosed(object? sender, EventArgs eventArgs)

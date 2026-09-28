@@ -13,9 +13,11 @@ public sealed partial class ProblemsViewModel : ObservableObject
             : StringComparer.Ordinal;
 
     private readonly Dictionary<string, List<ProblemItemViewModel>> _itemsByFile = new(PathComparer);
+    private readonly List<ProblemItemViewModel> _workspaceItems = [];
     private readonly List<ProblemItemViewModel> _allItems = [];
     private readonly HashSet<string> _projectFilePaths = new(PathComparer);
     private string? _currentDocumentPath;
+    private string? _currentProjectPath;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
@@ -110,6 +112,9 @@ public sealed partial class ProblemsViewModel : ObservableObject
         _currentDocumentPath = string.IsNullOrWhiteSpace(context.CurrentDocumentPath)
             ? null
             : Path.GetFullPath(context.CurrentDocumentPath);
+        _currentProjectPath = string.IsNullOrWhiteSpace(context.CurrentProjectPath)
+            ? null
+            : Path.GetFullPath(context.CurrentProjectPath);
         _projectFilePaths.Clear();
         foreach (var path in context.ProjectFilePaths)
         {
@@ -120,7 +125,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
         }
 
         CanUseCurrentDocumentScope = _currentDocumentPath is not null;
-        CanUseProjectScope = _projectFilePaths.Count > 0;
+        CanUseProjectScope = _projectFilePaths.Count > 0 || _currentProjectPath is not null;
         ProjectScopeName = string.IsNullOrWhiteSpace(context.ProjectDisplayName)
             ? "Project"
             : context.ProjectDisplayName;
@@ -144,9 +149,16 @@ public sealed partial class ProblemsViewModel : ObservableObject
     public void ReplaceWorkspace(IReadOnlyList<CSharpDocumentDiagnostics> diagnosticsByFile)
     {
         ArgumentNullException.ThrowIfNull(diagnosticsByFile);
+        ReplaceWorkspace(new WorkspaceDiagnosticsSnapshot(diagnosticsByFile, []));
+    }
+
+    public void ReplaceWorkspace(WorkspaceDiagnosticsSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
 
         _itemsByFile.Clear();
-        foreach (var documentDiagnostics in diagnosticsByFile)
+        _workspaceItems.Clear();
+        foreach (var documentDiagnostics in snapshot.DocumentDiagnostics)
         {
             var normalizedPath = Path.GetFullPath(documentDiagnostics.FilePath);
             _itemsByFile[normalizedPath] = documentDiagnostics.Diagnostics
@@ -154,6 +166,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
                 .ToList();
         }
 
+        _workspaceItems.AddRange(snapshot.WorkspaceDiagnostics.Select(static diagnostic => new ProblemItemViewModel(diagnostic)));
         Rebuild();
     }
 
@@ -181,6 +194,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
     public void Clear()
     {
         _itemsByFile.Clear();
+        _workspaceItems.Clear();
         _allItems.Clear();
         OnPropertyChanged(nameof(HasAnyProblems));
         ApplyFilters();
@@ -212,14 +226,31 @@ public sealed partial class ProblemsViewModel : ObservableObject
     private void Rebuild()
     {
         _allItems.Clear();
-        _allItems.AddRange(_itemsByFile.Values
-            .SelectMany(items => items)
-            .OrderBy(item => item.FilePath, PathComparer)
-            .ThenBy(item => item.StartLine)
-            .ThenBy(item => item.StartColumn)
-            .ThenBy(item => item.Code, StringComparer.Ordinal));
+        _allItems.AddRange(_workspaceItems);
+        _allItems.AddRange(_itemsByFile.Values.SelectMany(static items => items));
+        _allItems.Sort(CompareItems);
         OnPropertyChanged(nameof(HasAnyProblems));
         ApplyFilters();
+    }
+
+    private static int CompareItems(ProblemItemViewModel left, ProblemItemViewModel right)
+    {
+        var pathComparison = PathComparer.Compare(left.FilePath, right.FilePath);
+        if (pathComparison != 0)
+        {
+            return pathComparison;
+        }
+
+        var lineComparison = left.StartLine.CompareTo(right.StartLine);
+        if (lineComparison != 0)
+        {
+            return lineComparison;
+        }
+
+        var columnComparison = left.StartColumn.CompareTo(right.StartColumn);
+        return columnComparison != 0
+            ? columnComparison
+            : StringComparer.Ordinal.Compare(left.Code, right.Code);
     }
 
     private void ApplyFilters()
@@ -248,9 +279,16 @@ public sealed partial class ProblemsViewModel : ObservableObject
         Scope switch
         {
             ProblemsScope.Workspace => true,
-            ProblemsScope.Project => _projectFilePaths.Contains(item.FilePath),
+            ProblemsScope.Project => IsInSelectedProject(item),
             ProblemsScope.CurrentDocument => _currentDocumentPath is not null
+                && !string.IsNullOrEmpty(item.FilePath)
                 && PathComparer.Equals(_currentDocumentPath, item.FilePath),
             _ => throw new InvalidOperationException($"Unsupported Problems scope: {Scope}."),
         };
+
+    private bool IsInSelectedProject(ProblemItemViewModel item) =>
+        (_currentProjectPath is not null
+            && item.ProjectPath is not null
+            && PathComparer.Equals(_currentProjectPath, item.ProjectPath))
+        || (!string.IsNullOrEmpty(item.FilePath) && _projectFilePaths.Contains(item.FilePath));
 }

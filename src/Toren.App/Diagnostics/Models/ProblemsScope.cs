@@ -10,7 +10,8 @@ public enum ProblemsScope
 public sealed record ProblemsScopeContext(
     string? CurrentDocumentPath,
     string? ProjectDisplayName,
-    IReadOnlyList<string> ProjectFilePaths)
+    IReadOnlyList<string> ProjectFilePaths,
+    string? CurrentProjectPath = null)
 {
     public static ProblemsScopeContext Empty { get; } = new(null, null, []);
 }
