@@ -35,6 +35,43 @@ public sealed class RoslynCSharpSemanticServiceTests
     }
 
     [Test]
+    public async Task GetSymbolAsyncResolvesDefinitionInAnotherContextDocument()
+    {
+        const string definitionPath = "/repo/Service.cs";
+        const string consumerPath = "/repo/Consumer.cs";
+        const string serviceSource = """
+            namespace Demo;
+            public sealed class Service { }
+            """;
+        const string consumerSource = """
+            namespace Demo;
+            public sealed class Consumer
+            {
+                public Service Create() => new Service();
+            }
+            """;
+        var context = new CSharpSemanticContext(
+            consumerPath,
+            [
+                new CSharpSourceDocument(definitionPath, serviceSource),
+                new CSharpSourceDocument(consumerPath, consumerSource),
+            ]);
+        var service = new RoslynCSharpSemanticService();
+
+        var symbol = await service.GetSymbolAsync(context, line: 4, column: 12);
+
+        Assert.That(symbol, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(symbol!.Name, Is.EqualTo("Service"));
+            Assert.That(symbol.Kind, Is.EqualTo(CSharpSymbolKind.Type));
+            Assert.That(symbol.Definition, Is.Not.Null);
+            Assert.That(symbol.Definition!.FilePath, Is.EqualTo(definitionPath));
+            Assert.That(symbol.Definition.Line, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
     public async Task GetSymbolAsyncResolvesFrameworkTypeWithoutSourceDefinition()
     {
         const string source = """
