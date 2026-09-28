@@ -81,6 +81,8 @@ public sealed partial class App : Application
             ICSharpWorkspaceDiagnosticService cSharpWorkspaceDiagnosticService = roslynDiagnosticService;
             ICSharpCodeActionService cSharpCodeActionService = new RoslynCSharpCodeActionService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
+            ICSharpSemanticHighlightingService cSharpSemanticHighlightingService =
+                new RoslynCSharpSemanticHighlightingService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
             ICSharpFormattingService cSharpFormattingService = new RoslynCSharpFormattingService();
             ICSharpRenameService cSharpRenameService = new RoslynCSharpRenameService();
@@ -221,6 +223,12 @@ public sealed partial class App : Application
                 cSharpSemanticService,
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync);
+            CSharpSemanticHighlightingController.Attach(
+                mainWindow,
+                cSharpSemanticHighlightingService,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync,
+                documentHost);
             CSharpCompletionController.Attach(
                 mainWindow,
                 cSharpCompletionService,
