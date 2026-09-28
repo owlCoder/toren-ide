@@ -18,6 +18,10 @@ internal sealed partial class EditorNavigationOverlay : UserControl
 
     public event EventHandler? PreviousRequested;
 
+    public event EventHandler? ReplaceNextRequested;
+
+    public event EventHandler? ReplaceAllRequested;
+
     public event EventHandler? GoToLineRequested;
 
     public event EventHandler? CloseRequested;
@@ -26,22 +30,18 @@ internal sealed partial class EditorNavigationOverlay : UserControl
 
     public string Query => InputBox.Text ?? string.Empty;
 
+    public string Replacement => ReplacementBox.Text ?? string.Empty;
+
     public bool MatchCase => MatchCaseButton.IsChecked == true;
 
     public void ShowFind(string initialQuery)
     {
-        Mode = EditorNavigationMode.Find;
-        ModeLabel.Text = "Find";
-        InputBox.PlaceholderText = "Find in file";
-        InputBox.Width = 220;
-        MatchStatus.IsVisible = true;
-        MatchCaseButton.IsVisible = true;
-        PreviousButton.IsVisible = true;
-        NextButton.IsVisible = true;
-        IsVisible = true;
-        InputBox.Text = initialQuery;
-        InputBox.Focus();
-        InputBox.SelectAll();
+        ConfigureSearchMode(EditorNavigationMode.Find, "Find", initialQuery, showReplacement: false);
+    }
+
+    public void ShowReplace(string initialQuery)
+    {
+        ConfigureSearchMode(EditorNavigationMode.Replace, "Replace", initialQuery, showReplacement: true);
     }
 
     public void ShowGoToLine(int currentLine)
@@ -54,6 +54,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         MatchCaseButton.IsVisible = false;
         PreviousButton.IsVisible = false;
         NextButton.IsVisible = false;
+        ReplacementRow.IsVisible = false;
         IsVisible = true;
         InputBox.Text = currentLine.ToString(System.Globalization.CultureInfo.InvariantCulture);
         InputBox.Focus();
@@ -72,6 +73,27 @@ internal sealed partial class EditorNavigationOverlay : UserControl
             : $"{current}/{total}";
     }
 
+    private void ConfigureSearchMode(
+        EditorNavigationMode mode,
+        string label,
+        string initialQuery,
+        bool showReplacement)
+    {
+        Mode = mode;
+        ModeLabel.Text = label;
+        InputBox.PlaceholderText = "Find in file";
+        InputBox.Width = 220;
+        MatchStatus.IsVisible = true;
+        MatchCaseButton.IsVisible = true;
+        PreviousButton.IsVisible = true;
+        NextButton.IsVisible = true;
+        ReplacementRow.IsVisible = showReplacement;
+        IsVisible = true;
+        InputBox.Text = initialQuery;
+        InputBox.Focus();
+        InputBox.SelectAll();
+    }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
@@ -79,7 +101,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
 
     private void InputBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
     {
-        if (Mode == EditorNavigationMode.Find)
+        if (Mode is EditorNavigationMode.Find or EditorNavigationMode.Replace)
         {
             QueryChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -115,6 +137,20 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         eventArgs.Handled = true;
     }
 
+    private void ReplacementBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key == Key.Escape)
+        {
+            CloseRequested?.Invoke(this, EventArgs.Empty);
+            eventArgs.Handled = true;
+        }
+        else if (eventArgs.Key == Key.Enter)
+        {
+            ReplaceNextRequested?.Invoke(this, EventArgs.Empty);
+            eventArgs.Handled = true;
+        }
+    }
+
     private void MatchCaseButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         QueryChanged?.Invoke(this, EventArgs.Empty);
@@ -130,6 +166,16 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         NextRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void ReplaceNextButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ReplaceNextRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ReplaceAllButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        ReplaceAllRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private void CloseButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         CloseRequested?.Invoke(this, EventArgs.Empty);
@@ -139,5 +185,6 @@ internal sealed partial class EditorNavigationOverlay : UserControl
 internal enum EditorNavigationMode
 {
     Find,
+    Replace,
     GoToLine,
 }
