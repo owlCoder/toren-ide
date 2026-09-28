@@ -15,12 +15,12 @@ public sealed class RoslynCSharpSymbolIndexService : ICSharpSymbolIndexService
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(context.Documents);
 
-        return Task.Run(
+        return Task.Run<IReadOnlyList<CSharpWorkspaceSymbol>>(
             () => IndexSymbols(context.Documents, cancellationToken),
             cancellationToken);
     }
 
-    private static IReadOnlyList<CSharpWorkspaceSymbol> IndexSymbols(
+    private static CSharpWorkspaceSymbol[] IndexSymbols(
         IReadOnlyList<CSharpSourceDocument> documents,
         CancellationToken cancellationToken)
     {
@@ -106,7 +106,7 @@ public sealed class RoslynCSharpSymbolIndexService : ICSharpSymbolIndexService
 
     private static void AddFieldOrEvent(
         VariableDeclaratorSyntax variableDeclaration,
-        ICollection<CSharpWorkspaceSymbol> symbols)
+        List<CSharpWorkspaceSymbol> symbols)
     {
         var declaration = variableDeclaration.Parent?.Parent;
         var kind = declaration switch
