@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Toren.App.Documents.Contracts;
 using Toren.App.Documents.Models;
+using Toren.App.Search.Models;
 using Toren.App.Search.Services;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
@@ -23,7 +24,7 @@ public sealed class WorkspaceTextSearchServiceTests
                 [file] = "alpha beta\nBeta beta",
             });
 
-        var result = await service.SearchAsync(root, "beta", matchCase: false);
+        var result = await service.SearchAsync(root, "beta", new WorkspaceTextSearchOptions());
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
@@ -46,7 +47,10 @@ public sealed class WorkspaceTextSearchServiceTests
             [new WorkspaceFileEntry(file, "Sample.cs", "Sample.cs")],
             new Dictionary<string, string> { [file] = "Value value VALUE" });
 
-        var result = await service.SearchAsync(root, "Value", matchCase: true);
+        var result = await service.SearchAsync(
+            root,
+            "Value",
+            new WorkspaceTextSearchOptions(MatchCase: true));
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Value, Has.Count.EqualTo(1));
@@ -73,7 +77,7 @@ public sealed class WorkspaceTextSearchServiceTests
         var result = await service.SearchAsync(
             root,
             "needle",
-            matchCase: false,
+            new WorkspaceTextSearchOptions(),
             overrides);
 
         Assert.That(result.IsSuccess, Is.True);
@@ -103,12 +107,54 @@ public sealed class WorkspaceTextSearchServiceTests
             ]),
             store);
 
-        var result = await service.SearchAsync(root, "hit", matchCase: false, maxResults: 2);
+        var result = await service.SearchAsync(
+            root,
+            "hit",
+            new WorkspaceTextSearchOptions(),
+            maxResults: 2);
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
             Assert.That(result.Value, Has.Count.EqualTo(2));
+            Assert.That(store.LoadCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task SearchHonorsIncludeAndExcludePathPatternsBeforeLoadingFiles()
+    {
+        var root = Path.GetFullPath("/workspace");
+        var appFile = Path.Combine(root, "src", "App", "Program.cs");
+        var testFile = Path.Combine(root, "tests", "ProgramTests.cs");
+        var jsonFile = Path.Combine(root, "src", "App", "appsettings.json");
+        var store = new FakeTextDocumentStore(new Dictionary<string, string>
+        {
+            [appFile] = "needle",
+            [testFile] = "needle",
+            [jsonFile] = "needle",
+        });
+        var service = new WorkspaceTextSearchService(
+            new FakeWorkspaceFileProvider(
+            [
+                new WorkspaceFileEntry(appFile, "src/App/Program.cs", "Program.cs"),
+                new WorkspaceFileEntry(testFile, "tests/ProgramTests.cs", "ProgramTests.cs"),
+                new WorkspaceFileEntry(jsonFile, "src/App/appsettings.json", "appsettings.json"),
+            ]),
+            store);
+
+        var result = await service.SearchAsync(
+            root,
+            "needle",
+            new WorkspaceTextSearchOptions(
+                IncludePatterns: "*.cs",
+                ExcludePatterns: "*Tests*"));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Value, Has.Count.EqualTo(1));
+            Assert.That(result.Value![0].RelativePath, Is.EqualTo("src/App/Program.cs"));
             Assert.That(store.LoadCount, Is.EqualTo(1));
         });
     }
