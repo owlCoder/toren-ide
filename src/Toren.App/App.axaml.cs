@@ -68,6 +68,9 @@ public sealed partial class App : Application
                 textDocumentStore);
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
+            IProblemsViewStateStore problemsViewStateStore =
+                new Diagnostics.Adapters.FileProblemsViewStateStore(
+                    Path.Combine(applicationDataDirectory, "problems-view-state.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             var roslynDiagnosticService = new RoslynCSharpDiagnosticService();
             ICSharpDiagnosticService cSharpDiagnosticService = roslynDiagnosticService;
@@ -178,6 +181,11 @@ public sealed partial class App : Application
                 documentHost,
                 workspaceDiagnosticsCoordinator);
             var mainWindow = new MainWindow(viewModel);
+            ProblemsViewStateController.Attach(
+                mainWindow,
+                viewModel.Problems,
+                problemsViewStateStore,
+                viewModel.SetStatus);
 
             async Task OpenDocumentPathAsync(string path)
             {
