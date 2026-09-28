@@ -54,12 +54,7 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var projectDirectories = graphResult.Value.Projects
-            .Select(project => new ProjectDirectory(
-                project,
-                Path.GetDirectoryName(Path.GetFullPath(project.Path))
-                    ?? Directory.GetCurrentDirectory()))
-            .ToArray();
+        var projectDirectories = CreateProjectDirectories(graphResult.Value.Projects);
         var activePath = Path.GetFullPath(activeDocument.Path);
         var activeProject = FindOwningProject(activePath, projectDirectories);
         if (activeProject is null)
@@ -68,6 +63,60 @@ public sealed class CSharpSemanticContextProvider(
         }
 
         var reachableProjects = GetReachableProjectPaths(activeProject, graphResult.Value.Projects);
+        var sourceDocuments = await LoadSourceDocumentsAsync(
+            workspacePath,
+            openDocuments,
+            fullPath =>
+            {
+                var owner = FindOwningProject(fullPath, projectDirectories);
+                return owner is not null && reachableProjects.Contains(Path.GetFullPath(owner.Path));
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (sourceDocuments is null)
+        {
+            return null;
+        }
+
+        if (!sourceDocuments.Any(document => PathComparer.Equals(document.Path, activePath)))
+        {
+            sourceDocuments.Add(new CSharpSourceDocument(activePath, activeDocument.Text));
+        }
+
+        return new CSharpSemanticContext(activePath, sourceDocuments);
+    }
+
+    public async Task<CSharpSemanticContext?> CreateWorkspaceAsync(
+        string workspacePath,
+        IReadOnlyList<CSharpSourceDocument> openDocuments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
+        ArgumentNullException.ThrowIfNull(openDocuments);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var sourceDocuments = await LoadSourceDocumentsAsync(
+            workspacePath,
+            openDocuments,
+            static _ => true,
+            cancellationToken).ConfigureAwait(false);
+        if (sourceDocuments is null || sourceDocuments.Count == 0)
+        {
+            return null;
+        }
+
+        var preferredActivePath = openDocuments
+            .Select(document => Path.GetFullPath(document.Path))
+            .FirstOrDefault(path => sourceDocuments.Any(document => PathComparer.Equals(document.Path, path)));
+        var activePath = preferredActivePath ?? sourceDocuments[0].Path;
+        return new CSharpSemanticContext(activePath, sourceDocuments);
+    }
+
+    private async Task<List<CSharpSourceDocument>?> LoadSourceDocumentsAsync(
+        string workspacePath,
+        IReadOnlyList<CSharpSourceDocument> openDocuments,
+        Func<string, bool> includeFile,
+        CancellationToken cancellationToken)
+    {
         var filesResult = await _workspaceFileProvider.GetFilesAsync(workspacePath, cancellationToken).ConfigureAwait(false);
         if (!filesResult.IsSuccess)
         {
@@ -78,7 +127,6 @@ public sealed class CSharpSemanticContextProvider(
             document => Path.GetFullPath(document.Path),
             document => document.Text,
             PathComparer);
-        openDocumentText[activePath] = activeDocument.Text;
         var sourceDocuments = new List<CSharpSourceDocument>();
 
         foreach (var file in filesResult.Value)
@@ -90,8 +138,7 @@ public sealed class CSharpSemanticContextProvider(
             }
 
             var fullPath = Path.GetFullPath(file.Path);
-            var owner = FindOwningProject(fullPath, projectDirectories);
-            if (owner is null || !reachableProjects.Contains(Path.GetFullPath(owner.Path)))
+            if (!includeFile(fullPath))
             {
                 continue;
             }
@@ -109,12 +156,7 @@ public sealed class CSharpSemanticContextProvider(
             }
         }
 
-        if (!sourceDocuments.Any(document => PathComparer.Equals(document.Path, activePath)))
-        {
-            sourceDocuments.Add(new CSharpSourceDocument(activePath, activeDocument.Text));
-        }
-
-        return new CSharpSemanticContext(activePath, sourceDocuments);
+        return sourceDocuments;
     }
 
     private WorkspaceDescriptor? ClassifyWorkspace(string workspacePath)
@@ -128,6 +170,14 @@ public sealed class CSharpSemanticContextProvider(
             ? workspace
             : null;
     }
+
+    private static ProjectDirectory[] CreateProjectDirectories(IReadOnlyList<WorkspaceProject> projects) =>
+        projects
+            .Select(project => new ProjectDirectory(
+                project,
+                Path.GetDirectoryName(Path.GetFullPath(project.Path))
+                    ?? Directory.GetCurrentDirectory()))
+            .ToArray();
 
     private static WorkspaceProject? FindOwningProject(
         string filePath,
