@@ -10,25 +10,30 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
 
     private readonly object _gate = new();
     private readonly ICSharpDiagnosticService _cSharpDiagnosticService;
+    private readonly ICSharpSyntaxService _cSharpSyntaxService;
     private readonly TimeSpan _debounceDelay;
     private CancellationTokenSource? _pendingAnalysis;
     private bool _disposed;
 
     public DocumentDiagnosticsCoordinator(
         ICSharpDiagnosticService cSharpDiagnosticService,
+        ICSharpSyntaxService cSharpSyntaxService,
         TimeSpan? debounceDelay = null)
     {
         _cSharpDiagnosticService = cSharpDiagnosticService
             ?? throw new ArgumentNullException(nameof(cSharpDiagnosticService));
+        _cSharpSyntaxService = cSharpSyntaxService
+            ?? throw new ArgumentNullException(nameof(cSharpSyntaxService));
         _debounceDelay = debounceDelay ?? DefaultDebounceDelay;
     }
 
     public async Task<IReadOnlyList<CSharpDiagnostic>?> AnalyzeLatestAsync(
-        CSharpSemanticContext context,
+        string sourceText,
+        CSharpSemanticContext? semanticContext,
         bool debounce,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(sourceText);
 
         CancellationTokenSource analysisCancellation;
         lock (_gate)
@@ -46,9 +51,13 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
                 await Task.Delay(_debounceDelay, analysisCancellation.Token).ConfigureAwait(false);
             }
 
-            var diagnostics = await _cSharpDiagnosticService
-                .AnalyzeAsync(context, analysisCancellation.Token)
-                .ConfigureAwait(false);
+            var diagnostics = semanticContext is null
+                ? await _cSharpSyntaxService
+                    .AnalyzeAsync(sourceText, analysisCancellation.Token)
+                    .ConfigureAwait(false)
+                : await _cSharpDiagnosticService
+                    .AnalyzeAsync(semanticContext, analysisCancellation.Token)
+                    .ConfigureAwait(false);
 
             lock (_gate)
             {
