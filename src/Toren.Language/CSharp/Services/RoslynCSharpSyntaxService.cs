@@ -1,5 +1,3 @@
-using System.Globalization;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
@@ -26,25 +24,7 @@ public sealed class RoslynCSharpSyntaxService : ICSharpSyntaxService
         return syntaxTree
             .GetDiagnostics(cancellationToken)
             .Where(diagnostic => diagnostic.Location.IsInSource)
-            .Select(ToModel)
+            .Select(RoslynDiagnosticMapper.ToModel)
             .ToArray();
-    }
-
-    private static CSharpDiagnostic ToModel(Diagnostic diagnostic)
-    {
-        var span = diagnostic.Location.GetLineSpan().Span;
-        return new CSharpDiagnostic(
-            diagnostic.Id,
-            diagnostic.GetMessage(CultureInfo.InvariantCulture),
-            diagnostic.Severity switch
-            {
-                DiagnosticSeverity.Error => CSharpDiagnosticSeverity.Error,
-                DiagnosticSeverity.Warning => CSharpDiagnosticSeverity.Warning,
-                _ => CSharpDiagnosticSeverity.Info,
-            },
-            span.Start.Line + 1,
-            span.Start.Character + 1,
-            span.End.Line + 1,
-            span.End.Character + 1);
     }
 }
