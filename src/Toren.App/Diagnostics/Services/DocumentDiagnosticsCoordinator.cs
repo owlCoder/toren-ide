@@ -9,12 +9,21 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
     private static readonly TimeSpan DefaultDebounceDelay = TimeSpan.FromMilliseconds(300);
 
     private readonly object _gate = new();
-    private readonly ICSharpDiagnosticService _cSharpDiagnosticService;
+    private readonly ICSharpDiagnosticService? _cSharpDiagnosticService;
     private readonly ICSharpSyntaxService _cSharpSyntaxService;
     private readonly Func<string, string, CancellationToken, Task<CSharpSemanticContext?>>? _semanticContextFactory;
     private readonly TimeSpan _debounceDelay;
     private CancellationTokenSource? _pendingAnalysis;
     private bool _disposed;
+
+    public DocumentDiagnosticsCoordinator(
+        ICSharpSyntaxService cSharpSyntaxService,
+        TimeSpan? debounceDelay = null)
+    {
+        _cSharpSyntaxService = cSharpSyntaxService
+            ?? throw new ArgumentNullException(nameof(cSharpSyntaxService));
+        _debounceDelay = debounceDelay ?? DefaultDebounceDelay;
+    }
 
     public DocumentDiagnosticsCoordinator(
         ICSharpDiagnosticService cSharpDiagnosticService,
@@ -64,7 +73,7 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
             var semanticContext = _semanticContextFactory is null
                 ? null
                 : await _semanticContextFactory(path, sourceText, analysisCancellation.Token).ConfigureAwait(false);
-            var diagnostics = semanticContext is null
+            var diagnostics = semanticContext is null || _cSharpDiagnosticService is null
                 ? await _cSharpSyntaxService
                     .AnalyzeAsync(sourceText, analysisCancellation.Token)
                     .ConfigureAwait(false)
