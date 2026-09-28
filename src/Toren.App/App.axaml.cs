@@ -134,6 +134,11 @@ public sealed partial class App : Application
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync,
                 OpenDocumentPathAsync);
+            CSharpQuickInfoController.Attach(
+                mainWindow,
+                cSharpSemanticService,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync);
             CSharpSymbolNavigationController.Attach(
                 mainWindow,
                 cSharpSymbolIndexService,
