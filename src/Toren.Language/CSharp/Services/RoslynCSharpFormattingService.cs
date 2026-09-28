@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using Toren.Language.CSharp.Contracts;
@@ -15,16 +16,15 @@ public sealed class RoslynCSharpFormattingService : ICSharpFormattingService
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
-        using var roslynContext = CreateWorkspaceContext(sourceText, cancellationToken);
-        if (roslynContext is null)
-        {
-            return sourceText;
-        }
-
-        var formattedDocument = await Formatter
-            .FormatAsync(roslynContext.ActiveDocument, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        return await GetDocumentTextAsync(formattedDocument, cancellationToken).ConfigureAwait(false);
+        var lineEnding = DetectLineEnding(sourceText);
+        var syntaxTree = CSharpSyntaxTree.ParseText(
+            sourceText,
+            path: FormatDocumentPath,
+            cancellationToken: cancellationToken);
+        var root = await syntaxTree.GetRootAsync(cancellationToken).ConfigureAwait(false);
+        return root
+            .NormalizeWhitespace(indentation: "    ", eol: lineEnding, elasticTrivia: false)
+            .ToFullString();
     }
 
     public async Task<string> FormatSelectionAsync(
@@ -58,7 +58,8 @@ public sealed class RoslynCSharpFormattingService : ICSharpFormattingService
                 [new TextSpan(startOffset, length)],
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
-        return await GetDocumentTextAsync(formattedDocument, cancellationToken).ConfigureAwait(false);
+        var formatted = await GetDocumentTextAsync(formattedDocument, cancellationToken).ConfigureAwait(false);
+        return NormalizeLineEndings(formatted, DetectLineEnding(sourceText));
     }
 
     private static RoslynWorkspaceContext? CreateWorkspaceContext(
@@ -79,5 +80,27 @@ public sealed class RoslynCSharpFormattingService : ICSharpFormattingService
             .GetTextAsync(cancellationToken)
             .ConfigureAwait(false);
         return formattedText.ToString();
+    }
+
+    private static string DetectLineEnding(string sourceText)
+    {
+        if (sourceText.Contains("\r\n", StringComparison.Ordinal))
+        {
+            return "\r\n";
+        }
+
+        return sourceText.Contains('\r', StringComparison.Ordinal)
+            ? "\r"
+            : "\n";
+    }
+
+    private static string NormalizeLineEndings(string text, string lineEnding)
+    {
+        var normalized = text
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+        return lineEnding.Equals("\n", StringComparison.Ordinal)
+            ? normalized
+            : normalized.Replace("\n", lineEnding, StringComparison.Ordinal);
     }
 }
