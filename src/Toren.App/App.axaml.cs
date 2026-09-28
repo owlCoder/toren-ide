@@ -132,6 +132,19 @@ public sealed partial class App : Application
                     : GetSemanticContextAsync(activeDocument);
             }
 
+            async Task<CSharpSemanticContext?> GetWorkspaceSemanticContextAsync()
+            {
+                var workspacePath = GetWorkspacePath();
+                if (string.IsNullOrWhiteSpace(workspacePath))
+                {
+                    return null;
+                }
+
+                return await cSharpSemanticContextProvider
+                    .CreateWorkspaceAsync(workspacePath, GetOpenCSharpDocuments())
+                    .ConfigureAwait(true);
+            }
+
             Task<CSharpSemanticContext?> CreateDiagnosticsContextAsync(
                 string path,
                 string sourceText,
@@ -205,7 +218,7 @@ public sealed partial class App : Application
                 mainWindow,
                 cSharpSymbolIndexService,
                 cSharpSymbolSearchService,
-                GetActiveSemanticContextAsync,
+                GetWorkspaceSemanticContextAsync,
                 OpenDocumentPathAsync,
                 viewModel.SetStatus);
             WorkspaceQuickOpenController.Attach(
