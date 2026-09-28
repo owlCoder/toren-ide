@@ -71,6 +71,10 @@ public sealed partial class App : Application
             IProblemsViewStateStore problemsViewStateStore =
                 new Diagnostics.Adapters.FileProblemsViewStateStore(
                     Path.Combine(applicationDataDirectory, "problems-view-state.json"));
+            IProblemsWorkspaceScopeService problemsWorkspaceScopeService = new WorkspaceProblemsScopeService(
+                workspaceClassifier,
+                projectGraphService,
+                workspaceFileProvider);
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             var roslynDiagnosticService = new RoslynCSharpDiagnosticService();
             ICSharpDiagnosticService cSharpDiagnosticService = roslynDiagnosticService;
@@ -181,6 +185,11 @@ public sealed partial class App : Application
                 documentHost,
                 workspaceDiagnosticsCoordinator);
             var mainWindow = new MainWindow(viewModel);
+            ProblemsScopeController.Attach(
+                mainWindow,
+                viewModel,
+                problemsWorkspaceScopeService,
+                viewModel.SetStatus);
             ProblemsViewStateController.Attach(
                 mainWindow,
                 viewModel.Problems,

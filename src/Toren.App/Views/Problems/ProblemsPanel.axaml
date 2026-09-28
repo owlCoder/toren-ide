@@ -24,42 +24,64 @@
 
   <Grid RowDefinitions="Auto,*">
     <Border Grid.Row="0"
-            IsVisible="{Binding Problems.HasProblems}"
+            IsVisible="{Binding Problems.HasAnyProblems}"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1"
             Padding="12,5">
-      <StackPanel Orientation="Horizontal" Spacing="4">
-        <ToggleButton Classes="problem-filter"
-                      IsChecked="{Binding Problems.ShowErrors}">
-          <StackPanel Orientation="Horizontal" Spacing="5">
-            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenErrorBrush}" />
-            <TextBlock Text="Errors" FontSize="10.5" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Problems.ErrorCount}" FontSize="10.5"
-                       Foreground="{DynamicResource TorenTextSubtleBrush}"
-                       VerticalAlignment="Center" />
-          </StackPanel>
-        </ToggleButton>
-        <ToggleButton Classes="problem-filter"
-                      IsChecked="{Binding Problems.ShowWarnings}">
-          <StackPanel Orientation="Horizontal" Spacing="5">
-            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenWarningBrush}" />
-            <TextBlock Text="Warnings" FontSize="10.5" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Problems.WarningCount}" FontSize="10.5"
-                       Foreground="{DynamicResource TorenTextSubtleBrush}"
-                       VerticalAlignment="Center" />
-          </StackPanel>
-        </ToggleButton>
-        <ToggleButton Classes="problem-filter"
-                      IsChecked="{Binding Problems.ShowInfo}">
-          <StackPanel Orientation="Horizontal" Spacing="5">
-            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenAccentBrush}" />
-            <TextBlock Text="Info" FontSize="10.5" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Problems.InfoCount}" FontSize="10.5"
-                       Foreground="{DynamicResource TorenTextSubtleBrush}"
-                       VerticalAlignment="Center" />
-          </StackPanel>
-        </ToggleButton>
-      </StackPanel>
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+          <ToggleButton Classes="problem-filter"
+                        IsChecked="{Binding Problems.ShowErrors}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenErrorBrush}" />
+              <TextBlock Text="Errors" FontSize="10.5" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Problems.ErrorCount}" FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextSubtleBrush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+          <ToggleButton Classes="problem-filter"
+                        IsChecked="{Binding Problems.ShowWarnings}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenWarningBrush}" />
+              <TextBlock Text="Warnings" FontSize="10.5" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Problems.WarningCount}" FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextSubtleBrush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+          <ToggleButton Classes="problem-filter"
+                        IsChecked="{Binding Problems.ShowInfo}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenAccentBrush}" />
+              <TextBlock Text="Info" FontSize="10.5" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Problems.InfoCount}" FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextSubtleBrush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="3">
+          <TextBlock Text="Scope" FontSize="10.5"
+                     Foreground="{DynamicResource TorenTextSubtleBrush}"
+                     VerticalAlignment="Center" Margin="0,0,3,0" />
+          <ToggleButton Classes="problem-filter"
+                        Content="Workspace"
+                        ToolTip.Tip="Show problems from the entire workspace"
+                        IsChecked="{Binding Problems.IsWorkspaceScope}" />
+          <ToggleButton Classes="problem-filter"
+                        Content="Project"
+                        ToolTip.Tip="{Binding Problems.ProjectScopeName}"
+                        IsEnabled="{Binding Problems.CanUseProjectScope}"
+                        IsChecked="{Binding Problems.IsProjectScope}" />
+          <ToggleButton Classes="problem-filter"
+                        Content="File"
+                        ToolTip.Tip="Show problems from the current document"
+                        IsEnabled="{Binding Problems.CanUseCurrentDocumentScope}"
+                        IsChecked="{Binding Problems.IsCurrentDocumentScope}" />
+        </StackPanel>
+      </Grid>
     </Border>
 
     <Grid Grid.Row="1">

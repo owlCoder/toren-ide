@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Toren.App.Diagnostics.Models;
 using Toren.App.Diagnostics.ViewModels;
 using Toren.Language.CSharp.Models;
 
@@ -24,6 +25,7 @@ public sealed class ProblemsViewModelTests
         {
             Assert.That(problems.HasItems, Is.True);
             Assert.That(problems.HasProblems, Is.True);
+            Assert.That(problems.HasAnyProblems, Is.True);
             Assert.That(problems.IsEmpty, Is.False);
             Assert.That(problems.IsFilteredEmpty, Is.False);
             Assert.That(problems.Count, Is.EqualTo(3));
@@ -135,6 +137,82 @@ public sealed class ProblemsViewModelTests
     }
 
     [Test]
+    public void ScopeFiltersProjectAndCurrentDocumentCounts()
+    {
+        var problems = new ProblemsViewModel();
+        var alphaPath = Path.Combine(Path.GetTempPath(), "Alpha.cs");
+        var betaPath = Path.Combine(Path.GetTempPath(), "Beta.cs");
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.ReplaceFile(
+            betaPath,
+            [new CSharpDiagnostic("CS0168", "Unused", CSharpDiagnosticSeverity.Warning, 2, 1, 2, 1)]);
+        problems.SetScopeContext(new ProblemsScopeContext(alphaPath, "AlphaProject", [alphaPath]));
+
+        problems.Scope = ProblemsScope.Project;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.Count, Is.EqualTo(1));
+            Assert.That(problems.ErrorCount, Is.EqualTo(1));
+            Assert.That(problems.WarningCount, Is.Zero);
+            Assert.That(problems.Items.Single().FileName, Is.EqualTo("Alpha.cs"));
+            Assert.That(problems.ProjectScopeName, Is.EqualTo("AlphaProject"));
+        });
+
+        problems.Scope = ProblemsScope.CurrentDocument;
+        Assert.That(problems.Items.Single().FileName, Is.EqualTo("Alpha.cs"));
+
+        problems.Scope = ProblemsScope.Workspace;
+        Assert.That(problems.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void EmptySelectedScopeKeepsAggregateFilterBarAvailable()
+    {
+        var problems = new ProblemsViewModel();
+        var alphaPath = Path.Combine(Path.GetTempPath(), "Alpha.cs");
+        var betaPath = Path.Combine(Path.GetTempPath(), "Beta.cs");
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.SetScopeContext(new ProblemsScopeContext(betaPath, null, []));
+
+        problems.Scope = ProblemsScope.CurrentDocument;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.HasAnyProblems, Is.True);
+            Assert.That(problems.HasProblems, Is.False);
+            Assert.That(problems.IsEmpty, Is.True);
+            Assert.That(problems.Items, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void LosingScopeContextFallsBackToWorkspace()
+    {
+        var problems = new ProblemsViewModel();
+        var alphaPath = Path.Combine(Path.GetTempPath(), "Alpha.cs");
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.SetScopeContext(new ProblemsScopeContext(alphaPath, "AlphaProject", [alphaPath]));
+        problems.Scope = ProblemsScope.Project;
+
+        problems.SetScopeContext(ProblemsScopeContext.Empty);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.Scope, Is.EqualTo(ProblemsScope.Workspace));
+            Assert.That(problems.CanUseProjectScope, Is.False);
+            Assert.That(problems.CanUseCurrentDocumentScope, Is.False);
+            Assert.That(problems.Count, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void DisablingAllSeverityFiltersProducesFilteredEmptyState()
     {
         var problems = new ProblemsViewModel();
@@ -168,6 +246,7 @@ public sealed class ProblemsViewModelTests
         {
             Assert.That(problems.Items, Is.Empty);
             Assert.That(problems.HasProblems, Is.False);
+            Assert.That(problems.HasAnyProblems, Is.False);
             Assert.That(problems.IsEmpty, Is.True);
             Assert.That(problems.IsFilteredEmpty, Is.False);
             Assert.That(problems.Count, Is.Zero);

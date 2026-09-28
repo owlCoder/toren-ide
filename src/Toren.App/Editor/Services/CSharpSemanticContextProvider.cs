@@ -4,6 +4,7 @@ using Toren.App.Editor.Models;
 using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
+using Toren.Workspaces.Services;
 
 namespace Toren.App.Editor.Services;
 
@@ -55,9 +56,9 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var projectDirectories = CreateProjectDirectories(graphResult.Value.Projects);
+        var projectOwnership = new WorkspaceProjectOwnershipMap(graphResult.Value.Projects);
         var activePath = Path.GetFullPath(activeDocument.Path);
-        var activeProject = FindOwningProject(activePath, projectDirectories);
+        var activeProject = projectOwnership.FindOwningProject(activePath);
         if (activeProject is null)
         {
             return null;
@@ -69,7 +70,7 @@ public sealed class CSharpSemanticContextProvider(
             openDocuments,
             fullPath =>
             {
-                var owner = FindOwningProject(fullPath, projectDirectories);
+                var owner = projectOwnership.FindOwningProject(fullPath);
                 return owner is not null && reachableProjects.Contains(Path.GetFullPath(owner.Path));
             },
             cancellationToken).ConfigureAwait(false);
@@ -152,11 +153,11 @@ public sealed class CSharpSemanticContextProvider(
         }
 
         var projects = graphResult.Value.Projects;
-        var projectDirectories = CreateProjectDirectories(projects);
+        var projectOwnership = new WorkspaceProjectOwnershipMap(projects);
         var ownedDocuments = sourceDocuments
             .Select(document => new OwnedSourceDocument(
                 document,
-                FindOwningProject(Path.GetFullPath(document.Path), projectDirectories)))
+                projectOwnership.FindOwningProject(Path.GetFullPath(document.Path))))
             .ToArray();
         var projectContexts = new List<CSharpWorkspaceProjectContext>(projects.Count);
 
@@ -256,25 +257,6 @@ public sealed class CSharpSemanticContextProvider(
             : null;
     }
 
-    private static ProjectDirectory[] CreateProjectDirectories(IReadOnlyList<WorkspaceProject> projects) =>
-        projects
-            .Select(project => new ProjectDirectory(
-                project,
-                Path.GetDirectoryName(Path.GetFullPath(project.Path))
-                    ?? Directory.GetCurrentDirectory()))
-            .ToArray();
-
-    private static WorkspaceProject? FindOwningProject(
-        string filePath,
-        IReadOnlyList<ProjectDirectory> projectDirectories)
-    {
-        return projectDirectories
-            .Where(project => IsWithinDirectory(filePath, project.Directory))
-            .OrderByDescending(project => project.Directory.Length)
-            .Select(project => project.Project)
-            .FirstOrDefault();
-    }
-
     private static HashSet<string> GetReachableProjectPaths(
         WorkspaceProject activeProject,
         IReadOnlyList<WorkspaceProject> projects)
@@ -324,21 +306,6 @@ public sealed class CSharpSemanticContextProvider(
             .Distinct(PathComparer)
             .OrderBy(static path => path, PathComparer)
             .ToArray();
-
-    private static bool IsWithinDirectory(string filePath, string directoryPath)
-    {
-        var relativePath = Path.GetRelativePath(directoryPath, filePath);
-        if (relativePath.Equals("..", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var parentPrefix = $"..{Path.DirectorySeparatorChar}";
-        return !relativePath.StartsWith(parentPrefix, StringComparison.Ordinal)
-            && !Path.IsPathRooted(relativePath);
-    }
-
-    private sealed record ProjectDirectory(WorkspaceProject Project, string Directory);
 
     private sealed record OwnedSourceDocument(CSharpSourceDocument Document, WorkspaceProject? Project);
 }

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Toren.App.Diagnostics.Models;
 using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Diagnostics.ViewModels;
@@ -13,6 +14,8 @@ public sealed partial class ProblemsViewModel : ObservableObject
 
     private readonly Dictionary<string, List<ProblemItemViewModel>> _itemsByFile = new(PathComparer);
     private readonly List<ProblemItemViewModel> _allItems = [];
+    private readonly HashSet<string> _projectFilePaths = new(PathComparer);
+    private string? _currentDocumentPath;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
@@ -42,13 +45,95 @@ public sealed partial class ProblemsViewModel : ObservableObject
     [ObservableProperty]
     private bool _showInfo = true;
 
+    [ObservableProperty]
+    private ProblemsScope _scope = ProblemsScope.Workspace;
+
+    [ObservableProperty]
+    private bool _canUseProjectScope;
+
+    [ObservableProperty]
+    private bool _canUseCurrentDocumentScope;
+
+    [ObservableProperty]
+    private string _projectScopeName = "Project";
+
     public ObservableCollection<ProblemItemViewModel> Items { get; } = new();
 
     public bool HasProblems => Count > 0;
 
+    public bool HasAnyProblems => _allItems.Count > 0;
+
     public bool IsEmpty => Count == 0;
 
     public bool IsFilteredEmpty => HasProblems && !HasItems;
+
+    public bool IsWorkspaceScope
+    {
+        get => Scope == ProblemsScope.Workspace;
+        set
+        {
+            if (value)
+            {
+                Scope = ProblemsScope.Workspace;
+            }
+        }
+    }
+
+    public bool IsProjectScope
+    {
+        get => Scope == ProblemsScope.Project;
+        set
+        {
+            if (value && CanUseProjectScope)
+            {
+                Scope = ProblemsScope.Project;
+            }
+        }
+    }
+
+    public bool IsCurrentDocumentScope
+    {
+        get => Scope == ProblemsScope.CurrentDocument;
+        set
+        {
+            if (value && CanUseCurrentDocumentScope)
+            {
+                Scope = ProblemsScope.CurrentDocument;
+            }
+        }
+    }
+
+    public void SetScopeContext(ProblemsScopeContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        _currentDocumentPath = string.IsNullOrWhiteSpace(context.CurrentDocumentPath)
+            ? null
+            : Path.GetFullPath(context.CurrentDocumentPath);
+        _projectFilePaths.Clear();
+        foreach (var path in context.ProjectFilePaths)
+        {
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                _projectFilePaths.Add(Path.GetFullPath(path));
+            }
+        }
+
+        CanUseCurrentDocumentScope = _currentDocumentPath is not null;
+        CanUseProjectScope = _projectFilePaths.Count > 0;
+        ProjectScopeName = string.IsNullOrWhiteSpace(context.ProjectDisplayName)
+            ? "Project"
+            : context.ProjectDisplayName;
+
+        if ((Scope == ProblemsScope.Project && !CanUseProjectScope)
+            || (Scope == ProblemsScope.CurrentDocument && !CanUseCurrentDocumentScope))
+        {
+            Scope = ProblemsScope.Workspace;
+            return;
+        }
+
+        ApplyFilters();
+    }
 
     public void Replace(string filePath, IReadOnlyList<CSharpDiagnostic> diagnostics)
     {
@@ -97,12 +182,8 @@ public sealed partial class ProblemsViewModel : ObservableObject
     {
         _itemsByFile.Clear();
         _allItems.Clear();
-        Items.Clear();
-        Count = 0;
-        ErrorCount = 0;
-        WarningCount = 0;
-        InfoCount = 0;
-        HasItems = false;
+        OnPropertyChanged(nameof(HasAnyProblems));
+        ApplyFilters();
     }
 
     partial void OnShowErrorsChanged(bool value)
@@ -120,6 +201,14 @@ public sealed partial class ProblemsViewModel : ObservableObject
         ApplyFilters();
     }
 
+    partial void OnScopeChanged(ProblemsScope value)
+    {
+        OnPropertyChanged(nameof(IsWorkspaceScope));
+        OnPropertyChanged(nameof(IsProjectScope));
+        OnPropertyChanged(nameof(IsCurrentDocumentScope));
+        ApplyFilters();
+    }
+
     private void Rebuild()
     {
         _allItems.Clear();
@@ -129,18 +218,20 @@ public sealed partial class ProblemsViewModel : ObservableObject
             .ThenBy(item => item.StartLine)
             .ThenBy(item => item.StartColumn)
             .ThenBy(item => item.Code, StringComparer.Ordinal));
-
-        Count = _allItems.Count;
-        ErrorCount = _allItems.Count(item => item.IsError);
-        WarningCount = _allItems.Count(item => item.IsWarning);
-        InfoCount = _allItems.Count(item => item.IsInfo);
+        OnPropertyChanged(nameof(HasAnyProblems));
         ApplyFilters();
     }
 
     private void ApplyFilters()
     {
+        var scopedItems = _allItems.Where(IsInSelectedScope).ToArray();
+        Count = scopedItems.Length;
+        ErrorCount = scopedItems.Count(item => item.IsError);
+        WarningCount = scopedItems.Count(item => item.IsWarning);
+        InfoCount = scopedItems.Count(item => item.IsInfo);
+
         Items.Clear();
-        foreach (var item in _allItems)
+        foreach (var item in scopedItems)
         {
             if ((item.IsError && ShowErrors)
                 || (item.IsWarning && ShowWarnings)
@@ -152,4 +243,14 @@ public sealed partial class ProblemsViewModel : ObservableObject
 
         HasItems = Items.Count > 0;
     }
+
+    private bool IsInSelectedScope(ProblemItemViewModel item) =>
+        Scope switch
+        {
+            ProblemsScope.Workspace => true,
+            ProblemsScope.Project => _projectFilePaths.Contains(item.FilePath),
+            ProblemsScope.CurrentDocument => _currentDocumentPath is not null
+                && PathComparer.Equals(_currentDocumentPath, item.FilePath),
+            _ => throw new ArgumentOutOfRangeException(nameof(Scope)),
+        };
 }
