@@ -83,11 +83,34 @@ public sealed partial class App : Application
             string? GetWorkspacePath() =>
                 viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null;
 
+            CSharpSourceDocument? GetActiveCSharpDocument()
+            {
+                var document = viewModel.Documents.ActiveDocument;
+                return document is not null
+                    && Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase)
+                        ? new CSharpSourceDocument(document.Path, document.Text)
+                        : null;
+            }
+
             IReadOnlyList<CSharpSourceDocument> GetOpenCSharpDocuments() =>
                 viewModel.Documents.OpenDocuments
                     .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
                     .Select(document => new CSharpSourceDocument(document.Path, document.Text))
                     .ToArray();
+
+            async Task<CSharpSemanticContext?> GetActiveSemanticContextAsync()
+            {
+                var workspacePath = GetWorkspacePath();
+                var activeDocument = GetActiveCSharpDocument();
+                if (string.IsNullOrWhiteSpace(workspacePath) || activeDocument is null)
+                {
+                    return null;
+                }
+
+                return await cSharpSemanticContextProvider
+                    .CreateAsync(workspacePath, activeDocument, GetOpenCSharpDocuments())
+                    .ConfigureAwait(true);
+            }
 
             async Task OpenDocumentPathAsync(string path)
             {
@@ -106,10 +129,8 @@ public sealed partial class App : Application
             CSharpNavigationController.Attach(
                 mainWindow,
                 cSharpSemanticService,
-                cSharpSemanticContextProvider,
-                GetWorkspacePath,
-                () => viewModel.Documents.ActiveDocument,
-                GetOpenCSharpDocuments,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync,
                 OpenDocumentPathAsync);
             WorkspaceQuickOpenController.Attach(
                 mainWindow,
