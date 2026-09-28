@@ -25,6 +25,10 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
 
     public bool MatchCase => MatchCaseButton.IsChecked == true;
 
+    public string IncludePatterns => IncludePatternsBox.Text ?? string.Empty;
+
+    public string ExcludePatterns => ExcludePatternsBox.Text ?? string.Empty;
+
     public WorkspaceTextSearchResult? SelectedResult => ResultsList.SelectedItem as WorkspaceTextSearchResult;
 
     public void ShowOverlay()
@@ -62,6 +66,11 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
         QueryChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    private void FilterBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)
+    {
+        SearchOptionsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void MatchCaseButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         SearchOptionsChanged?.Invoke(this, EventArgs.Empty);
@@ -69,10 +78,8 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
 
     private void QueryBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
     {
-        if (eventArgs.Key == Key.Escape)
+        if (TryClose(eventArgs))
         {
-            CloseRequested?.Invoke(this, EventArgs.Empty);
-            eventArgs.Handled = true;
             return;
         }
 
@@ -92,6 +99,23 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
         var current = Math.Max(ResultsList.SelectedIndex, 0);
         ResultsList.SelectedIndex = Math.Clamp(current + delta, 0, ResultsList.ItemCount - 1);
         eventArgs.Handled = true;
+    }
+
+    private void FilterBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        _ = TryClose(eventArgs);
+    }
+
+    private bool TryClose(KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key != Key.Escape)
+        {
+            return false;
+        }
+
+        CloseRequested?.Invoke(this, EventArgs.Empty);
+        eventArgs.Handled = true;
+        return true;
     }
 
     private void ResultsList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
