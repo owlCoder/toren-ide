@@ -11,6 +11,7 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
     private readonly object _gate = new();
     private readonly ICSharpDiagnosticService _cSharpDiagnosticService;
     private readonly ICSharpSyntaxService _cSharpSyntaxService;
+    private readonly Func<string, string, CancellationToken, Task<CSharpSemanticContext?>>? _semanticContextFactory;
     private readonly TimeSpan _debounceDelay;
     private CancellationTokenSource? _pendingAnalysis;
     private bool _disposed;
@@ -18,22 +19,31 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
     public DocumentDiagnosticsCoordinator(
         ICSharpDiagnosticService cSharpDiagnosticService,
         ICSharpSyntaxService cSharpSyntaxService,
+        Func<string, string, CancellationToken, Task<CSharpSemanticContext?>>? semanticContextFactory = null,
         TimeSpan? debounceDelay = null)
     {
         _cSharpDiagnosticService = cSharpDiagnosticService
             ?? throw new ArgumentNullException(nameof(cSharpDiagnosticService));
         _cSharpSyntaxService = cSharpSyntaxService
             ?? throw new ArgumentNullException(nameof(cSharpSyntaxService));
+        _semanticContextFactory = semanticContextFactory;
         _debounceDelay = debounceDelay ?? DefaultDebounceDelay;
     }
 
     public async Task<IReadOnlyList<CSharpDiagnostic>?> AnalyzeLatestAsync(
+        string path,
         string sourceText,
-        CSharpSemanticContext? semanticContext,
         bool debounce,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(sourceText);
+
+        if (!Path.GetExtension(path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            CancelPending();
+            return Array.Empty<CSharpDiagnostic>();
+        }
 
         CancellationTokenSource analysisCancellation;
         lock (_gate)
@@ -51,6 +61,9 @@ public sealed class DocumentDiagnosticsCoordinator : IDocumentDiagnosticsCoordin
                 await Task.Delay(_debounceDelay, analysisCancellation.Token).ConfigureAwait(false);
             }
 
+            var semanticContext = _semanticContextFactory is null
+                ? null
+                : await _semanticContextFactory(path, sourceText, analysisCancellation.Token).ConfigureAwait(false);
             var diagnostics = semanticContext is null
                 ? await _cSharpSyntaxService
                     .AnalyzeAsync(sourceText, analysisCancellation.Token)
