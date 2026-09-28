@@ -128,19 +128,19 @@ public sealed class WorkspaceTextSearchService(
 
     private static bool MatchesPathFilters(
         string relativePath,
-        IReadOnlyList<string> includePatterns,
-        IReadOnlyList<string> excludePatterns)
+        string[] includePatterns,
+        string[] excludePatterns)
     {
         var normalizedPath = relativePath.Replace('\\', '/');
-        if (includePatterns.Count > 0 && !MatchesAnyPattern(normalizedPath, includePatterns))
+        if (includePatterns.Length > 0 && !MatchesAnyPattern(normalizedPath, includePatterns))
         {
             return false;
         }
 
-        return excludePatterns.Count == 0 || !MatchesAnyPattern(normalizedPath, excludePatterns);
+        return excludePatterns.Length == 0 || !MatchesAnyPattern(normalizedPath, excludePatterns);
     }
 
-    private static bool MatchesAnyPattern(string relativePath, IReadOnlyList<string> patterns)
+    private static bool MatchesAnyPattern(string relativePath, string[] patterns)
     {
         var fileName = Path.GetFileName(relativePath);
         foreach (var pattern in patterns)
