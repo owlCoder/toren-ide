@@ -21,6 +21,7 @@ internal sealed class CSharpNavigationController
     private readonly ICSharpSemanticContextProvider _contextProvider;
     private readonly Func<string?> _workspacePathAccessor;
     private readonly Func<OpenDocumentViewModel?> _activeDocumentAccessor;
+    private readonly Func<IReadOnlyList<CSharpSourceDocument>> _openDocumentsAccessor;
     private readonly Func<string, Task> _openFileAsync;
     private readonly Stack<NavigationPoint> _navigationHistory = new();
     private bool _detached;
@@ -31,6 +32,7 @@ internal sealed class CSharpNavigationController
         ICSharpSemanticContextProvider contextProvider,
         Func<string?> workspacePathAccessor,
         Func<OpenDocumentViewModel?> activeDocumentAccessor,
+        Func<IReadOnlyList<CSharpSourceDocument>> openDocumentsAccessor,
         Func<string, Task> openFileAsync)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
@@ -38,6 +40,7 @@ internal sealed class CSharpNavigationController
         _contextProvider = contextProvider ?? throw new ArgumentNullException(nameof(contextProvider));
         _workspacePathAccessor = workspacePathAccessor ?? throw new ArgumentNullException(nameof(workspacePathAccessor));
         _activeDocumentAccessor = activeDocumentAccessor ?? throw new ArgumentNullException(nameof(activeDocumentAccessor));
+        _openDocumentsAccessor = openDocumentsAccessor ?? throw new ArgumentNullException(nameof(openDocumentsAccessor));
         _openFileAsync = openFileAsync ?? throw new ArgumentNullException(nameof(openFileAsync));
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
@@ -52,6 +55,7 @@ internal sealed class CSharpNavigationController
         ICSharpSemanticContextProvider contextProvider,
         Func<string?> workspacePathAccessor,
         Func<OpenDocumentViewModel?> activeDocumentAccessor,
+        Func<IReadOnlyList<CSharpSourceDocument>> openDocumentsAccessor,
         Func<string, Task> openFileAsync)
     {
         _ = new CSharpNavigationController(
@@ -60,6 +64,7 @@ internal sealed class CSharpNavigationController
             contextProvider,
             workspacePathAccessor,
             activeDocumentAccessor,
+            openDocumentsAccessor,
             openFileAsync);
     }
 
@@ -113,8 +118,9 @@ internal sealed class CSharpNavigationController
         var workspacePath = _workspacePathAccessor();
         if (!string.IsNullOrWhiteSpace(workspacePath))
         {
+            var activeSnapshot = new CSharpSourceDocument(activeDocument.Path, activeDocument.Text);
             var context = await _contextProvider
-                .CreateAsync(workspacePath, activeDocument)
+                .CreateAsync(workspacePath, activeSnapshot, _openDocumentsAccessor())
                 .ConfigureAwait(true);
             if (context is not null)
             {
