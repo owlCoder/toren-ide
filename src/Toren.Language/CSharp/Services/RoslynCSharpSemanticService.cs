@@ -7,8 +7,15 @@ namespace Toren.Language.CSharp.Services;
 
 public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
 {
+    private const string SingleDocumentPath = "__toren_active__.cs";
+
     private static readonly Lazy<MetadataReference[]> MetadataReferences =
         new(CreateMetadataReferences);
+
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
 
     public Task<CSharpSymbolInfo?> GetSymbolAsync(
         string sourceText,
@@ -18,24 +25,52 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
     {
         ArgumentNullException.ThrowIfNull(sourceText);
 
+        var context = new CSharpSemanticContext(
+            SingleDocumentPath,
+            [new CSharpSourceDocument(SingleDocumentPath, sourceText)]);
+        return GetSymbolAsync(context, line, column, cancellationToken);
+    }
+
+    public Task<CSharpSymbolInfo?> GetSymbolAsync(
+        CSharpSemanticContext context,
+        int line,
+        int column,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentException.ThrowIfNullOrWhiteSpace(context.ActiveDocumentPath);
+        ArgumentNullException.ThrowIfNull(context.Documents);
+
         return Task.Run(
-            () => ResolveSymbol(sourceText, line, column, cancellationToken),
+            () => ResolveSymbol(context, line, column, cancellationToken),
             cancellationToken);
     }
 
     private static CSharpSymbolInfo? ResolveSymbol(
-        string sourceText,
+        CSharpSemanticContext context,
         int line,
         int column,
         CancellationToken cancellationToken)
     {
-        if (line < 1 || column < 1)
+        if (line < 1 || column < 1 || context.Documents.Count == 0)
         {
             return null;
         }
 
-        var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, cancellationToken: cancellationToken);
-        var source = syntaxTree.GetText(cancellationToken);
+        var syntaxTrees = context.Documents
+            .Select(document => CSharpSyntaxTree.ParseText(
+                document.Text,
+                path: document.Path,
+                cancellationToken: cancellationToken))
+            .ToArray();
+        var activeTree = syntaxTrees.FirstOrDefault(tree =>
+            tree.FilePath.Equals(context.ActiveDocumentPath, PathComparison));
+        if (activeTree is null)
+        {
+            return null;
+        }
+
+        var source = activeTree.GetText(cancellationToken);
         if (line > source.Lines.Count)
         {
             return null;
@@ -56,11 +91,11 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
 
         var compilation = CSharpCompilation.Create(
             "Toren.SemanticAnalysis",
-            [syntaxTree],
+            syntaxTrees,
             MetadataReferences.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        var semanticModel = compilation.GetSemanticModel(syntaxTree, ignoreAccessibility: true);
-        var root = syntaxTree.GetRoot(cancellationToken);
+        var semanticModel = compilation.GetSemanticModel(activeTree, ignoreAccessibility: true);
+        var root = activeTree.GetRoot(cancellationToken);
         var token = root.FindToken(position);
         var symbol = FindSymbol(semanticModel, token.Parent, cancellationToken);
         if (symbol is null)
@@ -72,7 +107,7 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
             symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
             MapKind(symbol.Kind),
-            FindDefinition(symbol, syntaxTree));
+            FindDefinition(symbol));
     }
 
     private static ISymbol? FindSymbol(
@@ -97,17 +132,19 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
         return null;
     }
 
-    private static CSharpSourceLocation? FindDefinition(ISymbol symbol, SyntaxTree syntaxTree)
+    private static CSharpSourceLocation? FindDefinition(ISymbol symbol)
     {
-        var location = symbol.Locations.FirstOrDefault(
-            candidate => candidate.IsInSource && ReferenceEquals(candidate.SourceTree, syntaxTree));
+        var location = symbol.Locations.FirstOrDefault(candidate => candidate.IsInSource);
         if (location is null)
         {
             return null;
         }
 
         var linePosition = location.GetLineSpan().StartLinePosition;
-        return new CSharpSourceLocation(linePosition.Line + 1, linePosition.Character + 1);
+        return new CSharpSourceLocation(
+            location.SourceTree?.FilePath,
+            linePosition.Line + 1,
+            linePosition.Character + 1);
     }
 
     private static CSharpSymbolKind MapKind(SymbolKind kind) => kind switch
