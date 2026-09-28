@@ -1,0 +1,111 @@
+<UserControl x:Class="Toren.App.Search.Views.WorkspaceTextSearchOverlay"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:searchModels="clr-namespace:Toren.App.Search.Models"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Top"
+             Margin="0,18,0,0"
+             IsVisible="False">
+  <UserControl.Styles>
+    <Style Selector="Border.workspace-search-card">
+      <Setter Property="Width" Value="680" />
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="BoxShadow" Value="0 7 22 0 #66000000" />
+    </Style>
+    <Style Selector="TextBox.workspace-search-input">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Background" Value="{DynamicResource TorenBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="Button.workspace-search-option">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="Button.workspace-search-option:checked">
+      <Setter Property="Foreground" Value="{DynamicResource TorenAccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    </Style>
+    <Style Selector="ListBox.workspace-search-results">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="MaxHeight" Value="390" />
+    </Style>
+    <Style Selector="ListBox.workspace-search-results > ListBoxItem">
+      <Setter Property="Padding" Value="9,7" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Classes="workspace-search-card">
+    <StackPanel Spacing="7">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7">
+        <TextBox x:Name="QueryBox"
+                 Classes="workspace-search-input"
+                 PlaceholderText="Search in workspace"
+                 TextChanged="QueryBox_OnTextChanged"
+                 KeyDown="QueryBox_OnKeyDown" />
+        <ToggleButton x:Name="MatchCaseButton"
+                      Grid.Column="1"
+                      Classes="workspace-search-option"
+                      Content="Aa"
+                      ToolTip.Tip="Match case"
+                      IsCheckedChanged="MatchCaseButton_OnIsCheckedChanged" />
+      </Grid>
+
+      <TextBlock x:Name="StatusText"
+                 Text="Type to search workspace text"
+                 FontSize="10.5"
+                 Foreground="{DynamicResource TorenTextSubtleBrush}"
+                 Margin="2,0" />
+
+      <ListBox x:Name="ResultsList"
+               Classes="workspace-search-results"
+               DoubleTapped="ResultsList_OnDoubleTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="searchModels:WorkspaceTextSearchResult">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+              <TextBlock Text="{Binding RelativePath}"
+                         FontSize="11.5"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TorenTextBrush}"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="1"
+                         FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextSubtleBrush}">
+                <Run Text="Ln " /><Run Text="{Binding Line}" /><Run Text=":" /><Run Text="{Binding Column}" />
+              </TextBlock>
+              <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                         Text="{Binding Preview}"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextMutedBrush}"
+                         TextTrimming="CharacterEllipsis"
+                         Margin="0,2,0,0" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+  </Border>
+</UserControl>
