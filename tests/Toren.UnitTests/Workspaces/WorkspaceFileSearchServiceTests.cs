@@ -39,7 +39,11 @@ public sealed class WorkspaceFileSearchServiceTests
 
         var results = _service.Search(files, "rslt");
 
-        Assert.That(results.Select(result => result.Name), Is.EqualTo(new[] { "Result.cs" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(results, Has.Count.EqualTo(1));
+            Assert.That(results[0].Name, Is.EqualTo("Result.cs"));
+        });
     }
 
     [Test]
