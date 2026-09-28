@@ -89,7 +89,7 @@ internal sealed class CSharpSymbolNavigationController
         var generation = ++_loadGeneration;
         _symbols = [];
         _overlay.SetResults([]);
-        _overlay.SetStatus("Indexing project symbols…");
+        _overlay.SetStatus("Indexing workspace symbols…");
         _overlay.ShowOverlay();
 
         var context = await _semanticContextAccessor().ConfigureAwait(true);
@@ -100,7 +100,7 @@ internal sealed class CSharpSymbolNavigationController
 
         if (context is null)
         {
-            _overlay.SetStatus("Open a C# document in a .NET workspace to browse symbols.");
+            _overlay.SetStatus("Open a .NET workspace to browse C# symbols.");
             return;
         }
 
@@ -119,7 +119,7 @@ internal sealed class CSharpSymbolNavigationController
         _overlay.SetResults(results);
         _overlay.SetStatus(results.Count == 0
             ? "No matching symbols"
-            : $"{results.Count} shown · {_symbols.Count} project symbols");
+            : $"{results.Count} shown · {_symbols.Count} workspace symbols");
     }
 
     private void Overlay_OnQueryChanged(object? sender, EventArgs eventArgs)
