@@ -12,6 +12,7 @@ using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.Language.CSharp.Contracts;
+using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
 using Toren.Platform.Execution.Adapters;
 using Toren.Workspaces.Adapters;
@@ -66,8 +67,7 @@ public sealed partial class App : Application
                 workspaceClassifier,
                 projectGraphService,
                 workspaceFileProvider,
-                textDocumentStore,
-                documentHost);
+                textDocumentStore);
 
             var viewModel = new MainWindowViewModel(
                 dotNetEnvironmentService,
@@ -82,6 +82,12 @@ public sealed partial class App : Application
 
             string? GetWorkspacePath() =>
                 viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null;
+
+            IReadOnlyList<CSharpSourceDocument> GetOpenCSharpDocuments() =>
+                viewModel.Documents.OpenDocuments
+                    .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
+                    .Select(document => new CSharpSourceDocument(document.Path, document.Text))
+                    .ToArray();
 
             async Task OpenDocumentPathAsync(string path)
             {
@@ -103,6 +109,7 @@ public sealed partial class App : Application
                 cSharpSemanticContextProvider,
                 GetWorkspacePath,
                 () => viewModel.Documents.ActiveDocument,
+                GetOpenCSharpDocuments,
                 OpenDocumentPathAsync);
             WorkspaceQuickOpenController.Attach(
                 mainWindow,
