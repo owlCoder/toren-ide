@@ -14,24 +14,24 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
             .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     public Task<Result<IReadOnlyList<WorkspaceFileEntry>>> GetFilesAsync(
-        WorkspaceDescriptor workspace,
+        string workspacePath,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.Run(() => Discover(workspace, cancellationToken), cancellationToken);
+        return Task.Run(() => Discover(workspacePath, cancellationToken), cancellationToken);
     }
 
     private static Result<IReadOnlyList<WorkspaceFileEntry>> Discover(
-        WorkspaceDescriptor workspace,
+        string workspacePath,
         CancellationToken cancellationToken)
     {
-        var rootDirectory = GetRootDirectory(workspace);
+        var rootDirectory = GetRootDirectory(workspacePath);
         if (!Directory.Exists(rootDirectory))
         {
             return Result.Failure<IReadOnlyList<WorkspaceFileEntry>>(
-                WorkspaceFileErrors.WorkspaceUnavailable(workspace.Path));
+                WorkspaceFileErrors.WorkspaceUnavailable(workspacePath));
         }
 
         try
@@ -78,12 +78,17 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
         }
     }
 
-    private static string GetRootDirectory(WorkspaceDescriptor workspace)
+    private static string GetRootDirectory(string workspacePath)
     {
-        var fullPath = Path.GetFullPath(workspace.Path);
-        return workspace.Kind == WorkspaceKind.Folder
-            ? fullPath
-            : Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
+        var fullPath = Path.GetFullPath(workspacePath);
+        if (Directory.Exists(fullPath))
+        {
+            return fullPath;
+        }
+
+        return File.Exists(fullPath)
+            ? Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory()
+            : fullPath;
     }
 
     private static bool ShouldSkipDirectory(string directory)
