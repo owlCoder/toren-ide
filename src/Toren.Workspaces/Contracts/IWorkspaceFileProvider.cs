@@ -6,6 +6,6 @@ namespace Toren.Workspaces.Contracts;
 public interface IWorkspaceFileProvider
 {
     Task<Result<IReadOnlyList<WorkspaceFileEntry>>> GetFilesAsync(
-        WorkspaceDescriptor workspace,
+        string workspacePath,
         CancellationToken cancellationToken = default);
 }
