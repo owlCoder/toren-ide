@@ -64,7 +64,8 @@ public sealed partial class App : Application
                 documentDiagnosticsCoordinator,
                 documentHost);
             var mainWindow = new MainWindow(viewModel);
-            EditorNavigationController.Attach(mainWindow, cSharpSemanticService);
+            EditorSearchController.Attach(mainWindow);
+            CSharpNavigationController.Attach(mainWindow, cSharpSemanticService);
             desktop.MainWindow = mainWindow;
         }
 
