@@ -1,8 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using AvaloniaEdit;
-using Toren.App.Editor.Contracts;
-using Toren.App.ViewModels;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -18,10 +16,8 @@ internal sealed class CSharpNavigationController
     private readonly Window _window;
     private readonly TextEditor _editor;
     private readonly ICSharpSemanticService _semanticService;
-    private readonly ICSharpSemanticContextProvider _contextProvider;
-    private readonly Func<string?> _workspacePathAccessor;
-    private readonly Func<OpenDocumentViewModel?> _activeDocumentAccessor;
-    private readonly Func<IReadOnlyList<CSharpSourceDocument>> _openDocumentsAccessor;
+    private readonly Func<CSharpSourceDocument?> _activeDocumentAccessor;
+    private readonly Func<Task<CSharpSemanticContext?>> _semanticContextAccessor;
     private readonly Func<string, Task> _openFileAsync;
     private readonly Stack<NavigationPoint> _navigationHistory = new();
     private bool _detached;
@@ -29,18 +25,14 @@ internal sealed class CSharpNavigationController
     private CSharpNavigationController(
         Window window,
         ICSharpSemanticService semanticService,
-        ICSharpSemanticContextProvider contextProvider,
-        Func<string?> workspacePathAccessor,
-        Func<OpenDocumentViewModel?> activeDocumentAccessor,
-        Func<IReadOnlyList<CSharpSourceDocument>> openDocumentsAccessor,
+        Func<CSharpSourceDocument?> activeDocumentAccessor,
+        Func<Task<CSharpSemanticContext?>> semanticContextAccessor,
         Func<string, Task> openFileAsync)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _semanticService = semanticService ?? throw new ArgumentNullException(nameof(semanticService));
-        _contextProvider = contextProvider ?? throw new ArgumentNullException(nameof(contextProvider));
-        _workspacePathAccessor = workspacePathAccessor ?? throw new ArgumentNullException(nameof(workspacePathAccessor));
         _activeDocumentAccessor = activeDocumentAccessor ?? throw new ArgumentNullException(nameof(activeDocumentAccessor));
-        _openDocumentsAccessor = openDocumentsAccessor ?? throw new ArgumentNullException(nameof(openDocumentsAccessor));
+        _semanticContextAccessor = semanticContextAccessor ?? throw new ArgumentNullException(nameof(semanticContextAccessor));
         _openFileAsync = openFileAsync ?? throw new ArgumentNullException(nameof(openFileAsync));
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
@@ -52,19 +44,15 @@ internal sealed class CSharpNavigationController
     public static void Attach(
         Window window,
         ICSharpSemanticService semanticService,
-        ICSharpSemanticContextProvider contextProvider,
-        Func<string?> workspacePathAccessor,
-        Func<OpenDocumentViewModel?> activeDocumentAccessor,
-        Func<IReadOnlyList<CSharpSourceDocument>> openDocumentsAccessor,
+        Func<CSharpSourceDocument?> activeDocumentAccessor,
+        Func<Task<CSharpSemanticContext?>> semanticContextAccessor,
         Func<string, Task> openFileAsync)
     {
         _ = new CSharpNavigationController(
             window,
             semanticService,
-            contextProvider,
-            workspacePathAccessor,
             activeDocumentAccessor,
-            openDocumentsAccessor,
+            semanticContextAccessor,
             openFileAsync);
     }
 
@@ -111,31 +99,24 @@ internal sealed class CSharpNavigationController
     }
 
     private async Task<CSharpSymbolInfo?> ResolveSymbolAsync(
-        OpenDocumentViewModel activeDocument,
+        CSharpSourceDocument activeDocument,
         int line,
         int column)
     {
-        var workspacePath = _workspacePathAccessor();
-        if (!string.IsNullOrWhiteSpace(workspacePath))
+        var context = await _semanticContextAccessor().ConfigureAwait(true);
+        if (context is not null)
         {
-            var activeSnapshot = new CSharpSourceDocument(activeDocument.Path, activeDocument.Text);
-            var context = await _contextProvider
-                .CreateAsync(workspacePath, activeSnapshot, _openDocumentsAccessor())
+            var contextualSymbol = await _semanticService
+                .GetSymbolAsync(context, line, column)
                 .ConfigureAwait(true);
-            if (context is not null)
+            if (contextualSymbol is not null)
             {
-                var contextualSymbol = await _semanticService
-                    .GetSymbolAsync(context, line, column)
-                    .ConfigureAwait(true);
-                if (contextualSymbol is not null)
-                {
-                    return contextualSymbol;
-                }
+                return contextualSymbol;
             }
         }
 
         return await _semanticService
-            .GetSymbolAsync(_editor.Text, line, column)
+            .GetSymbolAsync(activeDocument.Text, line, column)
             .ConfigureAwait(true);
     }
 
