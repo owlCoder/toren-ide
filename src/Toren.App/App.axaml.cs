@@ -60,6 +60,7 @@ public sealed partial class App : Application
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
+            ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
             ICSharpSymbolIndexService cSharpSymbolIndexService = new RoslynCSharpSymbolIndexService();
             ICSharpSymbolSearchService cSharpSymbolSearchService = new CSharpSymbolSearchService();
             IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
@@ -137,6 +138,11 @@ public sealed partial class App : Application
             CSharpQuickInfoController.Attach(
                 mainWindow,
                 cSharpSemanticService,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync);
+            CSharpCompletionController.Attach(
+                mainWindow,
+                cSharpCompletionService,
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync);
             CSharpSymbolNavigationController.Attach(
