@@ -7,7 +7,8 @@ namespace Toren.Language.CSharp.Services;
 public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
 {
     private const string MissingSemicolonDiagnosticId = "CS1002";
-    private const string InsertSemicolonActionId = "csharp.insert-missing-semicolon";
+    private const string MissingClosingParenthesisDiagnosticId = "CS1026";
+    private const string MissingClosingBraceDiagnosticId = "CS1513";
 
     public Task<IReadOnlyList<CSharpCodeActionInfo>> GetActionsAsync(
         CSharpSemanticContext context,
@@ -39,13 +40,15 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
         return compilationContext.Compilation
             .GetDiagnostics(cancellationToken)
             .Where(diagnostic =>
-                diagnostic.Id.Equals(MissingSemicolonDiagnosticId, StringComparison.Ordinal)
-                && diagnostic.Location.IsInSource
+                diagnostic.Location.IsInSource
                 && ReferenceEquals(diagnostic.Location.SourceTree, compilationContext.ActiveTree)
                 && IsOnLine(diagnostic.Location.SourceSpan.Start, line.Start, line.EndIncludingLineBreak))
-            .Select(CreateMissingSemicolonAction)
-            .DistinctBy(action => action.Edit.StartOffset)
+            .Select(CreateInsertionAction)
+            .Where(action => action is not null)
+            .Select(action => action!)
+            .DistinctBy(action => action.Id)
             .OrderBy(action => action.Edit.StartOffset)
+            .ThenBy(action => action.Title, StringComparer.Ordinal)
             .ToArray();
     }
 
@@ -65,17 +68,42 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
     private static bool IsOnLine(int diagnosticPosition, int lineStart, int lineEnd) =>
         diagnosticPosition >= lineStart && diagnosticPosition <= lineEnd;
 
-    private static CSharpCodeActionInfo CreateMissingSemicolonAction(Diagnostic diagnostic)
+    private static CSharpCodeActionInfo? CreateInsertionAction(Diagnostic diagnostic) =>
+        diagnostic.Id switch
+        {
+            MissingSemicolonDiagnosticId => CreateInsertionAction(
+                diagnostic,
+                "csharp.insert-missing-semicolon",
+                "Insert missing semicolon",
+                ";"),
+            MissingClosingParenthesisDiagnosticId => CreateInsertionAction(
+                diagnostic,
+                "csharp.insert-missing-closing-parenthesis",
+                "Insert missing closing parenthesis",
+                ")"),
+            MissingClosingBraceDiagnosticId => CreateInsertionAction(
+                diagnostic,
+                "csharp.insert-missing-closing-brace",
+                "Insert missing closing brace",
+                "}"),
+            _ => null,
+        };
+
+    private static CSharpCodeActionInfo CreateInsertionAction(
+        Diagnostic diagnostic,
+        string actionId,
+        string title,
+        string newText)
     {
         var editOffset = diagnostic.Location.SourceSpan.Start;
         return new CSharpCodeActionInfo(
-            $"{InsertSemicolonActionId}:{editOffset}",
-            "Insert missing semicolon",
+            $"{actionId}:{editOffset}",
+            title,
             diagnostic.Id,
             new CSharpTextEdit(
                 diagnostic.Location.SourceTree?.FilePath ?? string.Empty,
                 editOffset,
                 0,
-                ";"));
+                newText));
     }
 }

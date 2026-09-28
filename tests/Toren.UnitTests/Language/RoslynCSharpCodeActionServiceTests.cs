@@ -31,6 +31,68 @@ public sealed class RoslynCSharpCodeActionServiceTests
     }
 
     [Test]
+    public async Task MissingClosingParenthesisOnCaretLineReturnsInsertAction()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public bool Value => (42 > 0;\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("42", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate => candidate.DiagnosticId == "CS1026");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Title, Is.EqualTo("Insert missing closing parenthesis"));
+            Assert.That(action.Edit.NewText, Is.EqualTo(")"));
+            Assert.That(action.Edit.Length, Is.Zero);
+            Assert.That(action.Edit.StartOffset, Is.EqualTo(source.IndexOf(';', position)));
+        });
+    }
+
+    [Test]
+    public async Task MissingClosingBraceAtEndOfFileReturnsInsertAction()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public int Value => 42;\n";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+
+        var actions = await service.GetActionsAsync(context, source.Length);
+        var action = actions.Single(candidate => candidate.DiagnosticId == "CS1513");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Title, Is.EqualTo("Insert missing closing brace"));
+            Assert.That(action.Edit.NewText, Is.EqualTo("}"));
+            Assert.That(action.Edit.Length, Is.Zero);
+            Assert.That(action.Edit.StartOffset, Is.EqualTo(source.Length));
+        });
+    }
+
+    [Test]
+    public async Task DifferentMissingTokensAtSameOffsetReturnDistinctActions()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public bool Value => (42 > 0\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("42", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(actions.Any(action => action.DiagnosticId == "CS1002"), Is.True);
+            Assert.That(actions.Any(action => action.DiagnosticId == "CS1026"), Is.True);
+        });
+    }
+
+    [Test]
     public async Task DiagnosticOnAnotherLineDoesNotReturnAction()
     {
         var service = new RoslynCSharpCodeActionService();
