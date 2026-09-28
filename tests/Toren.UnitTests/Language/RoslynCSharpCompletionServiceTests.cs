@@ -60,6 +60,67 @@ public sealed class RoslynCSharpCompletionServiceTests
     }
 
     [Test]
+    public async Task InstanceMemberCompletionExcludesStaticMembers()
+    {
+        var (context, line, column) = CreateContext(
+            """
+            class Helper
+            {
+                public static int StaticValue => 1;
+                public int InstanceValue => 2;
+            }
+
+            class Sample
+            {
+                void Run()
+                {
+                    var helper = new Helper();
+                    _ = helper./*caret*/
+                }
+            }
+            """);
+        var service = new RoslynCSharpCompletionService();
+
+        var items = await service.GetCompletionsAsync(context, line, column);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(items.Any(item => item.DisplayText == "InstanceValue"), Is.True);
+            Assert.That(items.Any(item => item.DisplayText == "StaticValue"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task StaticMemberCompletionExcludesInstanceMembers()
+    {
+        var (context, line, column) = CreateContext(
+            """
+            class Helper
+            {
+                public static int StaticValue => 1;
+                public int InstanceValue => 2;
+            }
+
+            class Sample
+            {
+                void Run()
+                {
+                    _ = Helper./*caret*/
+                }
+            }
+            """);
+        var service = new RoslynCSharpCompletionService();
+
+        var items = await service.GetCompletionsAsync(context, line, column);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(items.Any(item => item.DisplayText == "StaticValue"), Is.True);
+            Assert.That(items.Any(item => item.DisplayText == "InstanceValue"), Is.False);
+        });
+    }
+
+    [Test]
     public async Task GetCompletionsAsyncRanksTypedPrefixBeforeOtherVisibleSymbols()
     {
         var (context, line, column) = CreateContext(

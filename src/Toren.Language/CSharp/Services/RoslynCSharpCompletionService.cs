@@ -62,17 +62,21 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
         var position = sourceLine.Start + columnOffset;
         var prefix = GetIdentifierPrefix(sourceLine.ToString(), columnOffset);
         var root = roslynContext.ActiveTree.GetRoot(cancellationToken);
-        var lookupContainer = FindLookupContainer(
+        var lookupContext = FindLookupContext(
             roslynContext.SemanticModel,
             root,
             position,
             cancellationToken);
-        var symbols = lookupContainer is null
+        IEnumerable<ISymbol> symbols = lookupContext is null
             ? roslynContext.SemanticModel.LookupSymbols(position)
             : roslynContext.SemanticModel.LookupSymbols(
                 position,
-                lookupContainer,
+                lookupContext.Container,
                 includeReducedExtensionMethods: true);
+        if (lookupContext?.StaticOnly is bool staticOnly)
+        {
+            symbols = symbols.Where(symbol => IsValidMemberCandidate(symbol, staticOnly));
+        }
 
         var items = symbols
             .Where(symbol => symbol.CanBeReferencedByName && !symbol.IsImplicitlyDeclared)
@@ -81,7 +85,7 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
             .Select(CreateItem)
             .ToList();
 
-        if (lookupContainer is null)
+        if (lookupContext is null)
         {
             items.AddRange(Keywords.Select(keyword => new CSharpCompletionItem(
                 keyword,
@@ -98,7 +102,7 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
             .ToArray();
     }
 
-    private static INamespaceOrTypeSymbol? FindLookupContainer(
+    private static MemberLookupContext? FindLookupContext(
         SemanticModel semanticModel,
         SyntaxNode root,
         int position,
@@ -120,13 +124,33 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
         }
 
         var expressionSymbol = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken).Symbol;
-        if (expressionSymbol is INamespaceOrTypeSymbol namespaceOrType)
+        switch (expressionSymbol)
         {
-            return namespaceOrType;
+            case INamespaceSymbol namespaceSymbol:
+                return new MemberLookupContext(namespaceSymbol, null);
+            case INamedTypeSymbol namedType:
+                return new MemberLookupContext(namedType, true);
+            case IAliasSymbol { Target: INamespaceSymbol aliasNamespace }:
+                return new MemberLookupContext(aliasNamespace, null);
+            case IAliasSymbol { Target: INamedTypeSymbol aliasType }:
+                return new MemberLookupContext(aliasType, true);
         }
 
         return semanticModel.GetTypeInfo(memberAccess.Expression, cancellationToken).Type
-            as INamespaceOrTypeSymbol;
+            is INamedTypeSymbol instanceType
+                ? new MemberLookupContext(instanceType, false)
+                : null;
+    }
+
+    private static bool IsValidMemberCandidate(ISymbol symbol, bool staticOnly)
+    {
+        if (staticOnly)
+        {
+            return symbol.IsStatic || symbol is INamedTypeSymbol;
+        }
+
+        return (!symbol.IsStatic && symbol is not INamedTypeSymbol)
+            || symbol is IMethodSymbol { MethodKind: MethodKind.ReducedExtension };
     }
 
     private static CSharpCompletionItem CreateItem(IGrouping<(string Name, SymbolKind Kind), ISymbol> group)
@@ -209,4 +233,8 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
         CSharpSymbolKind.Namespace => 7,
         _ => 8,
     };
+
+    private sealed record MemberLookupContext(
+        INamespaceOrTypeSymbol Container,
+        bool? StaticOnly);
 }
