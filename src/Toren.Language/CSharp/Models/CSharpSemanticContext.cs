@@ -5,4 +5,6 @@ public sealed record CSharpSemanticContext(
     IReadOnlyList<CSharpSourceDocument> Documents)
 {
     public IReadOnlyList<string> AnalyzerPaths { get; init; } = [];
+
+    public IReadOnlyList<string> MetadataReferencePaths { get; init; } = [];
 }

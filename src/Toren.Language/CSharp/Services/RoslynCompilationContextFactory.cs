@@ -41,7 +41,7 @@ internal static class RoslynCompilationContextFactory
         var compilation = CSharpCompilation.Create(
             "Toren.SemanticAnalysis",
             syntaxTrees,
-            RoslynMetadataReferenceProvider.GetReferences(),
+            RoslynMetadataReferenceProvider.GetReferences(context.MetadataReferencePaths),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         return new RoslynCompilationContext(
             compilation,
