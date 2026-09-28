@@ -1,6 +1,5 @@
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Contracts;
-using Toren.App.ViewModels;
 using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
@@ -11,8 +10,7 @@ public sealed class CSharpSemanticContextProvider(
     IWorkspaceClassifier workspaceClassifier,
     IWorkspaceProjectGraphService projectGraphService,
     IWorkspaceFileProvider workspaceFileProvider,
-    ITextDocumentStore documentStore,
-    DocumentHostViewModel documentHost) : ICSharpSemanticContextProvider
+    ITextDocumentStore documentStore) : ICSharpSemanticContextProvider
 {
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
@@ -27,16 +25,16 @@ public sealed class CSharpSemanticContextProvider(
         ?? throw new ArgumentNullException(nameof(workspaceFileProvider));
     private readonly ITextDocumentStore _documentStore = documentStore
         ?? throw new ArgumentNullException(nameof(documentStore));
-    private readonly DocumentHostViewModel _documentHost = documentHost
-        ?? throw new ArgumentNullException(nameof(documentHost));
 
     public async Task<CSharpSemanticContext?> CreateAsync(
         string workspacePath,
-        OpenDocumentViewModel activeDocument,
+        CSharpSourceDocument activeDocument,
+        IReadOnlyList<CSharpSourceDocument> openDocuments,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentNullException.ThrowIfNull(activeDocument);
+        ArgumentNullException.ThrowIfNull(openDocuments);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!Path.GetExtension(activeDocument.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
@@ -76,10 +74,11 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var openDocuments = _documentHost.OpenDocuments.ToDictionary(
+        var openDocumentText = openDocuments.ToDictionary(
             document => Path.GetFullPath(document.Path),
             document => document.Text,
             PathComparer);
+        openDocumentText[activePath] = activeDocument.Text;
         var sourceDocuments = new List<CSharpSourceDocument>();
 
         foreach (var file in filesResult.Value)
@@ -97,7 +96,7 @@ public sealed class CSharpSemanticContextProvider(
                 continue;
             }
 
-            if (openDocuments.TryGetValue(fullPath, out var openText))
+            if (openDocumentText.TryGetValue(fullPath, out var openText))
             {
                 sourceDocuments.Add(new CSharpSourceDocument(fullPath, openText));
                 continue;
