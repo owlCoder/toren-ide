@@ -23,6 +23,35 @@ public sealed class RoslynCSharpFormattingServiceTests
     }
 
     [Test]
+    public async Task FormatSelectionOnlyChangesSelectedMember()
+    {
+        var service = new RoslynCSharpFormattingService();
+        const string source = "namespace Demo;\npublic class Sample\n{\n    public int Add(int a,int b){return a+b;}\n    public int Untouched(int a,int b){return a+b;}\n}";
+        var selectionStart = source.IndexOf("public int Add", StringComparison.Ordinal);
+        var selectionLength = source.IndexOf("    public int Untouched", StringComparison.Ordinal) - selectionStart;
+
+        var formatted = await service.FormatSelectionAsync(source, selectionStart, selectionLength);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(formatted, Does.Contain("public int Add(int a, int b)"));
+            Assert.That(formatted, Does.Contain("return a + b;"));
+            Assert.That(formatted, Does.Contain("public int Untouched(int a,int b){return a+b;}"));
+        });
+    }
+
+    [Test]
+    public async Task FormatSelectionWithEmptySpanPreservesSource()
+    {
+        var service = new RoslynCSharpFormattingService();
+        const string source = "public class Sample{ }";
+
+        var formatted = await service.FormatSelectionAsync(source, 0, 0);
+
+        Assert.That(formatted, Is.EqualTo(source));
+    }
+
+    [Test]
     public async Task FormatPreservesCrLfLineEndings()
     {
         var service = new RoslynCSharpFormattingService();
