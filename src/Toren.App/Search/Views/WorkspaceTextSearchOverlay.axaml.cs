@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Toren.App.Search.Models;
 
@@ -61,7 +62,7 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
         QueryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void MatchCaseButton_OnIsCheckedChanged(object? sender, EventArgs eventArgs)
+    private void MatchCaseButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         SearchOptionsChanged?.Invoke(this, EventArgs.Empty);
     }
