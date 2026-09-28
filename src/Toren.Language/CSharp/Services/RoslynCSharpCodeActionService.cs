@@ -33,10 +33,7 @@ public sealed class RoslynCSharpCodeActionService : ICSharpCodeActionService
             return [];
         }
 
-        if (position > compilationContext.SourceText.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(position));
-        }
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(position, compilationContext.SourceText.Length);
 
         var line = GetLineForPosition(compilationContext.SourceText, position);
         return compilationContext.Compilation
