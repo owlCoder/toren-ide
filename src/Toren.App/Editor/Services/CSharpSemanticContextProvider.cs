@@ -82,7 +82,10 @@ public sealed class CSharpSemanticContextProvider(
             sourceDocuments.Add(new CSharpSourceDocument(activePath, activeDocument.Text));
         }
 
-        return new CSharpSemanticContext(activePath, sourceDocuments);
+        return new CSharpSemanticContext(activePath, sourceDocuments)
+        {
+            AnalyzerPaths = GetAnalyzerPaths(reachableProjects, graphResult.Value.Projects),
+        };
     }
 
     public async Task<CSharpSemanticContext?> CreateWorkspaceAsync(
@@ -227,6 +230,18 @@ public sealed class CSharpSemanticContextProvider(
 
         return reachable;
     }
+
+    private static string[] GetAnalyzerPaths(
+        HashSet<string> reachableProjectPaths,
+        IReadOnlyList<WorkspaceProject> projects) =>
+        projects
+            .Where(project => reachableProjectPaths.Contains(Path.GetFullPath(project.Path)))
+            .SelectMany(project => project.Metadata.AnalyzerPaths)
+            .Where(static path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .Distinct(PathComparer)
+            .OrderBy(static path => path, PathComparer)
+            .ToArray();
 
     private static bool IsWithinDirectory(string filePath, string directoryPath)
     {
