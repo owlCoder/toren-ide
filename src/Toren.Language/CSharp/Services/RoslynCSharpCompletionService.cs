@@ -60,6 +60,7 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
         }
 
         var position = sourceLine.Start + columnOffset;
+        var prefix = GetIdentifierPrefix(sourceLine.ToString(), columnOffset);
         var root = roslynContext.ActiveTree.GetRoot(cancellationToken);
         var lookupContainer = FindLookupContainer(
             roslynContext.SemanticModel,
@@ -77,7 +78,7 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
             .Where(symbol => symbol.CanBeReferencedByName && !symbol.IsImplicitlyDeclared)
             .Where(symbol => !string.IsNullOrWhiteSpace(symbol.Name))
             .GroupBy(symbol => (symbol.Name, symbol.Kind))
-            .Select(group => CreateItem(group.First()))
+            .Select(CreateItem)
             .ToList();
 
         if (lookupContainer is null)
@@ -90,7 +91,8 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
         }
 
         return items
-            .OrderBy(item => GetKindOrder(item.Kind))
+            .OrderBy(item => GetMatchOrder(item.DisplayText, prefix))
+            .ThenBy(item => GetKindOrder(item.Kind))
             .ThenBy(item => item.DisplayText, StringComparer.OrdinalIgnoreCase)
             .Take(500)
             .ToArray();
@@ -127,14 +129,72 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
             as INamespaceOrTypeSymbol;
     }
 
-    private static CSharpCompletionItem CreateItem(ISymbol symbol)
+    private static CSharpCompletionItem CreateItem(IGrouping<(string Name, SymbolKind Kind), ISymbol> group)
     {
+        var symbol = group.First();
         var detail = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        if (symbol.Kind == SymbolKind.Method)
+        {
+            var overloadCount = group.Count();
+            if (overloadCount > 1)
+            {
+                detail = $"{detail} (+{overloadCount - 1} overload{(overloadCount == 2 ? string.Empty : "s")})";
+            }
+        }
+
         return new CSharpCompletionItem(
             symbol.Name,
             symbol.Name,
             RoslynSymbolMapper.MapKind(symbol.Kind),
             detail.Equals(symbol.Name, StringComparison.Ordinal) ? null : detail);
+    }
+
+    private static string GetIdentifierPrefix(string lineText, int columnOffset)
+    {
+        var end = Math.Clamp(columnOffset, 0, lineText.Length);
+        var start = end;
+        while (start > 0)
+        {
+            var character = lineText[start - 1];
+            if (!char.IsLetterOrDigit(character) && character != '_')
+            {
+                break;
+            }
+
+            start--;
+        }
+
+        return lineText[start..end];
+    }
+
+    private static int GetMatchOrder(string candidate, string prefix)
+    {
+        if (prefix.Length == 0)
+        {
+            return 0;
+        }
+
+        if (candidate.Equals(prefix, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        if (candidate.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return 1;
+        }
+
+        if (candidate.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        return candidate.Contains(prefix, StringComparison.OrdinalIgnoreCase) ? 4 : 5;
     }
 
     private static int GetKindOrder(CSharpSymbolKind kind) => kind switch

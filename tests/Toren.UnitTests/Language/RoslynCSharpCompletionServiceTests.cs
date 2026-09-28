@@ -59,6 +59,57 @@ public sealed class RoslynCSharpCompletionServiceTests
         });
     }
 
+    [Test]
+    public async Task GetCompletionsAsyncRanksTypedPrefixBeforeOtherVisibleSymbols()
+    {
+        var (context, line, column) = CreateContext(
+            """
+            class Sample
+            {
+                void Run()
+                {
+                    int alphaValue = 1;
+                    int zebraValue = 2;
+                    z/*caret*/
+                }
+            }
+            """);
+        var service = new RoslynCSharpCompletionService();
+
+        var items = await service.GetCompletionsAsync(context, line, column);
+
+        var zebraIndex = Array.FindIndex(items.ToArray(), item => item.DisplayText == "zebraValue");
+        var alphaIndex = Array.FindIndex(items.ToArray(), item => item.DisplayText == "alphaValue");
+        Assert.Multiple(() =>
+        {
+            Assert.That(zebraIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(alphaIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(zebraIndex, Is.LessThan(alphaIndex));
+        });
+    }
+
+    [Test]
+    public async Task GetCompletionsAsyncSummarizesMethodOverloads()
+    {
+        var (context, line, column) = CreateContext(
+            """
+            class Sample
+            {
+                void Run()
+                {
+                    string value = "toren";
+                    _ = value./*caret*/
+                }
+            }
+            """);
+        var service = new RoslynCSharpCompletionService();
+
+        var items = await service.GetCompletionsAsync(context, line, column);
+
+        var indexOf = items.First(item => item.DisplayText == "IndexOf");
+        Assert.That(indexOf.Detail, Does.Contain("overload"));
+    }
+
     private static (CSharpSemanticContext Context, int Line, int Column) CreateContext(string markedSource)
     {
         var markerOffset = markedSource.IndexOf(CaretMarker, StringComparison.Ordinal);
