@@ -27,14 +27,15 @@ public sealed class FileSystemWorkspaceFileProviderTests
             var provider = new FileSystemWorkspaceFileProvider();
             var result = await provider.GetFilesAsync(root);
 
+            Assert.That(result.IsSuccess, Is.True);
+            var files = result.Value!;
             Assert.Multiple(() =>
             {
-                Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value.Select(file => file.Path), Does.Contain(Path.GetFullPath(sourceFile)));
-                Assert.That(result.Value.Select(file => file.Path), Does.Contain(Path.GetFullPath(readmeFile)));
-                Assert.That(result.Value.Any(file => file.RelativePath.Contains("bin", StringComparison.OrdinalIgnoreCase)), Is.False);
-                Assert.That(result.Value.Any(file => file.RelativePath.Contains("obj", StringComparison.OrdinalIgnoreCase)), Is.False);
-                Assert.That(result.Value.Any(file => file.RelativePath.Contains(".git", StringComparison.OrdinalIgnoreCase)), Is.False);
+                Assert.That(files.Select(file => file.Path), Does.Contain(Path.GetFullPath(sourceFile)));
+                Assert.That(files.Select(file => file.Path), Does.Contain(Path.GetFullPath(readmeFile)));
+                Assert.That(files.Any(file => file.RelativePath.Contains("bin", StringComparison.OrdinalIgnoreCase)), Is.False);
+                Assert.That(files.Any(file => file.RelativePath.Contains("obj", StringComparison.OrdinalIgnoreCase)), Is.False);
+                Assert.That(files.Any(file => file.RelativePath.Contains(".git", StringComparison.OrdinalIgnoreCase)), Is.False);
             });
         }
         finally
@@ -57,11 +58,12 @@ public sealed class FileSystemWorkspaceFileProviderTests
             var provider = new FileSystemWorkspaceFileProvider();
             var result = await provider.GetFilesAsync(solutionPath);
 
+            Assert.That(result.IsSuccess, Is.True);
+            var files = result.Value!;
             Assert.Multiple(() =>
             {
-                Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value.Select(file => file.Name), Does.Contain("Sample.sln"));
-                Assert.That(result.Value.Select(file => file.Name), Does.Contain("Program.cs"));
+                Assert.That(files.Select(file => file.Name), Does.Contain("Sample.sln"));
+                Assert.That(files.Select(file => file.Name), Does.Contain("Program.cs"));
             });
         }
         finally
