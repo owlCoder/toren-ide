@@ -51,7 +51,7 @@ public sealed class RoslynCSharpRenameServiceTests
                     "namespace Demo; public sealed class Sample { public int Get(int value) { var other = value; return other; } public int Other(int other) => other; }"),
             ]);
 
-        var result = await service.RenameAsync(context, 1, 79, "input");
+        var result = await service.RenameAsync(context, 1, 65, "input");
 
         Assert.That(result, Is.Not.Null);
         var text = result!.Documents.Single().Text;
