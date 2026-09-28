@@ -5,7 +5,8 @@ namespace Toren.App.Diagnostics.Contracts;
 public interface IDocumentDiagnosticsCoordinator : IDisposable
 {
     Task<IReadOnlyList<CSharpDiagnostic>?> AnalyzeLatestAsync(
-        CSharpSemanticContext context,
+        string sourceText,
+        CSharpSemanticContext? semanticContext,
         bool debounce,
         CancellationToken cancellationToken = default);
 
