@@ -13,6 +13,7 @@ internal sealed class CSharpFormattingController
     private readonly ICSharpFormattingService _formattingService;
     private readonly Func<CSharpSourceDocument?> _activeDocumentAccessor;
     private readonly Action<string> _setStatus;
+    private bool _formatChordArmed;
     private bool _detached;
 
     private CSharpFormattingController(
@@ -48,26 +49,61 @@ internal sealed class CSharpFormattingController
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
     {
-        if (eventArgs.Key != Key.F
-            || !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt)
-            || !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift)
-            || !_editor.IsVisible)
+        if (!_editor.IsVisible)
         {
+            _formatChordArmed = false;
             return;
         }
 
+        var commandModifier = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control)
+            || eventArgs.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        if (commandModifier && eventArgs.Key == Key.K)
+        {
+            _formatChordArmed = true;
+            eventArgs.Handled = true;
+            _setStatus("Format: Ctrl/Cmd+K, D for document · Ctrl/Cmd+K, F for selection");
+            return;
+        }
+
+        if (_formatChordArmed)
+        {
+            _formatChordArmed = false;
+            if (commandModifier && eventArgs.Key == Key.D)
+            {
+                eventArgs.Handled = true;
+                await FormatDocumentAsync().ConfigureAwait(true);
+                return;
+            }
+
+            if (commandModifier && eventArgs.Key == Key.F)
+            {
+                eventArgs.Handled = true;
+                await FormatSelectionAsync().ConfigureAwait(true);
+                return;
+            }
+        }
+
+        if (eventArgs.Key == Key.F
+            && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt)
+            && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            eventArgs.Handled = true;
+            await FormatDocumentAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async Task FormatDocumentAsync()
+    {
         var activeDocument = _activeDocumentAccessor();
         if (activeDocument is null)
         {
             return;
         }
 
-        eventArgs.Handled = true;
         var originalText = activeDocument.Text;
         var caretOffset = _editor.CaretOffset;
         var formatted = await _formattingService.FormatAsync(originalText).ConfigureAwait(true);
-        if (!ReferenceEquals(_activeDocumentAccessor(), activeDocument)
-            || !activeDocument.Text.Equals(originalText, StringComparison.Ordinal))
+        if (!CanApply(activeDocument, originalText))
         {
             return;
         }
@@ -78,10 +114,54 @@ internal sealed class CSharpFormattingController
             return;
         }
 
+        ApplyFormattedText(formatted, caretOffset);
+        _setStatus($"Formatted {Path.GetFileName(activeDocument.Path)}");
+    }
+
+    private async Task FormatSelectionAsync()
+    {
+        var activeDocument = _activeDocumentAccessor();
+        if (activeDocument is null)
+        {
+            return;
+        }
+
+        var selectionLength = _editor.SelectionLength;
+        if (selectionLength <= 0)
+        {
+            _setStatus("Select C# code before formatting the selection.");
+            return;
+        }
+
+        var originalText = activeDocument.Text;
+        var selectionStart = _editor.SelectionStart;
+        var formatted = await _formattingService
+            .FormatSelectionAsync(originalText, selectionStart, selectionLength)
+            .ConfigureAwait(true);
+        if (!CanApply(activeDocument, originalText))
+        {
+            return;
+        }
+
+        if (formatted.Equals(originalText, StringComparison.Ordinal))
+        {
+            _setStatus("Selection is already formatted.");
+            return;
+        }
+
+        ApplyFormattedText(formatted, selectionStart);
+        _setStatus($"Formatted selection in {Path.GetFileName(activeDocument.Path)}");
+    }
+
+    private bool CanApply(CSharpSourceDocument activeDocument, string originalText) =>
+        ReferenceEquals(_activeDocumentAccessor(), activeDocument)
+        && activeDocument.Text.Equals(originalText, StringComparison.Ordinal);
+
+    private void ApplyFormattedText(string formatted, int caretOffset)
+    {
         _editor.Text = formatted;
         _editor.CaretOffset = Math.Min(caretOffset, _editor.Document.TextLength);
         _editor.Focus();
-        _setStatus($"Formatted {Path.GetFileName(activeDocument.Path)}");
     }
 
     private void Window_OnClosed(object? sender, EventArgs eventArgs)
