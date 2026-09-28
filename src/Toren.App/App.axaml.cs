@@ -70,6 +70,7 @@ public sealed partial class App : Application
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             ICSharpDiagnosticService cSharpDiagnosticService = new RoslynCSharpDiagnosticService();
+            ICSharpCodeActionService cSharpCodeActionService = new RoslynCSharpCodeActionService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
             ICSharpFormattingService cSharpFormattingService = new RoslynCSharpFormattingService();
@@ -201,6 +202,12 @@ public sealed partial class App : Application
                 cSharpCompletionService,
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync);
+            CSharpCodeActionController.Attach(
+                mainWindow,
+                cSharpCodeActionService,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync,
+                viewModel.SetStatus);
             CSharpFormattingController.Attach(
                 mainWindow,
                 cSharpFormattingService,
