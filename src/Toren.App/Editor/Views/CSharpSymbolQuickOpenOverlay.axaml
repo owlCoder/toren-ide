@@ -1,0 +1,96 @@
+<UserControl x:Class="Toren.App.Editor.Views.CSharpSymbolQuickOpenOverlay"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:languageModels="clr-namespace:Toren.Language.CSharp.Models;assembly=Toren.Language"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Top"
+             Margin="0,18,0,0"
+             IsVisible="False">
+  <UserControl.Styles>
+    <Style Selector="Border.symbol-picker-card">
+      <Setter Property="Width" Value="590" />
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="BoxShadow" Value="0 7 22 0 #66000000" />
+    </Style>
+    <Style Selector="TextBox.symbol-picker-input">
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Background" Value="{DynamicResource TorenBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="ListBox.symbol-picker-results">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="MaxHeight" Value="350" />
+    </Style>
+    <Style Selector="ListBox.symbol-picker-results > ListBoxItem">
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Classes="symbol-picker-card">
+    <StackPanel Spacing="7">
+      <TextBox x:Name="QueryBox"
+               Classes="symbol-picker-input"
+               PlaceholderText="Go to Symbol"
+               TextChanged="QueryBox_OnTextChanged"
+               KeyDown="QueryBox_OnKeyDown" />
+
+      <TextBlock x:Name="StatusText"
+                 Text="Indexing project symbols…"
+                 FontSize="10.5"
+                 Foreground="{DynamicResource TorenTextSubtleBrush}"
+                 Margin="2,0" />
+
+      <ListBox x:Name="ResultsList"
+               Classes="symbol-picker-results"
+               DoubleTapped="ResultsList_OnDoubleTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="languageModels:CSharpWorkspaceSymbol">
+            <Grid ColumnDefinitions="52,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="9">
+              <Border Grid.RowSpan="2" Width="44" Height="22"
+                      VerticalAlignment="Center"
+                      Background="{DynamicResource TorenSurfaceHoverBrush}"
+                      CornerRadius="3">
+                <TextBlock Text="{Binding Kind}" FontSize="9.5"
+                           Foreground="{DynamicResource TorenTextMutedBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding DisplayText}"
+                         FontSize="12.5"
+                         Foreground="{DynamicResource TorenTextBrush}"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Row="1" Grid.Column="1"
+                         Text="{Binding ContainerName}"
+                         FontSize="10.5"
+                         Foreground="{DynamicResource TorenTextSubtleBrush}"
+                         TextTrimming="CharacterEllipsis" />
+              <StackPanel Grid.Column="2" Grid.RowSpan="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Location.FilePath}" MaxWidth="210"
+                           FontSize="9.5" TextAlignment="Right"
+                           Foreground="{DynamicResource TorenTextSubtleBrush}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Location.Line, StringFormat='Ln {0}'}"
+                           FontSize="9.5" TextAlignment="Right"
+                           Foreground="{DynamicResource TorenTextSubtleBrush}" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+  </Border>
+</UserControl>
