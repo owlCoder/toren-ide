@@ -11,7 +11,7 @@ public sealed class MsBuildProjectMetadataProviderTests
     public async Task ReadsEvaluatedProjectMetadata()
     {
         var runner = new FakeProcessRunner(
-            "{\"Properties\":{\"TargetFramework\":\"\",\"TargetFrameworks\":\"net8.0;net10.0\",\"OutputType\":\"Exe\",\"AssemblyName\":\"ParcelBox.Api\",\"RootNamespace\":\"ParcelBox.Api\",\"IsTestProject\":\"false\",\"ManagePackageVersionsCentrally\":\"true\",\"DirectoryBuildPropsPath\":\"/repo/Directory.Build.props\",\"DirectoryBuildTargetsPath\":\"/repo/Directory.Build.targets\",\"DirectoryPackagesPropsPath\":\"/repo/Directory.Packages.props\"}}");
+            "{\"Properties\":{\"TargetFramework\":\"\",\"TargetFrameworks\":\"net8.0;net10.0\",\"OutputType\":\"Exe\",\"AssemblyName\":\"ParcelBox.Api\",\"RootNamespace\":\"ParcelBox.Api\",\"IsTestProject\":\"false\",\"ManagePackageVersionsCentrally\":\"true\",\"DirectoryBuildPropsPath\":\"/repo/Directory.Build.props\",\"DirectoryBuildTargetsPath\":\"/repo/Directory.Build.targets\",\"DirectoryPackagesPropsPath\":\"/repo/Directory.Packages.props\"},\"Items\":{\"Analyzer\":[{\"Identity\":\"ParcelBox.Analyzers.dll\",\"FullPath\":\"/repo/.nuget/analyzers/ParcelBox.Analyzers.dll\"}]}}");
         var provider = new MsBuildProjectMetadataProvider(runner);
 
         var result = await provider.GetMetadataAsync("/repo/src/ParcelBox.Api/ParcelBox.Api.csproj");
@@ -28,9 +28,12 @@ public sealed class MsBuildProjectMetadataProviderTests
             Assert.That(result.Value.DirectoryBuildPropsPath, Is.EqualTo("/repo/Directory.Build.props"));
             Assert.That(result.Value.DirectoryBuildTargetsPath, Is.EqualTo("/repo/Directory.Build.targets"));
             Assert.That(result.Value.DirectoryPackagesPropsPath, Is.EqualTo("/repo/Directory.Packages.props"));
+            Assert.That(result.Value.AnalyzerPaths, Has.Count.EqualTo(1));
+            Assert.That(Path.GetFileName(result.Value.AnalyzerPaths[0]), Is.EqualTo("ParcelBox.Analyzers.dll"));
             Assert.That(
                 string.Join("|", runner.LastRequest!.Arguments),
                 Does.Contain("-getProperty:TargetFramework,TargetFrameworks,OutputType,AssemblyName,RootNamespace,IsTestProject,ManagePackageVersionsCentrally,DirectoryBuildPropsPath,DirectoryBuildTargetsPath,DirectoryPackagesPropsPath"));
+            Assert.That(string.Join("|", runner.LastRequest.Arguments), Does.Contain("-getItem:Analyzer"));
         });
     }
 
@@ -49,6 +52,7 @@ public sealed class MsBuildProjectMetadataProviderTests
             Assert.That(string.Join("|", result.Value!.TargetFrameworks), Is.EqualTo("net10.0"));
             Assert.That(result.Value.IsTestProject, Is.True);
             Assert.That(result.Value.UsesCentralPackageManagement, Is.False);
+            Assert.That(result.Value.AnalyzerPaths, Is.Empty);
         });
     }
 
