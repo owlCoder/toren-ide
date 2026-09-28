@@ -36,7 +36,7 @@ internal static class RoslynAnalyzerLoader
             }
             catch (IOException)
             {
-                // A stale analyzer path should not take down language services.
+                // A stale or unloadable analyzer path should not take down language services.
             }
             catch (UnauthorizedAccessException)
             {
@@ -45,10 +45,6 @@ internal static class RoslynAnalyzerLoader
             catch (BadImageFormatException)
             {
                 // Ignore native or otherwise invalid analyzer assemblies.
-            }
-            catch (FileLoadException)
-            {
-                // Analyzer load failures are isolated from editor diagnostics.
             }
         }
 
