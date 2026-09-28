@@ -108,7 +108,7 @@ internal sealed class WorkspaceTextSearchController
 
     private async void Overlay_OnSearchOptionsChanged(object? sender, EventArgs eventArgs)
     {
-        await RefreshResultsAsync(debounce: false).ConfigureAwait(true);
+        await RefreshResultsAsync(debounce: true).ConfigureAwait(true);
     }
 
     private async Task RefreshResultsAsync(bool debounce)
@@ -138,11 +138,15 @@ internal sealed class WorkspaceTextSearchController
             }
 
             _overlay.SetStatus("Searching…");
+            var options = new WorkspaceTextSearchOptions(
+                _overlay.MatchCase,
+                _overlay.IncludePatterns,
+                _overlay.ExcludePatterns);
             var result = await _searchService
                 .SearchAsync(
                     workspacePath,
                     query,
-                    _overlay.MatchCase,
+                    options,
                     _textOverridesAccessor(),
                     cancellationToken: cancellation.Token)
                 .ConfigureAwait(true);
