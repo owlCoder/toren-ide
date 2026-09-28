@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using AvaloniaEdit;
+using Toren.App.Editor.Contracts;
+using Toren.App.ViewModels;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -8,16 +10,35 @@ namespace Toren.App.Editor.Services;
 
 internal sealed class CSharpNavigationController
 {
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
     private readonly Window _window;
     private readonly TextEditor _editor;
     private readonly ICSharpSemanticService _semanticService;
-    private readonly Stack<int> _navigationHistory = new();
+    private readonly ICSharpSemanticContextProvider _contextProvider;
+    private readonly Func<string?> _workspacePathAccessor;
+    private readonly Func<OpenDocumentViewModel?> _activeDocumentAccessor;
+    private readonly Func<string, Task> _openFileAsync;
+    private readonly Stack<NavigationPoint> _navigationHistory = new();
     private bool _detached;
 
-    private CSharpNavigationController(Window window, ICSharpSemanticService semanticService)
+    private CSharpNavigationController(
+        Window window,
+        ICSharpSemanticService semanticService,
+        ICSharpSemanticContextProvider contextProvider,
+        Func<string?> workspacePathAccessor,
+        Func<OpenDocumentViewModel?> activeDocumentAccessor,
+        Func<string, Task> openFileAsync)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _semanticService = semanticService ?? throw new ArgumentNullException(nameof(semanticService));
+        _contextProvider = contextProvider ?? throw new ArgumentNullException(nameof(contextProvider));
+        _workspacePathAccessor = workspacePathAccessor ?? throw new ArgumentNullException(nameof(workspacePathAccessor));
+        _activeDocumentAccessor = activeDocumentAccessor ?? throw new ArgumentNullException(nameof(activeDocumentAccessor));
+        _openFileAsync = openFileAsync ?? throw new ArgumentNullException(nameof(openFileAsync));
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
 
@@ -25,9 +46,21 @@ internal sealed class CSharpNavigationController
         _window.Closed += Window_OnClosed;
     }
 
-    public static void Attach(Window window, ICSharpSemanticService semanticService)
+    public static void Attach(
+        Window window,
+        ICSharpSemanticService semanticService,
+        ICSharpSemanticContextProvider contextProvider,
+        Func<string?> workspacePathAccessor,
+        Func<OpenDocumentViewModel?> activeDocumentAccessor,
+        Func<string, Task> openFileAsync)
     {
-        _ = new CSharpNavigationController(window, semanticService);
+        _ = new CSharpNavigationController(
+            window,
+            semanticService,
+            contextProvider,
+            workspacePathAccessor,
+            activeDocumentAccessor,
+            openFileAsync);
     }
 
     private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
@@ -43,29 +76,79 @@ internal sealed class CSharpNavigationController
             && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt)
             && _navigationHistory.Count > 0)
         {
-            NavigateBack();
             eventArgs.Handled = true;
+            await NavigateBackAsync().ConfigureAwait(true);
         }
     }
 
     private async Task GoToDefinitionAsync()
     {
-        var originOffset = _editor.CaretOffset;
-        var origin = _editor.Document.GetLocation(originOffset);
-        var symbol = await _semanticService
-            .GetSymbolAsync(_editor.Text, origin.Line, origin.Column)
-            .ConfigureAwait(true);
+        var activeDocument = _activeDocumentAccessor();
+        if (activeDocument is null)
+        {
+            return;
+        }
+
+        var origin = _editor.Document.GetLocation(_editor.CaretOffset);
+        var symbol = await ResolveSymbolAsync(activeDocument, origin.Line, origin.Column).ConfigureAwait(true);
         if (symbol?.Definition is null)
         {
             return;
         }
 
-        _navigationHistory.Push(originOffset);
-        NavigateTo(symbol.Definition);
+        var definitionPath = string.IsNullOrWhiteSpace(symbol.Definition.FilePath)
+            ? activeDocument.Path
+            : symbol.Definition.FilePath;
+        _navigationHistory.Push(new NavigationPoint(activeDocument.Path, origin.Line, origin.Column));
+        await NavigateToAsync(
+            new CSharpSourceLocation(definitionPath, symbol.Definition.Line, symbol.Definition.Column))
+            .ConfigureAwait(true);
     }
 
-    private void NavigateTo(CSharpSourceLocation location)
+    private async Task<CSharpSymbolInfo?> ResolveSymbolAsync(
+        OpenDocumentViewModel activeDocument,
+        int line,
+        int column)
     {
+        var workspacePath = _workspacePathAccessor();
+        if (!string.IsNullOrWhiteSpace(workspacePath))
+        {
+            var context = await _contextProvider
+                .CreateAsync(workspacePath, activeDocument)
+                .ConfigureAwait(true);
+            if (context is not null)
+            {
+                var contextualSymbol = await _semanticService
+                    .GetSymbolAsync(context, line, column)
+                    .ConfigureAwait(true);
+                if (contextualSymbol is not null)
+                {
+                    return contextualSymbol;
+                }
+            }
+        }
+
+        return await _semanticService
+            .GetSymbolAsync(_editor.Text, line, column)
+            .ConfigureAwait(true);
+    }
+
+    private async Task NavigateToAsync(CSharpSourceLocation location)
+    {
+        if (!string.IsNullOrWhiteSpace(location.FilePath))
+        {
+            var activeDocument = _activeDocumentAccessor();
+            if (activeDocument is null || !activeDocument.Path.Equals(location.FilePath, PathComparison))
+            {
+                await _openFileAsync(location.FilePath).ConfigureAwait(true);
+                activeDocument = _activeDocumentAccessor();
+                if (activeDocument is null || !activeDocument.Path.Equals(location.FilePath, PathComparison))
+                {
+                    return;
+                }
+            }
+        }
+
         var line = Math.Clamp(location.Line, 1, _editor.Document.LineCount);
         var documentLine = _editor.Document.GetLineByNumber(line);
         var column = Math.Clamp(location.Column, 1, documentLine.Length + 1);
@@ -74,13 +157,11 @@ internal sealed class CSharpNavigationController
         _editor.Focus();
     }
 
-    private void NavigateBack()
+    private async Task NavigateBackAsync()
     {
-        var offset = Math.Clamp(_navigationHistory.Pop(), 0, _editor.Document.TextLength);
-        _editor.CaretOffset = offset;
-        var location = _editor.Document.GetLocation(offset);
-        _editor.ScrollTo(location.Line, location.Column);
-        _editor.Focus();
+        var point = _navigationHistory.Pop();
+        await NavigateToAsync(new CSharpSourceLocation(point.FilePath, point.Line, point.Column))
+            .ConfigureAwait(true);
     }
 
     private void Detach()
@@ -99,4 +180,6 @@ internal sealed class CSharpNavigationController
     {
         Detach();
     }
+
+    private sealed record NavigationPoint(string FilePath, int Line, int Column);
 }
