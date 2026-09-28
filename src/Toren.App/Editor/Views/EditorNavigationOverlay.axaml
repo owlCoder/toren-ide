@@ -45,42 +45,75 @@
       <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource TorenAccentBrush}" />
     </Style>
+    <Style Selector="Button.editor-navigation-action">
+      <Setter Property="Height" Value="28" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Padding" Value="9,3" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Button.editor-navigation-action:pointerover">
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    </Style>
   </UserControl.Styles>
 
   <Border Classes="editor-navigation-card">
-    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-      <TextBlock x:Name="ModeLabel" Text="Find" FontSize="10.5"
-                 Foreground="{DynamicResource TorenTextSubtleBrush}"
-                 VerticalAlignment="Center" Margin="1,0,2,0" />
-      <TextBox x:Name="InputBox" Classes="editor-navigation-input"
-               PlaceholderText="Find in file"
-               TextChanged="InputBox_OnTextChanged"
-               KeyDown="InputBox_OnKeyDown" />
-      <TextBlock x:Name="MatchStatus" Text="0/0" MinWidth="40" FontSize="10.5"
-                 Foreground="{DynamicResource TorenTextSubtleBrush}"
-                 TextAlignment="Center" VerticalAlignment="Center" />
-      <ToggleButton x:Name="MatchCaseButton" Classes="editor-navigation-button"
-                    Content="Aa" FontSize="10.5" FontWeight="SemiBold"
-                    ToolTip.Tip="Match case"
-                    Click="MatchCaseButton_OnClick" />
-      <Button x:Name="PreviousButton" Classes="editor-navigation-button"
-              ToolTip.Tip="Previous match" Click="PreviousButton_OnClick">
-        <Path Width="13" Height="13" Stretch="Uniform"
-              Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
-              Data="M4,9 L8,5 L12,9" />
-      </Button>
-      <Button x:Name="NextButton" Classes="editor-navigation-button"
-              ToolTip.Tip="Next match" Click="NextButton_OnClick">
-        <Path Width="13" Height="13" Stretch="Uniform"
-              Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
-              Data="M4,5 L8,9 L12,5" />
-      </Button>
-      <Button Classes="editor-navigation-button" ToolTip.Tip="Close"
-              Click="CloseButton_OnClick">
-        <Path Width="12" Height="12" Stretch="Uniform"
-              Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
-              Data="M3,3 L11,11 M11,3 L3,11" />
-      </Button>
+    <StackPanel Spacing="5">
+      <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+        <TextBlock x:Name="ModeLabel" Text="Find" Width="43" FontSize="10.5"
+                   Foreground="{DynamicResource TorenTextSubtleBrush}"
+                   TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0" />
+        <TextBox x:Name="InputBox" Classes="editor-navigation-input"
+                 PlaceholderText="Find in file"
+                 TextChanged="InputBox_OnTextChanged"
+                 KeyDown="InputBox_OnKeyDown" />
+        <TextBlock x:Name="MatchStatus" Text="0/0" MinWidth="40" FontSize="10.5"
+                   Foreground="{DynamicResource TorenTextSubtleBrush}"
+                   TextAlignment="Center" VerticalAlignment="Center" />
+        <ToggleButton x:Name="MatchCaseButton" Classes="editor-navigation-button"
+                      Content="Aa" FontSize="10.5" FontWeight="SemiBold"
+                      ToolTip.Tip="Match case"
+                      Click="MatchCaseButton_OnClick" />
+        <Button x:Name="PreviousButton" Classes="editor-navigation-button"
+                ToolTip.Tip="Previous match" Click="PreviousButton_OnClick">
+          <Path Width="13" Height="13" Stretch="Uniform"
+                Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
+                Data="M4,9 L8,5 L12,9" />
+        </Button>
+        <Button x:Name="NextButton" Classes="editor-navigation-button"
+                ToolTip.Tip="Next match" Click="NextButton_OnClick">
+          <Path Width="13" Height="13" Stretch="Uniform"
+                Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
+                Data="M4,5 L8,9 L12,5" />
+        </Button>
+        <Button Classes="editor-navigation-button" ToolTip.Tip="Close"
+                Click="CloseButton_OnClick">
+          <Path Width="12" Height="12" Stretch="Uniform"
+                Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.7"
+                Data="M3,3 L11,11 M11,3 L3,11" />
+        </Button>
+      </StackPanel>
+
+      <StackPanel x:Name="ReplacementRow" Orientation="Horizontal" Spacing="5"
+                  VerticalAlignment="Center" IsVisible="False">
+        <TextBlock Text="With" Width="43" FontSize="10.5"
+                   Foreground="{DynamicResource TorenTextSubtleBrush}"
+                   TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0" />
+        <TextBox x:Name="ReplacementBox" Classes="editor-navigation-input"
+                 PlaceholderText="Replace with"
+                 KeyDown="ReplacementBox_OnKeyDown" />
+        <Button Classes="editor-navigation-action" Content="Replace"
+                ToolTip.Tip="Replace current match"
+                Click="ReplaceNextButton_OnClick" />
+        <Button Classes="editor-navigation-action" Content="All"
+                ToolTip.Tip="Replace all matches"
+                Click="ReplaceAllButton_OnClick" />
+      </StackPanel>
     </StackPanel>
   </Border>
 </UserControl>
