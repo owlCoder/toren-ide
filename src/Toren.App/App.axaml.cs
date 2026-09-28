@@ -73,9 +73,11 @@ public sealed partial class App : Application
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
             ICSharpFormattingService cSharpFormattingService = new RoslynCSharpFormattingService();
+            ICSharpRenameService cSharpRenameService = new RoslynCSharpRenameService();
             ICSharpSymbolIndexService cSharpSymbolIndexService = new RoslynCSharpSymbolIndexService();
             ICSharpSymbolSearchService cSharpSymbolSearchService = new CSharpSymbolSearchService();
             var documentHost = new DocumentHostViewModel(textDocumentStore);
+            var cSharpRenameChangeApplier = new CSharpRenameChangeApplier(documentHost, textDocumentStore);
             var cSharpSemanticContextProvider = new CSharpSemanticContextProvider(
                 workspaceClassifier,
                 projectGraphService,
@@ -190,6 +192,14 @@ public sealed partial class App : Application
                 mainWindow,
                 cSharpFormattingService,
                 GetActiveCSharpDocument,
+                viewModel.SetStatus);
+            CSharpRenameController.Attach(
+                mainWindow,
+                cSharpSemanticService,
+                cSharpRenameService,
+                cSharpRenameChangeApplier,
+                GetActiveCSharpDocument,
+                GetActiveSemanticContextAsync,
                 viewModel.SetStatus);
             CSharpSymbolNavigationController.Attach(
                 mainWindow,
