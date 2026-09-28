@@ -8,6 +8,8 @@ namespace Toren.App.Search.Views;
 
 internal sealed partial class WorkspaceTextSearchOverlay : UserControl
 {
+    private IReadOnlyList<WorkspaceTextSearchDisplayItem> _displayItems = [];
+
     public WorkspaceTextSearchOverlay()
     {
         InitializeComponent();
@@ -33,7 +35,8 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
 
     public string ExcludePatterns => ExcludePatternsBox.Text ?? string.Empty;
 
-    public WorkspaceTextSearchResult? SelectedResult => ResultsList.SelectedItem as WorkspaceTextSearchResult;
+    public WorkspaceTextSearchResult? SelectedResult =>
+        (ResultsList.SelectedItem as WorkspaceTextSearchDisplayItem)?.Result;
 
     public void ShowOverlay()
     {
@@ -50,8 +53,9 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
     public void SetResults(IReadOnlyList<WorkspaceTextSearchResult> results)
     {
         ArgumentNullException.ThrowIfNull(results);
-        ResultsList.ItemsSource = results;
-        ResultsList.SelectedIndex = results.Count > 0 ? 0 : -1;
+        _displayItems = WorkspaceTextSearchPresentation.Build(results);
+        ResultsList.ItemsSource = _displayItems;
+        ResultsList.SelectedIndex = FindResultIndex(startIndex: 0, delta: 1);
     }
 
     public void SetStatus(string status)
@@ -94,15 +98,36 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
             return;
         }
 
-        if (eventArgs.Key is not Key.Down and not Key.Up || ResultsList.ItemCount == 0)
+        if (eventArgs.Key is not Key.Down and not Key.Up || _displayItems.Count == 0)
         {
             return;
         }
 
         var delta = eventArgs.Key == Key.Down ? 1 : -1;
-        var current = Math.Max(ResultsList.SelectedIndex, 0);
-        ResultsList.SelectedIndex = Math.Clamp(current + delta, 0, ResultsList.ItemCount - 1);
+        var startIndex = ResultsList.SelectedIndex < 0
+            ? (delta > 0 ? 0 : _displayItems.Count - 1)
+            : ResultsList.SelectedIndex + delta;
+        var nextIndex = FindResultIndex(startIndex, delta);
+        if (nextIndex >= 0)
+        {
+            ResultsList.SelectedIndex = nextIndex;
+            ResultsList.ScrollIntoView(nextIndex);
+        }
+
         eventArgs.Handled = true;
+    }
+
+    private int FindResultIndex(int startIndex, int delta)
+    {
+        for (var index = startIndex; index >= 0 && index < _displayItems.Count; index += delta)
+        {
+            if (_displayItems[index].IsResult)
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     private void FilterBox_OnKeyDown(object? sender, KeyEventArgs eventArgs)
