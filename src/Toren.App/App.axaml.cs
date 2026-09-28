@@ -59,20 +59,76 @@ public sealed partial class App : Application
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
+            ICSharpDiagnosticService cSharpDiagnosticService = new RoslynCSharpDiagnosticService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
             ICSharpSymbolIndexService cSharpSymbolIndexService = new RoslynCSharpSymbolIndexService();
             ICSharpSymbolSearchService cSharpSymbolSearchService = new CSharpSymbolSearchService();
-            IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
-                new DocumentDiagnosticsCoordinator(cSharpSyntaxService);
             var documentHost = new DocumentHostViewModel(textDocumentStore);
             var cSharpSemanticContextProvider = new CSharpSemanticContextProvider(
                 workspaceClassifier,
                 projectGraphService,
                 workspaceFileProvider,
                 textDocumentStore);
+            MainWindowViewModel? viewModel = null;
 
-            var viewModel = new MainWindowViewModel(
+            string? GetWorkspacePath() =>
+                viewModel is { Explorer.IsWorkspaceOpen: true } ? viewModel.WorkspacePath : null;
+
+            CSharpSourceDocument? GetActiveCSharpDocument()
+            {
+                var document = documentHost.ActiveDocument;
+                return document is not null
+                    && Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase)
+                        ? new CSharpSourceDocument(document.Path, document.Text)
+                        : null;
+            }
+
+            IReadOnlyList<CSharpSourceDocument> GetOpenCSharpDocuments() =>
+                documentHost.OpenDocuments
+                    .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
+                    .Select(document => new CSharpSourceDocument(document.Path, document.Text))
+                    .ToArray();
+
+            async Task<CSharpSemanticContext?> GetSemanticContextAsync(
+                CSharpSourceDocument activeDocument,
+                CancellationToken cancellationToken = default)
+            {
+                var workspacePath = GetWorkspacePath();
+                if (string.IsNullOrWhiteSpace(workspacePath))
+                {
+                    return null;
+                }
+
+                return await cSharpSemanticContextProvider
+                    .CreateAsync(workspacePath, activeDocument, GetOpenCSharpDocuments(), cancellationToken)
+                    .ConfigureAwait(true);
+            }
+
+            Task<CSharpSemanticContext?> GetActiveSemanticContextAsync()
+            {
+                var activeDocument = GetActiveCSharpDocument();
+                return activeDocument is null
+                    ? Task.FromResult<CSharpSemanticContext?>(null)
+                    : GetSemanticContextAsync(activeDocument);
+            }
+
+            Task<CSharpSemanticContext?> CreateDiagnosticsContextAsync(
+                string path,
+                string sourceText,
+                CancellationToken cancellationToken)
+            {
+                var activeDocument = new CSharpSourceDocument(path, sourceText);
+                return GetSemanticContextAsync(activeDocument, cancellationToken);
+            }
+
+            IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
+                new DocumentDiagnosticsCoordinator(
+                    cSharpDiagnosticService,
+                    cSharpSyntaxService,
+                    CreateDiagnosticsContextAsync);
+
+            viewModel = new MainWindowViewModel(
                 dotNetEnvironmentService,
                 dotNetSdkResolver,
                 workspaceClassifier,
@@ -82,38 +138,6 @@ public sealed partial class App : Application
                 documentDiagnosticsCoordinator,
                 documentHost);
             var mainWindow = new MainWindow(viewModel);
-
-            string? GetWorkspacePath() =>
-                viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null;
-
-            CSharpSourceDocument? GetActiveCSharpDocument()
-            {
-                var document = viewModel.Documents.ActiveDocument;
-                return document is not null
-                    && Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase)
-                        ? new CSharpSourceDocument(document.Path, document.Text)
-                        : null;
-            }
-
-            IReadOnlyList<CSharpSourceDocument> GetOpenCSharpDocuments() =>
-                viewModel.Documents.OpenDocuments
-                    .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
-                    .Select(document => new CSharpSourceDocument(document.Path, document.Text))
-                    .ToArray();
-
-            async Task<CSharpSemanticContext?> GetActiveSemanticContextAsync()
-            {
-                var workspacePath = GetWorkspacePath();
-                var activeDocument = GetActiveCSharpDocument();
-                if (string.IsNullOrWhiteSpace(workspacePath) || activeDocument is null)
-                {
-                    return null;
-                }
-
-                return await cSharpSemanticContextProvider
-                    .CreateAsync(workspacePath, activeDocument, GetOpenCSharpDocuments())
-                    .ConfigureAwait(true);
-            }
 
             async Task OpenDocumentPathAsync(string path)
             {
