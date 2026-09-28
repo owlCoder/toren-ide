@@ -19,7 +19,12 @@ public sealed class WorkspaceTextSearchService(
     {
         ".cs", ".csproj", ".sln", ".slnx", ".json", ".xml", ".props", ".targets",
         ".config", ".yml", ".yaml", ".md", ".txt", ".http", ".razor", ".cshtml",
-        ".editorconfig", ".gitignore", ".gitattributes", ".dockerignore", ".sh", ".ps1",
+        ".sh", ".ps1",
+    };
+
+    private static readonly HashSet<string> SearchableFileNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Dockerfile", ".editorconfig", ".gitignore", ".gitattributes", ".dockerignore",
     };
 
     private readonly IWorkspaceFileProvider _fileProvider = fileProvider
@@ -105,12 +110,8 @@ public sealed class WorkspaceTextSearchService(
     private static bool IsSearchable(string path)
     {
         var fileName = Path.GetFileName(path);
-        if (fileName.Equals("Dockerfile", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return SearchableExtensions.Contains(Path.GetExtension(path));
+        return SearchableFileNames.Contains(fileName)
+            || SearchableExtensions.Contains(Path.GetExtension(path));
     }
 
     private static void AddMatches(
@@ -147,7 +148,7 @@ public sealed class WorkspaceTextSearchService(
                     return;
                 }
 
-                searchOffset = index + Math.Max(query.Length, 1);
+                searchOffset = index + query.Length;
             }
         }
     }
@@ -158,6 +159,6 @@ public sealed class WorkspaceTextSearchService(
         var preview = line.Trim();
         return preview.Length <= maxPreviewLength
             ? preview
-            : string.Concat(preview.AsSpan(0, maxPreviewLength - 1), "…");
+            : $"{preview[..(maxPreviewLength - 1)]}…";
     }
 }
