@@ -60,6 +60,8 @@ public sealed partial class App : Application
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
+            ICSharpSymbolIndexService cSharpSymbolIndexService = new RoslynCSharpSymbolIndexService();
+            ICSharpSymbolSearchService cSharpSymbolSearchService = new CSharpSymbolSearchService();
             IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator =
                 new DocumentDiagnosticsCoordinator(cSharpSyntaxService);
             var documentHost = new DocumentHostViewModel(textDocumentStore);
@@ -132,6 +134,13 @@ public sealed partial class App : Application
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync,
                 OpenDocumentPathAsync);
+            CSharpSymbolNavigationController.Attach(
+                mainWindow,
+                cSharpSymbolIndexService,
+                cSharpSymbolSearchService,
+                GetActiveSemanticContextAsync,
+                OpenDocumentPathAsync,
+                viewModel.SetStatus);
             WorkspaceQuickOpenController.Attach(
                 mainWindow,
                 workspaceFileProvider,
