@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -12,12 +13,12 @@ public sealed class RoslynCSharpDiagnosticService : ICSharpDiagnosticService
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return Task.Run<IReadOnlyList<CSharpDiagnostic>>(
-            () => Analyze(context, cancellationToken),
+        return Task.Run(
+            () => AnalyzeCoreAsync(context, cancellationToken),
             cancellationToken);
     }
 
-    private static CSharpDiagnostic[] Analyze(
+    private static async Task<IReadOnlyList<CSharpDiagnostic>> AnalyzeCoreAsync(
         CSharpSemanticContext context,
         CancellationToken cancellationToken)
     {
@@ -27,8 +28,17 @@ public sealed class RoslynCSharpDiagnosticService : ICSharpDiagnosticService
             return [];
         }
 
-        return compilationContext.Compilation
-            .GetDiagnostics(cancellationToken)
+        var compilerDiagnostics = compilationContext.Compilation.GetDiagnostics(cancellationToken);
+        var analyzers = RoslynAnalyzerLoader.Load(context.AnalyzerPaths);
+        var analyzerDiagnostics = analyzers.IsDefaultOrEmpty
+            ? []
+            : await compilationContext.Compilation
+                .WithAnalyzers(analyzers)
+                .GetAnalyzerDiagnosticsAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+        return compilerDiagnostics
+            .Concat(analyzerDiagnostics)
             .Where(diagnostic =>
                 diagnostic.Severity != DiagnosticSeverity.Hidden
                 && diagnostic.Location.IsInSource
