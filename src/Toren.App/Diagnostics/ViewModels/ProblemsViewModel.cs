@@ -251,6 +251,6 @@ public sealed partial class ProblemsViewModel : ObservableObject
             ProblemsScope.Project => _projectFilePaths.Contains(item.FilePath),
             ProblemsScope.CurrentDocument => _currentDocumentPath is not null
                 && PathComparer.Equals(_currentDocumentPath, item.FilePath),
-            _ => throw new ArgumentOutOfRangeException(nameof(Scope)),
+            _ => throw new InvalidOperationException($"Unsupported Problems scope: {Scope}."),
         };
 }
