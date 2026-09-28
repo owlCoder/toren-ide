@@ -1,3 +1,8 @@
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using NUnit.Framework;
 using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
@@ -62,5 +67,57 @@ public sealed class RoslynCSharpDiagnosticServiceTests
         var diagnostics = await service.AnalyzeAsync(context);
 
         Assert.That(diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public async Task ProjectAnalyzerDiagnosticIsReturnedForActiveDocument()
+    {
+        var service = new RoslynCSharpDiagnosticService();
+        var context = new CSharpSemanticContext(
+            "Program.cs",
+            [
+                new CSharpSourceDocument(
+                    "Program.cs",
+                    "namespace Demo; public sealed class Program { }"),
+            ])
+        {
+            AnalyzerPaths = [typeof(TestClassDeclarationAnalyzer).Assembly.Location],
+        };
+
+        var diagnostics = await service.AnalyzeAsync(context);
+
+        Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == TestClassDeclarationAnalyzer.DiagnosticId), Is.True);
+    }
+}
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public sealed class TestClassDeclarationAnalyzer : DiagnosticAnalyzer
+{
+    public const string DiagnosticId = "TORENTEST001";
+
+    private static readonly DiagnosticDescriptor Rule = new(
+        DiagnosticId,
+        "Test class declaration",
+        "Class '{0}' was analyzed",
+        "Testing",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
+
+    public override void Initialize(AnalysisContext context)
+    {
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+        context.EnableConcurrentExecution();
+        context.RegisterSyntaxNodeAction(AnalyzeClass, SyntaxKind.ClassDeclaration);
+    }
+
+    private static void AnalyzeClass(SyntaxNodeAnalysisContext context)
+    {
+        var declaration = (ClassDeclarationSyntax)context.Node;
+        context.ReportDiagnostic(Diagnostic.Create(
+            Rule,
+            declaration.Identifier.GetLocation(),
+            declaration.Identifier.ValueText));
     }
 }
