@@ -1,0 +1,35 @@
+<UserControl x:Class="Toren.App.Editor.Views.CSharpQuickInfoView"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             IsHitTestVisible="False">
+  <Border MaxWidth="620"
+          Padding="10,8"
+          Background="{DynamicResource TorenSurfaceRaisedBrush}"
+          BorderBrush="{DynamicResource TorenBorderStrongBrush}"
+          BorderThickness="1"
+          CornerRadius="4"
+          BoxShadow="0 4 14 0 #55000000">
+    <StackPanel Spacing="5">
+      <TextBlock x:Name="DisplayText"
+                 FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                 FontSize="12.5"
+                 Foreground="{DynamicResource TorenTextBrush}"
+                 TextWrapping="Wrap" />
+      <StackPanel Orientation="Horizontal" Spacing="7">
+        <Border Padding="5,1"
+                Background="{DynamicResource TorenAccentMutedBrush}"
+                CornerRadius="3">
+          <TextBlock x:Name="KindText"
+                     FontSize="9.5"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource TorenAccentBrush}" />
+        </Border>
+        <TextBlock x:Name="LocationText"
+                   FontSize="10.5"
+                   Foreground="{DynamicResource TorenTextSubtleBrush}"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>
