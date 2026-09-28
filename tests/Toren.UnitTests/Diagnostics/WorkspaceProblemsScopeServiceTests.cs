@@ -37,8 +37,9 @@ public sealed class WorkspaceProblemsScopeServiceTests
             var result = await service.BuildAsync(root);
 
             Assert.That(result.IsSuccess, Is.True);
-            var outerScope = result.Value.Projects.Single(project => project.DisplayName == "Outer");
-            var nestedScope = result.Value.Projects.Single(project => project.DisplayName == "Nested");
+            var index = result.Value ?? throw new AssertionException("Expected a Problems scope index.");
+            var outerScope = index.Projects.Single(project => project.DisplayName == "Outer");
+            var nestedScope = index.Projects.Single(project => project.DisplayName == "Nested");
             Assert.Multiple(() =>
             {
                 Assert.That(outerScope.FilePaths, Is.EqualTo([Path.GetFullPath(outerFile)]));
