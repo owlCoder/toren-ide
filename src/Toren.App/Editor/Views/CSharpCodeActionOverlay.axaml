@@ -1,0 +1,67 @@
+<UserControl x:Class="Toren.App.Editor.Views.CSharpCodeActionOverlay"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:languageModels="clr-namespace:Toren.Language.CSharp.Models;assembly=Toren.Language"
+             HorizontalAlignment="Right"
+             VerticalAlignment="Top"
+             Margin="0,10,16,0"
+             IsVisible="False">
+  <UserControl.Styles>
+    <Style Selector="Border.code-action-card">
+      <Setter Property="Width" Value="330" />
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="BoxShadow" Value="0 7 22 0 #55000000" />
+    </Style>
+    <Style Selector="ListBox.code-action-results">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="MaxHeight" Value="220" />
+    </Style>
+    <Style Selector="ListBox.code-action-results > ListBoxItem">
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Classes="code-action-card">
+    <StackPanel Spacing="5">
+      <Grid ColumnDefinitions="*,Auto" Margin="4,2,4,0">
+        <TextBlock Text="Quick Fix"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TorenTextMutedBrush}" />
+        <TextBlock Grid.Column="1"
+                   Text="Ctrl+."
+                   FontSize="9.5"
+                   Foreground="{DynamicResource TorenTextSubtleBrush}" />
+      </Grid>
+
+      <ListBox x:Name="ResultsList"
+               Classes="code-action-results"
+               KeyDown="ResultsList_OnKeyDown"
+               DoubleTapped="ResultsList_OnDoubleTapped">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="languageModels:CSharpCodeActionInfo">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+              <TextBlock Text="{Binding DiagnosticId}"
+                         FontSize="9.5"
+                         Foreground="{DynamicResource TorenAccentBrush}"
+                         VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding Title}"
+                         FontSize="12"
+                         Foreground="{DynamicResource TorenTextBrush}"
+                         TextTrimming="CharacterEllipsis" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+  </Border>
+</UserControl>
