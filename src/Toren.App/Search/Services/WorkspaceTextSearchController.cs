@@ -139,9 +139,11 @@ internal sealed class WorkspaceTextSearchController
 
             _overlay.SetStatus("Searching…");
             var options = new WorkspaceTextSearchOptions(
-                _overlay.MatchCase,
-                _overlay.IncludePatterns,
-                _overlay.ExcludePatterns);
+                MatchCase: _overlay.MatchCase,
+                MatchWholeWord: _overlay.MatchWholeWord,
+                UseRegularExpression: _overlay.UseRegularExpression,
+                IncludePatterns: _overlay.IncludePatterns,
+                ExcludePatterns: _overlay.ExcludePatterns);
             var result = await _searchService
                 .SearchAsync(
                     workspacePath,

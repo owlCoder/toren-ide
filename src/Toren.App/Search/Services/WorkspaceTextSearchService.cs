@@ -1,4 +1,5 @@
 using System.IO.Enumeration;
+using System.Text.RegularExpressions;
 using Toren.App.Documents.Contracts;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Models;
@@ -15,6 +16,7 @@ public sealed class WorkspaceTextSearchService(
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(500);
 
     private static readonly HashSet<string> SearchableExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -46,6 +48,12 @@ public sealed class WorkspaceTextSearchService(
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
 
+        var matcherResult = CreateMatcher(query, options);
+        if (!matcherResult.IsSuccess)
+        {
+            return Result.Failure<IReadOnlyList<WorkspaceTextSearchResult>>(matcherResult.Error);
+        }
+
         var files = await _fileProvider.GetFilesAsync(workspacePath, cancellationToken).ConfigureAwait(false);
         if (!files.IsSuccess)
         {
@@ -53,46 +61,91 @@ public sealed class WorkspaceTextSearchService(
         }
 
         var overrides = NormalizeOverrides(textOverrides);
-        var comparison = options.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var includePatterns = SplitPatterns(options.IncludePatterns);
         var excludePatterns = SplitPatterns(options.ExcludePatterns);
         var results = new List<WorkspaceTextSearchResult>(Math.Min(maxResults, 200));
 
-        foreach (var file in files.Value)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!IsSearchable(file.Path)
-                || !MatchesPathFilters(file.RelativePath, includePatterns, excludePatterns))
+            foreach (var file in files.Value)
             {
-                continue;
-            }
-
-            var fullPath = Path.GetFullPath(file.Path);
-            string? text = null;
-            if (overrides is not null)
-            {
-                overrides.TryGetValue(fullPath, out text);
-            }
-
-            if (text is null)
-            {
-                var loaded = await _documentStore.LoadAsync(fullPath, cancellationToken).ConfigureAwait(false);
-                if (!loaded.IsSuccess)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!IsSearchable(file.Path)
+                    || !MatchesPathFilters(file.RelativePath, includePatterns, excludePatterns))
                 {
                     continue;
                 }
 
-                text = loaded.Value.Text;
-            }
+                var fullPath = Path.GetFullPath(file.Path);
+                string? text = null;
+                if (overrides is not null)
+                {
+                    overrides.TryGetValue(fullPath, out text);
+                }
 
-            AddMatches(file.RelativePath, fullPath, text, query, comparison, results, maxResults);
-            if (results.Count >= maxResults)
-            {
-                break;
+                if (text is null)
+                {
+                    var loaded = await _documentStore.LoadAsync(fullPath, cancellationToken).ConfigureAwait(false);
+                    if (!loaded.IsSuccess)
+                    {
+                        continue;
+                    }
+
+                    text = loaded.Value.Text;
+                }
+
+                AddMatches(file.RelativePath, fullPath, text, matcherResult.Value, results, maxResults);
+                if (results.Count >= maxResults)
+                {
+                    break;
+                }
             }
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return Result.Failure<IReadOnlyList<WorkspaceTextSearchResult>>(
+                OperationError.Create(
+                    "search.regex.timeout",
+                    "The regular expression took too long to evaluate. Narrow the expression and try again."));
         }
 
         return Result.Success<IReadOnlyList<WorkspaceTextSearchResult>>(results);
+    }
+
+    private static Result<SearchMatcher> CreateMatcher(string query, WorkspaceTextSearchOptions options)
+    {
+        if (!options.UseRegularExpression && !options.MatchWholeWord)
+        {
+            var comparison = options.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            return Result.Success(new SearchMatcher(query, comparison, null));
+        }
+
+        var pattern = options.UseRegularExpression ? query : Regex.Escape(query);
+        if (options.MatchWholeWord)
+        {
+            pattern = $"(?<![\\p{{L}}\\p{{Nd}}_])(?:{pattern})(?![\\p{{L}}\\p{{Nd}}_])";
+        }
+
+        var regexOptions = RegexOptions.CultureInvariant;
+        if (!options.MatchCase)
+        {
+            regexOptions |= RegexOptions.IgnoreCase;
+        }
+
+        try
+        {
+            return Result.Success(new SearchMatcher(
+                query,
+                StringComparison.Ordinal,
+                new Regex(pattern, regexOptions, RegexTimeout)));
+        }
+        catch (ArgumentException exception)
+        {
+            return Result.Failure<SearchMatcher>(
+                OperationError.Create(
+                    "search.regex.invalid",
+                    $"Invalid regular expression: {exception.Message}"));
+        }
     }
 
     private static Dictionary<string, string>? NormalizeOverrides(
@@ -161,8 +214,7 @@ public sealed class WorkspaceTextSearchService(
         string relativePath,
         string filePath,
         string text,
-        string query,
-        StringComparison comparison,
+        SearchMatcher matcher,
         List<WorkspaceTextSearchResult> results,
         int maxResults)
     {
@@ -171,29 +223,92 @@ public sealed class WorkspaceTextSearchService(
         while (reader.ReadLine() is { } line)
         {
             lineNumber++;
-            var searchOffset = 0;
-            while (searchOffset <= line.Length - query.Length)
+            if (matcher.Regex is not null)
             {
-                var index = line.IndexOf(query, searchOffset, comparison);
-                if (index < 0)
-                {
-                    break;
-                }
-
-                results.Add(new WorkspaceTextSearchResult(
-                    filePath,
+                AddRegexMatches(relativePath, filePath, line, lineNumber, matcher.Regex, results, maxResults);
+            }
+            else
+            {
+                AddLiteralMatches(
                     relativePath,
+                    filePath,
+                    line,
                     lineNumber,
-                    index + 1,
-                    CreatePreview(line)));
-                if (results.Count >= maxResults)
-                {
-                    return;
-                }
+                    matcher.Query,
+                    matcher.Comparison,
+                    results,
+                    maxResults);
+            }
 
-                searchOffset = index + query.Length;
+            if (results.Count >= maxResults)
+            {
+                return;
             }
         }
+    }
+
+    private static void AddLiteralMatches(
+        string relativePath,
+        string filePath,
+        string line,
+        int lineNumber,
+        string query,
+        StringComparison comparison,
+        List<WorkspaceTextSearchResult> results,
+        int maxResults)
+    {
+        var searchOffset = 0;
+        while (searchOffset <= line.Length - query.Length)
+        {
+            var index = line.IndexOf(query, searchOffset, comparison);
+            if (index < 0)
+            {
+                return;
+            }
+
+            AddResult(relativePath, filePath, line, lineNumber, index, results);
+            if (results.Count >= maxResults)
+            {
+                return;
+            }
+
+            searchOffset = index + query.Length;
+        }
+    }
+
+    private static void AddRegexMatches(
+        string relativePath,
+        string filePath,
+        string line,
+        int lineNumber,
+        Regex regex,
+        List<WorkspaceTextSearchResult> results,
+        int maxResults)
+    {
+        foreach (Match match in regex.Matches(line))
+        {
+            AddResult(relativePath, filePath, line, lineNumber, match.Index, results);
+            if (results.Count >= maxResults)
+            {
+                return;
+            }
+        }
+    }
+
+    private static void AddResult(
+        string relativePath,
+        string filePath,
+        string line,
+        int lineNumber,
+        int index,
+        List<WorkspaceTextSearchResult> results)
+    {
+        results.Add(new WorkspaceTextSearchResult(
+            filePath,
+            relativePath,
+            lineNumber,
+            index + 1,
+            CreatePreview(line)));
     }
 
     private static string CreatePreview(string line)
@@ -204,4 +319,9 @@ public sealed class WorkspaceTextSearchService(
             ? preview
             : $"{preview[..(maxPreviewLength - 1)]}…";
     }
+
+    private sealed record SearchMatcher(
+        string Query,
+        StringComparison Comparison,
+        Regex? Regex);
 }

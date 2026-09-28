@@ -73,7 +73,7 @@
 
   <Border Classes="workspace-search-card">
     <StackPanel Spacing="7">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="7">
         <TextBox x:Name="QueryBox"
                  Classes="workspace-search-input"
                  PlaceholderText="Search in workspace"
@@ -84,7 +84,19 @@
                       Classes="workspace-search-option"
                       Content="Aa"
                       ToolTip.Tip="Match case"
-                      Click="MatchCaseButton_OnClick" />
+                      Click="SearchOptionButton_OnClick" />
+        <ToggleButton x:Name="MatchWholeWordButton"
+                      Grid.Column="2"
+                      Classes="workspace-search-option"
+                      Content="W"
+                      ToolTip.Tip="Match whole word"
+                      Click="SearchOptionButton_OnClick" />
+        <ToggleButton x:Name="UseRegularExpressionButton"
+                      Grid.Column="3"
+                      Classes="workspace-search-option"
+                      Content=".*"
+                      ToolTip.Tip="Use regular expression"
+                      Click="SearchOptionButton_OnClick" />
       </Grid>
 
       <Grid ColumnDefinitions="*,*" ColumnSpacing="7">

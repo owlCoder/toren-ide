@@ -25,6 +25,10 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
 
     public bool MatchCase => MatchCaseButton.IsChecked == true;
 
+    public bool MatchWholeWord => MatchWholeWordButton.IsChecked == true;
+
+    public bool UseRegularExpression => UseRegularExpressionButton.IsChecked == true;
+
     public string IncludePatterns => IncludePatternsBox.Text ?? string.Empty;
 
     public string ExcludePatterns => ExcludePatternsBox.Text ?? string.Empty;
@@ -71,7 +75,7 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
         SearchOptionsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void MatchCaseButton_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private void SearchOptionButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         SearchOptionsChanged?.Invoke(this, EventArgs.Empty);
     }

@@ -58,6 +58,77 @@ public sealed class WorkspaceTextSearchServiceTests
     }
 
     [Test]
+    public async Task SearchHonorsWholeWordMode()
+    {
+        var root = Path.GetFullPath("/workspace");
+        var file = Path.Combine(root, "Sample.cs");
+        var service = CreateService(
+            [new WorkspaceFileEntry(file, "Sample.cs", "Sample.cs")],
+            new Dictionary<string, string> { [file] = "cat scatter cat_ cat2 cat" });
+
+        var result = await service.SearchAsync(
+            root,
+            "cat",
+            new WorkspaceTextSearchOptions(MatchWholeWord: true));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Value, Has.Count.EqualTo(2));
+            Assert.That(result.Value![0].Column, Is.EqualTo(1));
+            Assert.That(result.Value[1].Column, Is.EqualTo(23));
+        });
+    }
+
+    [Test]
+    public async Task SearchSupportsRegularExpressionsAndMatchCase()
+    {
+        var root = Path.GetFullPath("/workspace");
+        var file = Path.Combine(root, "Sample.cs");
+        var service = CreateService(
+            [new WorkspaceFileEntry(file, "Sample.cs", "Sample.cs")],
+            new Dictionary<string, string> { [file] = "Value1 ValueX value22 Value333" });
+
+        var result = await service.SearchAsync(
+            root,
+            "Value\\d+",
+            new WorkspaceTextSearchOptions(
+                MatchCase: true,
+                UseRegularExpression: true));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Value, Has.Count.EqualTo(2));
+            Assert.That(result.Value![0].Column, Is.EqualTo(1));
+            Assert.That(result.Value[1].Column, Is.EqualTo(23));
+        });
+    }
+
+    [Test]
+    public async Task InvalidRegularExpressionReturnsFailureBeforeLoadingText()
+    {
+        var root = Path.GetFullPath("/workspace");
+        var file = Path.Combine(root, "Sample.cs");
+        var store = new FakeTextDocumentStore(new Dictionary<string, string> { [file] = "content" });
+        var service = new WorkspaceTextSearchService(
+            new FakeWorkspaceFileProvider([new WorkspaceFileEntry(file, "Sample.cs", "Sample.cs")]),
+            store);
+
+        var result = await service.SearchAsync(
+            root,
+            "[",
+            new WorkspaceTextSearchOptions(UseRegularExpression: true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error.Code, Is.EqualTo("search.regex.invalid"));
+            Assert.That(store.LoadCount, Is.Zero);
+        });
+    }
+
+    [Test]
     public async Task SearchUsesOpenDocumentOverrideInsteadOfStoredText()
     {
         var root = Path.GetFullPath("/workspace");
