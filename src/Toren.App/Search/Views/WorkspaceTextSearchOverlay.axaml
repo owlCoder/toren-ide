@@ -9,7 +9,7 @@
              IsVisible="False">
   <UserControl.Styles>
     <Style Selector="Border.workspace-search-card">
-      <Setter Property="Width" Value="680" />
+      <Setter Property="Width" Value="720" />
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
@@ -27,6 +27,20 @@
       <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="TextBox.workspace-search-filter">
+      <Setter Property="Height" Value="28" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Background" Value="{DynamicResource TorenBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="TextBox.workspace-search-filter:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
     </Style>
     <Style Selector="ToggleButton.workspace-search-option">
       <Setter Property="Width" Value="32" />
@@ -71,6 +85,22 @@
                       Content="Aa"
                       ToolTip.Tip="Match case"
                       Click="MatchCaseButton_OnClick" />
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="7">
+        <TextBox x:Name="IncludePatternsBox"
+                 Classes="workspace-search-filter"
+                 PlaceholderText="Files to include · *.cs;src/*"
+                 ToolTip.Tip="Optional comma- or semicolon-separated wildcard patterns"
+                 TextChanged="FilterBox_OnTextChanged"
+                 KeyDown="FilterBox_OnKeyDown" />
+        <TextBox x:Name="ExcludePatternsBox"
+                 Grid.Column="1"
+                 Classes="workspace-search-filter"
+                 PlaceholderText="Files to exclude · *Tests*;docs/*"
+                 ToolTip.Tip="Optional comma- or semicolon-separated wildcard patterns"
+                 TextChanged="FilterBox_OnTextChanged"
+                 KeyDown="FilterBox_OnKeyDown" />
       </Grid>
 
       <TextBlock x:Name="StatusText"
