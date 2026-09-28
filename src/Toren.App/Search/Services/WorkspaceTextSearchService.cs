@@ -147,7 +147,7 @@ public sealed class WorkspaceTextSearchService(
         {
             var normalizedPattern = pattern.Replace('\\', '/');
             if (FileSystemName.MatchesSimpleExpression(normalizedPattern, relativePath, ignoreCase: true)
-                || (!normalizedPattern.Contains('/', StringComparison.Ordinal)
+                || (!normalizedPattern.Contains('/')
                     && FileSystemName.MatchesSimpleExpression(normalizedPattern, fileName, ignoreCase: true)))
             {
                 return true;
