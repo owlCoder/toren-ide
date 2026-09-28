@@ -36,6 +36,78 @@ public sealed class ProblemsViewModelTests
     }
 
     [Test]
+    public void ReplaceFileAggregatesDiagnosticsAcrossDocuments()
+    {
+        var problems = new ProblemsViewModel();
+        problems.ReplaceFile(
+            Path.Combine(Path.GetTempPath(), "Alpha.cs"),
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.ReplaceFile(
+            Path.Combine(Path.GetTempPath(), "Beta.cs"),
+            [new CSharpDiagnostic("CS0168", "Unused", CSharpDiagnosticSeverity.Warning, 2, 1, 2, 1)]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.Count, Is.EqualTo(2));
+            Assert.That(problems.ErrorCount, Is.EqualTo(1));
+            Assert.That(problems.WarningCount, Is.EqualTo(1));
+            Assert.That(problems.Items.Select(item => item.FileName), Is.EquivalentTo(["Alpha.cs", "Beta.cs"]));
+        });
+    }
+
+    [Test]
+    public void ReplaceFileRefreshesOnlyTheTargetDocument()
+    {
+        var problems = new ProblemsViewModel();
+        var alphaPath = Path.Combine(Path.GetTempPath(), "Alpha.cs");
+        var betaPath = Path.Combine(Path.GetTempPath(), "Beta.cs");
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.ReplaceFile(
+            betaPath,
+            [new CSharpDiagnostic("CS0168", "Unused", CSharpDiagnosticSeverity.Warning, 2, 1, 2, 1)]);
+
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("IDE0001", "Info", CSharpDiagnosticSeverity.Info, 3, 1, 3, 1)]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.Count, Is.EqualTo(2));
+            Assert.That(problems.ErrorCount, Is.Zero);
+            Assert.That(problems.WarningCount, Is.EqualTo(1));
+            Assert.That(problems.InfoCount, Is.EqualTo(1));
+            Assert.That(problems.Items.Any(item => item.FileName == "Beta.cs" && item.IsWarning), Is.True);
+            Assert.That(problems.Items.Any(item => item.FileName == "Alpha.cs" && item.IsInfo), Is.True);
+        });
+    }
+
+    [Test]
+    public void RemoveFileRemovesOnlyThatDocumentsDiagnostics()
+    {
+        var problems = new ProblemsViewModel();
+        var alphaPath = Path.Combine(Path.GetTempPath(), "Alpha.cs");
+        var betaPath = Path.Combine(Path.GetTempPath(), "Beta.cs");
+        problems.ReplaceFile(
+            alphaPath,
+            [new CSharpDiagnostic("CS1002", "; expected", CSharpDiagnosticSeverity.Error, 1, 1, 1, 1)]);
+        problems.ReplaceFile(
+            betaPath,
+            [new CSharpDiagnostic("CS0168", "Unused", CSharpDiagnosticSeverity.Warning, 2, 1, 2, 1)]);
+
+        problems.RemoveFile(alphaPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.Count, Is.EqualTo(1));
+            Assert.That(problems.ErrorCount, Is.Zero);
+            Assert.That(problems.WarningCount, Is.EqualTo(1));
+            Assert.That(problems.Items.Single().FileName, Is.EqualTo("Beta.cs"));
+        });
+    }
+
+    [Test]
     public void SeverityFiltersProjectVisibleItemsWithoutChangingTotals()
     {
         var problems = new ProblemsViewModel();

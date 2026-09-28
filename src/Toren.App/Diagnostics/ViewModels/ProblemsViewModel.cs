@@ -6,6 +6,12 @@ namespace Toren.App.Diagnostics.ViewModels;
 
 public sealed partial class ProblemsViewModel : ObservableObject
 {
+    private static readonly StringComparer PathComparer =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
+    private readonly Dictionary<string, List<ProblemItemViewModel>> _itemsByFile = new(PathComparer);
     private readonly List<ProblemItemViewModel> _allItems = [];
 
     [ObservableProperty]
@@ -46,40 +52,34 @@ public sealed partial class ProblemsViewModel : ObservableObject
 
     public void Replace(string filePath, IReadOnlyList<CSharpDiagnostic> diagnostics)
     {
+        Clear();
+        ReplaceFile(filePath, diagnostics);
+    }
+
+    public void ReplaceFile(string filePath, IReadOnlyList<CSharpDiagnostic> diagnostics)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentNullException.ThrowIfNull(diagnostics);
 
-        _allItems.Clear();
-        var errorCount = 0;
-        var warningCount = 0;
-        var infoCount = 0;
+        var normalizedPath = Path.GetFullPath(filePath);
+        _itemsByFile[normalizedPath] = diagnostics
+            .Select(diagnostic => new ProblemItemViewModel(normalizedPath, diagnostic))
+            .ToList();
+        Rebuild();
+    }
 
-        foreach (var diagnostic in diagnostics)
+    public void RemoveFile(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        if (_itemsByFile.Remove(Path.GetFullPath(filePath)))
         {
-            _allItems.Add(new ProblemItemViewModel(filePath, diagnostic));
-            switch (diagnostic.Severity)
-            {
-                case CSharpDiagnosticSeverity.Error:
-                    errorCount++;
-                    break;
-                case CSharpDiagnosticSeverity.Warning:
-                    warningCount++;
-                    break;
-                case CSharpDiagnosticSeverity.Info:
-                    infoCount++;
-                    break;
-            }
+            Rebuild();
         }
-
-        Count = _allItems.Count;
-        ErrorCount = errorCount;
-        WarningCount = warningCount;
-        InfoCount = infoCount;
-        ApplyFilters();
     }
 
     public void Clear()
     {
+        _itemsByFile.Clear();
         _allItems.Clear();
         Items.Clear();
         Count = 0;
@@ -101,6 +101,23 @@ public sealed partial class ProblemsViewModel : ObservableObject
 
     partial void OnShowInfoChanged(bool value)
     {
+        ApplyFilters();
+    }
+
+    private void Rebuild()
+    {
+        _allItems.Clear();
+        _allItems.AddRange(_itemsByFile.Values
+            .SelectMany(items => items)
+            .OrderBy(item => item.FilePath, PathComparer)
+            .ThenBy(item => item.StartLine)
+            .ThenBy(item => item.StartColumn)
+            .ThenBy(item => item.Code, StringComparer.Ordinal));
+
+        Count = _allItems.Count;
+        ErrorCount = _allItems.Count(item => item.IsError);
+        WarningCount = _allItems.Count(item => item.IsWarning);
+        InfoCount = _allItems.Count(item => item.IsInfo);
         ApplyFilters();
     }
 

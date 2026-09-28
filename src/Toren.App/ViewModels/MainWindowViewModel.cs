@@ -109,7 +109,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         Documents.Deactivate();
         _documentDiagnosticsCoordinator.CancelPending();
-        Problems.Clear();
         IsWelcomeSelected = true;
     }
 
@@ -241,6 +240,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        Problems.RemoveFile(document.Path);
         StatusText = $"Closed {document.Title}";
         if (Documents.ActiveDocument is null)
         {
@@ -279,7 +279,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (document is null)
         {
             _documentDiagnosticsCoordinator.CancelPending();
-            Problems.Clear();
+            if (Documents.OpenDocuments.Count == 0)
+            {
+                Problems.Clear();
+            }
+
             return;
         }
 
@@ -294,7 +298,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Problems.Replace(document.Path, diagnostics);
+        Problems.ReplaceFile(document.Path, diagnostics);
     }
 
     public async Task<bool> PersistDocumentSessionAsync(CancellationToken cancellationToken = default)
@@ -353,6 +357,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
+        Problems.Clear();
         WorkspaceTitle = workspace.DisplayName;
         WorkspacePath = workspace.Path;
         if (closeWelcome)
