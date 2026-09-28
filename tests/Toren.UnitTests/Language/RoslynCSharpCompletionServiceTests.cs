@@ -121,7 +121,7 @@ public sealed class RoslynCSharpCompletionServiceTests
     }
 
     [Test]
-    public async Task GetCompletionsAsyncRanksTypedPrefixBeforeOtherVisibleSymbols()
+    public async Task TypedPrefixFiltersUnrelatedVisibleSymbols()
     {
         var (context, line, column) = CreateContext(
             """
@@ -139,14 +139,32 @@ public sealed class RoslynCSharpCompletionServiceTests
 
         var items = await service.GetCompletionsAsync(context, line, column);
 
-        var zebraIndex = Array.FindIndex(items.ToArray(), item => item.DisplayText == "zebraValue");
-        var alphaIndex = Array.FindIndex(items.ToArray(), item => item.DisplayText == "alphaValue");
         Assert.Multiple(() =>
         {
-            Assert.That(zebraIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(alphaIndex, Is.GreaterThanOrEqualTo(0));
-            Assert.That(zebraIndex, Is.LessThan(alphaIndex));
+            Assert.That(items.Any(item => item.DisplayText == "zebraValue"), Is.True);
+            Assert.That(items.Any(item => item.DisplayText == "alphaValue"), Is.False);
         });
+    }
+
+    [Test]
+    public async Task GenericTypeParameterIsPresentedAsTypeCompletion()
+    {
+        var (context, line, column) = CreateContext(
+            """
+            class Sample<T>
+            {
+                void Run()
+                {
+                    T/*caret*/ value = default!;
+                }
+            }
+            """);
+        var service = new RoslynCSharpCompletionService();
+
+        var items = await service.GetCompletionsAsync(context, line, column);
+
+        var typeParameter = items.Single(item => item.DisplayText == "T");
+        Assert.That(typeParameter.Kind, Is.EqualTo(CSharpSymbolKind.Type));
     }
 
     [Test]

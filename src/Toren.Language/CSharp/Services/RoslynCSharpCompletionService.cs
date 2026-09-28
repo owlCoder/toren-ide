@@ -94,7 +94,10 @@ public sealed class RoslynCSharpCompletionService : ICSharpCompletionService
                 "C# keyword")));
         }
 
-        return items
+        var matchedItems = prefix.Length == 0
+            ? items
+            : items.Where(item => GetMatchOrder(item.DisplayText, prefix) < 5);
+        return matchedItems
             .OrderBy(item => GetMatchOrder(item.DisplayText, prefix))
             .ThenBy(item => GetKindOrder(item.Kind))
             .ThenBy(item => item.DisplayText, StringComparer.OrdinalIgnoreCase)

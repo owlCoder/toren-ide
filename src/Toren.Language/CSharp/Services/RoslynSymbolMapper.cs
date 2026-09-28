@@ -8,7 +8,7 @@ internal static class RoslynSymbolMapper
     public static CSharpSymbolKind MapKind(SymbolKind kind) => kind switch
     {
         SymbolKind.Namespace => CSharpSymbolKind.Namespace,
-        SymbolKind.NamedType => CSharpSymbolKind.Type,
+        SymbolKind.NamedType or SymbolKind.TypeParameter => CSharpSymbolKind.Type,
         SymbolKind.Method => CSharpSymbolKind.Method,
         SymbolKind.Property => CSharpSymbolKind.Property,
         SymbolKind.Field => CSharpSymbolKind.Field,
