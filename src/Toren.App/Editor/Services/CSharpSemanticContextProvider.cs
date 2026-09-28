@@ -249,7 +249,9 @@ public sealed class CSharpSemanticContextProvider(
         {
             cancellationToken.ThrowIfCancellationRequested();
             var projectPath = Path.GetFullPath(project.Path);
-            var targetFramework = project.Metadata.TargetFrameworks.FirstOrDefault();
+            var targetFramework = project.Metadata.TargetFrameworks.Count > 0
+                ? project.Metadata.TargetFrameworks[0]
+                : null;
             results[projectPath] = await _projectCompilationReferenceProvider
                 .GetReferencePathsAsync(projectPath, targetFramework, cancellationToken)
                 .ConfigureAwait(false);
@@ -260,7 +262,7 @@ public sealed class CSharpSemanticContextProvider(
 
     private static Result<string[]> CollectMetadataReferencePaths(
         HashSet<string> reachableProjectPaths,
-        IReadOnlyDictionary<string, Result<IReadOnlyList<string>>> referenceResults)
+        Dictionary<string, Result<IReadOnlyList<string>>> referenceResults)
     {
         if (referenceResults.Count == 0)
         {
