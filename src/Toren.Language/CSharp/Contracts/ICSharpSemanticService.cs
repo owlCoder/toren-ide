@@ -9,4 +9,10 @@ public interface ICSharpSemanticService
         int line,
         int column,
         CancellationToken cancellationToken = default);
+
+    Task<CSharpSymbolInfo?> GetSymbolAsync(
+        CSharpSemanticContext context,
+        int line,
+        int column,
+        CancellationToken cancellationToken = default);
 }
