@@ -56,6 +56,22 @@ public sealed partial class ProblemsViewModel : ObservableObject
         ReplaceFile(filePath, diagnostics);
     }
 
+    public void ReplaceWorkspace(IReadOnlyList<CSharpDocumentDiagnostics> diagnosticsByFile)
+    {
+        ArgumentNullException.ThrowIfNull(diagnosticsByFile);
+
+        _itemsByFile.Clear();
+        foreach (var documentDiagnostics in diagnosticsByFile)
+        {
+            var normalizedPath = Path.GetFullPath(documentDiagnostics.FilePath);
+            _itemsByFile[normalizedPath] = documentDiagnostics.Diagnostics
+                .Select(diagnostic => new ProblemItemViewModel(normalizedPath, diagnostic))
+                .ToList();
+        }
+
+        Rebuild();
+    }
+
     public void ReplaceFile(string filePath, IReadOnlyList<CSharpDiagnostic> diagnostics)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

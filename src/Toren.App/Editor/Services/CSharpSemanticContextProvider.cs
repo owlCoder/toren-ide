@@ -1,5 +1,6 @@
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Contracts;
+using Toren.App.Editor.Models;
 using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
@@ -112,6 +113,87 @@ public sealed class CSharpSemanticContextProvider(
             .FirstOrDefault(path => sourceDocuments.Any(document => PathComparer.Equals(document.Path, path)));
         var activePath = preferredActivePath ?? sourceDocuments[0].Path;
         return new CSharpSemanticContext(activePath, sourceDocuments);
+    }
+
+    public async Task<CSharpWorkspaceSemanticContexts?> CreateWorkspaceProjectContextsAsync(
+        string workspacePath,
+        IReadOnlyList<CSharpSourceDocument> openDocuments,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
+        ArgumentNullException.ThrowIfNull(openDocuments);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var sourceDocuments = await LoadSourceDocumentsAsync(
+            workspacePath,
+            openDocuments,
+            static _ => true,
+            cancellationToken).ConfigureAwait(false);
+        if (sourceDocuments is null)
+        {
+            return null;
+        }
+
+        if (sourceDocuments.Count == 0)
+        {
+            return new CSharpWorkspaceSemanticContexts([], []);
+        }
+
+        var workspace = ClassifyWorkspace(workspacePath);
+        if (workspace is null)
+        {
+            return new CSharpWorkspaceSemanticContexts([], sourceDocuments);
+        }
+
+        var graphResult = await _projectGraphService.LoadAsync(workspace, cancellationToken).ConfigureAwait(false);
+        if (!graphResult.IsSuccess || graphResult.Value.Projects.Count == 0)
+        {
+            return new CSharpWorkspaceSemanticContexts([], sourceDocuments);
+        }
+
+        var projects = graphResult.Value.Projects;
+        var projectDirectories = CreateProjectDirectories(projects);
+        var ownedDocuments = sourceDocuments
+            .Select(document => new OwnedSourceDocument(
+                document,
+                FindOwningProject(Path.GetFullPath(document.Path), projectDirectories)))
+            .ToArray();
+        var projectContexts = new List<CSharpWorkspaceProjectContext>(projects.Count);
+
+        foreach (var project in projects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var projectPath = Path.GetFullPath(project.Path);
+            var targetDocuments = ownedDocuments
+                .Where(owned => owned.Project is not null
+                    && PathComparer.Equals(Path.GetFullPath(owned.Project.Path), projectPath))
+                .Select(static owned => owned.Document)
+                .ToArray();
+            if (targetDocuments.Length == 0)
+            {
+                continue;
+            }
+
+            var reachableProjects = GetReachableProjectPaths(project, projects);
+            var contextDocuments = ownedDocuments
+                .Where(owned => owned.Project is not null
+                    && reachableProjects.Contains(Path.GetFullPath(owned.Project.Path)))
+                .Select(static owned => owned.Document)
+                .ToArray();
+            var semanticContext = new CSharpSemanticContext(targetDocuments[0].Path, contextDocuments)
+            {
+                AnalyzerPaths = GetAnalyzerPaths(reachableProjects, projects),
+            };
+            projectContexts.Add(new CSharpWorkspaceProjectContext(
+                semanticContext,
+                targetDocuments.Select(static document => document.Path).ToArray()));
+        }
+
+        var looseDocuments = ownedDocuments
+            .Where(static owned => owned.Project is null)
+            .Select(static owned => owned.Document)
+            .ToArray();
+        return new CSharpWorkspaceSemanticContexts(projectContexts, looseDocuments);
     }
 
     private async Task<List<CSharpSourceDocument>?> LoadSourceDocumentsAsync(
@@ -257,4 +339,6 @@ public sealed class CSharpSemanticContextProvider(
     }
 
     private sealed record ProjectDirectory(WorkspaceProject Project, string Directory);
+
+    private sealed record OwnedSourceDocument(CSharpSourceDocument Document, WorkspaceProject? Project);
 }

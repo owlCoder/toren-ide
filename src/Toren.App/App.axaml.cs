@@ -69,7 +69,9 @@ public sealed partial class App : Application
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
-            ICSharpDiagnosticService cSharpDiagnosticService = new RoslynCSharpDiagnosticService();
+            var roslynDiagnosticService = new RoslynCSharpDiagnosticService();
+            ICSharpDiagnosticService cSharpDiagnosticService = roslynDiagnosticService;
+            ICSharpWorkspaceDiagnosticService cSharpWorkspaceDiagnosticService = roslynDiagnosticService;
             ICSharpCodeActionService cSharpCodeActionService = new RoslynCSharpCodeActionService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
@@ -84,6 +86,10 @@ public sealed partial class App : Application
                 projectGraphService,
                 workspaceFileProvider,
                 textDocumentStore);
+            IWorkspaceDiagnosticsCoordinator workspaceDiagnosticsCoordinator = new WorkspaceDiagnosticsCoordinator(
+                cSharpSemanticContextProvider,
+                cSharpWorkspaceDiagnosticService,
+                cSharpSyntaxService);
             MainWindowViewModel? viewModel = null;
 
             string? GetWorkspacePath() =>
@@ -169,7 +175,8 @@ public sealed partial class App : Application
                 recentWorkspaceStore,
                 documentSessionStore,
                 documentDiagnosticsCoordinator,
-                documentHost);
+                documentHost,
+                workspaceDiagnosticsCoordinator);
             var mainWindow = new MainWindow(viewModel);
 
             async Task OpenDocumentPathAsync(string path)

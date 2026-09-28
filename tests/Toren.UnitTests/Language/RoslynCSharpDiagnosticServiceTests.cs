@@ -70,6 +70,58 @@ public sealed class RoslynCSharpDiagnosticServiceTests
     }
 
     [Test]
+    public async Task WorkspaceAnalysisReturnsDiagnosticsForEveryRequestedDocument()
+    {
+        var service = new RoslynCSharpDiagnosticService();
+        var programPath = Path.GetFullPath("Program.cs");
+        var brokenPath = Path.GetFullPath("Broken.cs");
+        var context = new CSharpSemanticContext(
+            programPath,
+            [
+                new CSharpSourceDocument(
+                    programPath,
+                    "namespace Demo; public sealed class Program { public int Get() => 42; }"),
+                new CSharpSourceDocument(
+                    brokenPath,
+                    "namespace Demo; public sealed class Broken { public int Get() => Missing.Value; }"),
+            ]);
+
+        var diagnostics = await service.AnalyzeDocumentsAsync(context, [programPath, brokenPath]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(diagnostics, Has.Count.EqualTo(2));
+            Assert.That(diagnostics.Single(item => item.FilePath == programPath).Diagnostics, Is.Empty);
+            Assert.That(
+                diagnostics.Single(item => item.FilePath == brokenPath).Diagnostics.Any(item => item.Id == "CS0103"),
+                Is.True);
+        });
+    }
+
+    [Test]
+    public async Task WorkspaceAnalysisDoesNotLeakDiagnosticsFromNonTargetDocuments()
+    {
+        var service = new RoslynCSharpDiagnosticService();
+        var programPath = Path.GetFullPath("Program.cs");
+        var referencedPath = Path.GetFullPath("Referenced.cs");
+        var context = new CSharpSemanticContext(
+            programPath,
+            [
+                new CSharpSourceDocument(
+                    programPath,
+                    "namespace Demo; public sealed class Program { public int Get() => 42; }"),
+                new CSharpSourceDocument(
+                    referencedPath,
+                    "namespace Demo; public sealed class Referenced { public int Get() => Missing.Value; }"),
+            ]);
+
+        var diagnostics = await service.AnalyzeDocumentsAsync(context, [programPath]);
+
+        Assert.That(diagnostics, Has.Count.EqualTo(1));
+        Assert.That(diagnostics[0].Diagnostics, Is.Empty);
+    }
+
+    [Test]
     public async Task ProjectAnalyzerDiagnosticIsReturnedForActiveDocument()
     {
         var service = new RoslynCSharpDiagnosticService();

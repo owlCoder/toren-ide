@@ -6,6 +6,7 @@ using Toren.App.Diagnostics.ViewModels;
 using Toren.App.Documents.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
+using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
 
@@ -19,6 +20,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IRecentWorkspaceStore _recentWorkspaceStore;
     private readonly IDocumentSessionStore _documentSessionStore;
     private readonly IDocumentDiagnosticsCoordinator _documentDiagnosticsCoordinator;
+    private readonly IWorkspaceDiagnosticsCoordinator? _workspaceDiagnosticsCoordinator;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
@@ -58,7 +60,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IRecentWorkspaceStore recentWorkspaceStore,
         IDocumentSessionStore documentSessionStore,
         IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator,
-        DocumentHostViewModel documents)
+        DocumentHostViewModel documents,
+        IWorkspaceDiagnosticsCoordinator? workspaceDiagnosticsCoordinator = null)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
@@ -67,6 +70,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _documentSessionStore = documentSessionStore ?? throw new ArgumentNullException(nameof(documentSessionStore));
         _documentDiagnosticsCoordinator = documentDiagnosticsCoordinator
             ?? throw new ArgumentNullException(nameof(documentDiagnosticsCoordinator));
+        _workspaceDiagnosticsCoordinator = workspaceDiagnosticsCoordinator;
         Documents = documents ?? throw new ArgumentNullException(nameof(documents));
         Explorer = new ExplorerViewModel(workspaceTreeService);
         Problems = new ProblemsViewModel();
@@ -157,6 +161,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         await RestoreDocumentSessionAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshWorkspaceDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
         await RefreshActiveDiagnosticsAsync(debounce: false, cancellationToken).ConfigureAwait(true);
     }
 
@@ -240,12 +245,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Problems.RemoveFile(document.Path);
         StatusText = $"Closed {document.Title}";
         if (Documents.ActiveDocument is null)
         {
             _documentDiagnosticsCoordinator.CancelPending();
-            Problems.Clear();
             if (IsWelcomeOpen)
             {
                 IsWelcomeSelected = true;
@@ -271,6 +274,31 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    public async Task RefreshWorkspaceDiagnosticsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workspaceDiagnosticsCoordinator is null || !Explorer.IsWorkspaceOpen)
+        {
+            return;
+        }
+
+        var workspacePath = WorkspacePath;
+        var openDocuments = Documents.OpenDocuments
+            .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
+            .Select(document => new CSharpSourceDocument(document.Path, document.Text))
+            .ToArray();
+        var diagnostics = await _workspaceDiagnosticsCoordinator
+            .AnalyzeLatestAsync(workspacePath, openDocuments, cancellationToken)
+            .ConfigureAwait(true);
+        if (diagnostics is null
+            || !Explorer.IsWorkspaceOpen
+            || !WorkspacePath.Equals(workspacePath, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Problems.ReplaceWorkspace(diagnostics);
+    }
+
     public async Task RefreshActiveDiagnosticsAsync(
         bool debounce,
         CancellationToken cancellationToken = default)
@@ -279,11 +307,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (document is null)
         {
             _documentDiagnosticsCoordinator.CancelPending();
-            if (Documents.OpenDocuments.Count == 0)
-            {
-                Problems.Clear();
-            }
-
             return;
         }
 
@@ -323,6 +346,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _documentDiagnosticsCoordinator.Dispose();
+        _workspaceDiagnosticsCoordinator?.Dispose();
     }
 
     private async Task<bool> OpenWorkspaceAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken)
@@ -334,6 +358,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
         await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
+        await RefreshWorkspaceDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
 
         var recorded = await _recentWorkspaceStore.RecordAsync(workspace, cancellationToken).ConfigureAwait(true);
         if (recorded.IsSuccess)
@@ -350,6 +375,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private bool ActivateWorkspace(WorkspaceDescriptor workspace, bool closeWelcome)
     {
+        _documentDiagnosticsCoordinator.CancelPending();
+        _workspaceDiagnosticsCoordinator?.CancelPending();
         var result = Explorer.Open(workspace);
         if (!result.IsSuccess)
         {
