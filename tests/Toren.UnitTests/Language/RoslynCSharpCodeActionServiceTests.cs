@@ -69,7 +69,7 @@ public sealed class RoslynCSharpCodeActionServiceTests
             Assert.That(action.Title, Is.EqualTo("Insert missing closing brace"));
             Assert.That(action.Edit.NewText, Is.EqualTo("}"));
             Assert.That(action.Edit.Length, Is.Zero);
-            Assert.That(action.Edit.StartOffset, Is.EqualTo(source.Length));
+            Assert.That(action.Edit.StartOffset, Is.EqualTo(source.LastIndexOf('\n')));
         });
     }
 
