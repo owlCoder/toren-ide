@@ -5,43 +5,106 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Toren.App.ViewModels"
              xmlns:diagvm="clr-namespace:Toren.App.Diagnostics.ViewModels">
-  <Grid>
-    <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding Problems.IsEmpty}">
-      <TextBlock Text="No problems to show" FontWeight="SemiBold" FontSize="12" />
-      <TextBlock Classes="muted" Text="C# syntax diagnostics update as you edit." FontSize="11" />
-    </StackPanel>
+  <UserControl.Styles>
+    <Style Selector="ToggleButton.problem-filter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="6,3" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.problem-filter:pointerover">
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.problem-filter:checked">
+      <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    </Style>
+  </UserControl.Styles>
 
-    <ListBox x:Name="ProblemsList"
-             Classes="problems-list"
-             ItemsSource="{Binding Problems.Items}"
-             IsVisible="{Binding Problems.HasItems}"
-             DoubleTapped="ProblemsList_OnDoubleTapped"
-             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-      <ListBox.ItemTemplate>
-        <DataTemplate x:DataType="diagvm:ProblemItemViewModel">
-          <Grid Height="30" Margin="10,0,14,0"
-                ColumnDefinitions="12,Auto,*,Auto,Auto" ColumnSpacing="9">
-            <Grid Grid.Column="0" Width="10" Height="10" VerticalAlignment="Center">
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenErrorBrush}"
-                       IsVisible="{Binding IsError}" />
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenWarningBrush}"
-                       IsVisible="{Binding IsWarning}" />
-              <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenAccentBrush}"
-                       IsVisible="{Binding IsInfo}" />
-            </Grid>
-            <TextBlock Grid.Column="1" Text="{Binding Code}" FontSize="11"
-                       FontFamily="Cascadia Code, Menlo, Consolas, monospace"
-                       Foreground="{DynamicResource TorenTextMutedBrush}"
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0"
+            IsVisible="{Binding Problems.HasProblems}"
+            BorderBrush="{DynamicResource TorenBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,5">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <ToggleButton Classes="problem-filter"
+                      IsChecked="{Binding Problems.ShowErrors}">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenErrorBrush}" />
+            <TextBlock Text="Errors" FontSize="10.5" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Problems.ErrorCount}" FontSize="10.5"
+                       Foreground="{DynamicResource TorenTextSubtleBrush}"
                        VerticalAlignment="Center" />
-            <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5"
-                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding FileName}"
-                       FontSize="11" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="4" Classes="subtle" Text="{Binding Location}"
-                       FontSize="11" VerticalAlignment="Center" />
-          </Grid>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
+          </StackPanel>
+        </ToggleButton>
+        <ToggleButton Classes="problem-filter"
+                      IsChecked="{Binding Problems.ShowWarnings}">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenWarningBrush}" />
+            <TextBlock Text="Warnings" FontSize="10.5" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Problems.WarningCount}" FontSize="10.5"
+                       Foreground="{DynamicResource TorenTextSubtleBrush}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+        </ToggleButton>
+        <ToggleButton Classes="problem-filter"
+                      IsChecked="{Binding Problems.ShowInfo}">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenAccentBrush}" />
+            <TextBlock Text="Info" FontSize="10.5" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Problems.InfoCount}" FontSize="10.5"
+                       Foreground="{DynamicResource TorenTextSubtleBrush}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+        </ToggleButton>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding Problems.IsEmpty}">
+        <TextBlock Text="No problems to show" FontWeight="SemiBold" FontSize="12" />
+        <TextBlock Classes="muted" Text="C# diagnostics update as you edit." FontSize="11" />
+      </StackPanel>
+
+      <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding Problems.IsFilteredEmpty}">
+        <TextBlock Text="No problems match the current filters" FontWeight="SemiBold" FontSize="12" />
+        <TextBlock Classes="muted" Text="Enable a severity filter above to show hidden diagnostics." FontSize="11" />
+      </StackPanel>
+
+      <ListBox x:Name="ProblemsList"
+               Classes="problems-list"
+               ItemsSource="{Binding Problems.Items}"
+               IsVisible="{Binding Problems.HasItems}"
+               DoubleTapped="ProblemsList_OnDoubleTapped"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="diagvm:ProblemItemViewModel">
+            <Grid Height="30" Margin="10,0,14,0"
+                  ColumnDefinitions="12,Auto,*,Auto,Auto" ColumnSpacing="9">
+              <Grid Grid.Column="0" Width="10" Height="10" VerticalAlignment="Center">
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenErrorBrush}"
+                         IsVisible="{Binding IsError}" />
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenWarningBrush}"
+                         IsVisible="{Binding IsWarning}" />
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource TorenAccentBrush}"
+                         IsVisible="{Binding IsInfo}" />
+              </Grid>
+              <TextBlock Grid.Column="1" Text="{Binding Code}" FontSize="11"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         Foreground="{DynamicResource TorenTextMutedBrush}"
+                         VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5"
+                         TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding FileName}"
+                         FontSize="11" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="4" Classes="subtle" Text="{Binding Location}"
+                         FontSize="11" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
   </Grid>
 </UserControl>
