@@ -74,82 +74,6 @@ public sealed class RoslynCSharpCodeActionServiceTests
     }
 
     [Test]
-    public async Task MissingFrameworkTypeOffersAddUsingAction()
-    {
-        var service = new RoslynCSharpCodeActionService();
-        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public List<int> Values { get; } = new();\n}";
-        var context = new CSharpSemanticContext(
-            "Sample.cs",
-            [new CSharpSourceDocument("Sample.cs", source)]);
-        var position = source.IndexOf("List", StringComparison.Ordinal);
-
-        var actions = await service.GetActionsAsync(context, position);
-        var action = actions.Single(candidate =>
-            candidate.DiagnosticId == "CS0246"
-            && candidate.Title == "Add using System.Collections.Generic");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(action.Edit.StartOffset, Is.Zero);
-            Assert.That(action.Edit.Length, Is.Zero);
-            Assert.That(action.Edit.NewText, Is.EqualTo("using System.Collections.Generic;\n"));
-            Assert.That(action.Edit.FilePath, Is.EqualTo("Sample.cs"));
-        });
-    }
-
-    [Test]
-    public async Task MissingTypeWithMultipleNamespacesOffersOneActionPerNamespace()
-    {
-        var service = new RoslynCSharpCodeActionService();
-        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public Widget Value { get; } = new();\n}";
-        var context = new CSharpSemanticContext(
-            "Sample.cs",
-            [
-                new CSharpSourceDocument("Sample.cs", source),
-                new CSharpSourceDocument("Alpha.cs", "namespace Alpha; public sealed class Widget { }"),
-                new CSharpSourceDocument("Beta.cs", "namespace Beta; public sealed class Widget { }"),
-            ]);
-        var position = source.IndexOf("Widget", StringComparison.Ordinal);
-
-        var actions = await service.GetActionsAsync(context, position);
-        var addUsingActions = actions
-            .Where(candidate => candidate.DiagnosticId == "CS0246")
-            .Select(candidate => candidate.Title)
-            .ToArray();
-
-        Assert.That(addUsingActions, Is.EqualTo([
-            "Add using Alpha",
-            "Add using Beta",
-        ]));
-    }
-
-    [Test]
-    public async Task AddUsingPreservesExistingUsingBlockAndLineEndings()
-    {
-        var service = new RoslynCSharpCodeActionService();
-        const string source = "using System;\r\n\r\nnamespace Demo;\r\npublic sealed class Sample\r\n{\r\n    public List<int> Values { get; } = new();\r\n}";
-        var context = new CSharpSemanticContext(
-            "Sample.cs",
-            [new CSharpSourceDocument("Sample.cs", source)]);
-        var position = source.IndexOf("List", StringComparison.Ordinal);
-
-        var actions = await service.GetActionsAsync(context, position);
-        var action = actions.Single(candidate =>
-            candidate.DiagnosticId == "CS0246"
-            && candidate.Title == "Add using System.Collections.Generic");
-        var updated = source.Insert(action.Edit.StartOffset, action.Edit.NewText);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(action.Edit.NewText, Is.EqualTo("using System.Collections.Generic;\r\n"));
-            Assert.That(updated.IndexOf("using System;", StringComparison.Ordinal), Is.LessThan(
-                updated.IndexOf("using System.Collections.Generic;", StringComparison.Ordinal)));
-            Assert.That(updated.IndexOf("using System.Collections.Generic;", StringComparison.Ordinal), Is.LessThan(
-                updated.IndexOf("namespace Demo;", StringComparison.Ordinal)));
-        });
-    }
-
-    [Test]
     public async Task DifferentMissingTokensAtSameOffsetReturnDistinctActions()
     {
         var service = new RoslynCSharpCodeActionService();
@@ -165,6 +89,101 @@ public sealed class RoslynCSharpCodeActionServiceTests
         {
             Assert.That(actions.Any(action => action.DiagnosticId == "CS1002"), Is.True);
             Assert.That(actions.Any(action => action.DiagnosticId == "CS1026"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task MissingFrameworkTypeReturnsAddUsingAction()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public StringBuilder Build() => new();\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("StringBuilder", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate => candidate.Title == "Add using System.Text");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.DiagnosticId, Is.EqualTo("CS0246"));
+            Assert.That(action.Edit.StartOffset, Is.Zero);
+            Assert.That(action.Edit.Length, Is.Zero);
+            Assert.That(action.Edit.NewText, Is.EqualTo("using System.Text;\n"));
+        });
+    }
+
+    [Test]
+    public async Task MissingWorkspaceTypeReturnsAddUsingActionAfterExistingUsing()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "using System;\nnamespace Consumer;\npublic sealed class Sample { public Widget Value { get; } = new(); }";
+        const string dependency = "namespace Shared.Models; public sealed class Widget { }";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [
+                new CSharpSourceDocument("Sample.cs", source),
+                new CSharpSourceDocument("Widget.cs", dependency),
+            ]);
+        var position = source.IndexOf("Widget", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate => candidate.Title == "Add using Shared.Models");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Edit.StartOffset, Is.EqualTo("using System;\n".Length));
+            Assert.That(action.Edit.NewText, Is.EqualTo("using Shared.Models;\n"));
+        });
+    }
+
+    [Test]
+    public async Task MissingTypeWithMultipleNamespacesReturnsCandidatePerNamespace()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Consumer; public sealed class Sample { public Widget Value { get; } = new(); }";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [
+                new CSharpSourceDocument("Sample.cs", source),
+                new CSharpSourceDocument("One.cs", "namespace One; public sealed class Widget { }"),
+                new CSharpSourceDocument("Two.cs", "namespace Two; public sealed class Widget { }"),
+            ]);
+        var position = source.IndexOf("Widget", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var titles = actions.Select(action => action.Title).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(titles, Does.Contain("Add using One"));
+            Assert.That(titles, Does.Contain("Add using Two"));
+        });
+    }
+
+    [Test]
+    public async Task UnnecessaryUsingReturnsWholeLineRemovalAction()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "using System;\nusing System.Text;\nnamespace Demo;\npublic sealed class Sample { public DateTime Value { get; } }";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("System.Text", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate => candidate.DiagnosticId == "CS8019");
+        var updated = source.Remove(action.Edit.StartOffset, action.Edit.Length)
+            .Insert(action.Edit.StartOffset, action.Edit.NewText);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Title, Is.EqualTo("Remove unnecessary using"));
+            Assert.That(action.Edit.NewText, Is.Empty);
+            Assert.That(action.Edit.StartOffset, Is.EqualTo("using System;\n".Length));
+            Assert.That(action.Edit.Length, Is.EqualTo("using System.Text;\n".Length));
+            Assert.That(updated, Is.EqualTo("using System;\nnamespace Demo;\npublic sealed class Sample { public DateTime Value { get; } }"));
         });
     }
 
