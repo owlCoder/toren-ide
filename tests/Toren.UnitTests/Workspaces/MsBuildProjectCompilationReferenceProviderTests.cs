@@ -15,13 +15,14 @@ public sealed class MsBuildProjectCompilationReferenceProviderTests
         var provider = new MsBuildProjectCompilationReferenceProvider(runner);
 
         var result = await provider.GetReferencePathsAsync("/repo/src/App/App.csproj", "net10.0");
+        var paths = result.Value ?? throw new AssertionException("Expected resolved compilation reference paths.");
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Has.Count.EqualTo(2));
-            Assert.That(result.Value!.Select(Path.GetFileName), Does.Contain("Demo.Package.dll"));
-            Assert.That(result.Value.Select(Path.GetFileName), Does.Contain("System.Runtime.dll"));
+            Assert.That(paths, Has.Count.EqualTo(2));
+            Assert.That(paths.Select(Path.GetFileName), Does.Contain("Demo.Package.dll"));
+            Assert.That(paths.Select(Path.GetFileName), Does.Contain("System.Runtime.dll"));
             Assert.That(string.Join("|", runner.LastRequest!.Arguments), Does.Contain("-target:ResolveReferences"));
             Assert.That(string.Join("|", runner.LastRequest.Arguments), Does.Contain("-property:BuildProjectReferences=false"));
             Assert.That(string.Join("|", runner.LastRequest.Arguments), Does.Contain("-property:TargetFramework=net10.0"));
