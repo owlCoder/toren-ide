@@ -90,6 +90,8 @@ public sealed class RoslynCSharpDiagnosticServiceTests
     }
 }
 
+// This analyzer is an in-process test fixture only; it is not shipped as a compiler extension.
+#pragma warning disable RS1036, RS1038, RS1041, RS2008
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class TestClassDeclarationAnalyzer : DiagnosticAnalyzer
 {
@@ -121,3 +123,4 @@ public sealed class TestClassDeclarationAnalyzer : DiagnosticAnalyzer
             declaration.Identifier.ValueText));
     }
 }
+#pragma warning restore RS1036, RS1038, RS1041, RS2008
