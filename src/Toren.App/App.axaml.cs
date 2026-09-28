@@ -62,6 +62,7 @@ public sealed partial class App : Application
             ICSharpDiagnosticService cSharpDiagnosticService = new RoslynCSharpDiagnosticService();
             ICSharpSemanticService cSharpSemanticService = new RoslynCSharpSemanticService();
             ICSharpCompletionService cSharpCompletionService = new RoslynCSharpCompletionService();
+            ICSharpFormattingService cSharpFormattingService = new RoslynCSharpFormattingService();
             ICSharpSymbolIndexService cSharpSymbolIndexService = new RoslynCSharpSymbolIndexService();
             ICSharpSymbolSearchService cSharpSymbolSearchService = new CSharpSymbolSearchService();
             var documentHost = new DocumentHostViewModel(textDocumentStore);
@@ -169,6 +170,11 @@ public sealed partial class App : Application
                 cSharpCompletionService,
                 GetActiveCSharpDocument,
                 GetActiveSemanticContextAsync);
+            CSharpFormattingController.Attach(
+                mainWindow,
+                cSharpFormattingService,
+                GetActiveCSharpDocument,
+                viewModel.SetStatus);
             CSharpSymbolNavigationController.Attach(
                 mainWindow,
                 cSharpSymbolIndexService,
