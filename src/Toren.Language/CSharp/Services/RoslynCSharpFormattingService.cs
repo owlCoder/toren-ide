@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
@@ -73,7 +74,7 @@ public sealed class RoslynCSharpFormattingService : ICSharpFormattingService
     }
 
     private static async Task<string> GetDocumentTextAsync(
-        Microsoft.CodeAnalysis.Document document,
+        Document document,
         CancellationToken cancellationToken)
     {
         var formattedText = await document
