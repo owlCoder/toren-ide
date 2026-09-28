@@ -1,3 +1,4 @@
+using System.IO.Enumeration;
 using Toren.App.Documents.Contracts;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Models;
@@ -35,13 +36,14 @@ public sealed class WorkspaceTextSearchService(
     public async Task<Result<IReadOnlyList<WorkspaceTextSearchResult>>> SearchAsync(
         string workspacePath,
         string query,
-        bool matchCase,
+        WorkspaceTextSearchOptions options,
         IReadOnlyDictionary<string, string>? textOverrides = null,
         int maxResults = 200,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(query);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
 
         var files = await _fileProvider.GetFilesAsync(workspacePath, cancellationToken).ConfigureAwait(false);
@@ -51,13 +53,16 @@ public sealed class WorkspaceTextSearchService(
         }
 
         var overrides = NormalizeOverrides(textOverrides);
-        var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var comparison = options.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var includePatterns = SplitPatterns(options.IncludePatterns);
+        var excludePatterns = SplitPatterns(options.ExcludePatterns);
         var results = new List<WorkspaceTextSearchResult>(Math.Min(maxResults, 200));
 
         foreach (var file in files.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsSearchable(file.Path))
+            if (!IsSearchable(file.Path)
+                || !MatchesPathFilters(file.RelativePath, includePatterns, excludePatterns))
             {
                 continue;
             }
@@ -112,6 +117,44 @@ public sealed class WorkspaceTextSearchService(
         var fileName = Path.GetFileName(path);
         return SearchableFileNames.Contains(fileName)
             || SearchableExtensions.Contains(Path.GetExtension(path));
+    }
+
+    private static string[] SplitPatterns(string patterns) =>
+        string.IsNullOrWhiteSpace(patterns)
+            ? []
+            : patterns.Split(
+                [';', ','],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool MatchesPathFilters(
+        string relativePath,
+        IReadOnlyList<string> includePatterns,
+        IReadOnlyList<string> excludePatterns)
+    {
+        var normalizedPath = relativePath.Replace('\\', '/');
+        if (includePatterns.Count > 0 && !MatchesAnyPattern(normalizedPath, includePatterns))
+        {
+            return false;
+        }
+
+        return excludePatterns.Count == 0 || !MatchesAnyPattern(normalizedPath, excludePatterns);
+    }
+
+    private static bool MatchesAnyPattern(string relativePath, IReadOnlyList<string> patterns)
+    {
+        var fileName = Path.GetFileName(relativePath);
+        foreach (var pattern in patterns)
+        {
+            var normalizedPattern = pattern.Replace('\\', '/');
+            if (FileSystemName.MatchesSimpleExpression(normalizedPattern, relativePath, ignoreCase: true)
+                || (!normalizedPattern.Contains('/', StringComparison.Ordinal)
+                    && FileSystemName.MatchesSimpleExpression(normalizedPattern, fileName, ignoreCase: true)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddMatches(
