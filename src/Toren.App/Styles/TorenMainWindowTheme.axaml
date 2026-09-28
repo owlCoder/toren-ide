@@ -76,6 +76,7 @@
   <Style Selector="Border.command-bar">
     <Setter Property="Background" Value="{DynamicResource TorenChromeBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="Padding" Value="0,0,0,2" />
   </Style>
 
   <Style Selector="Button.command-button">
