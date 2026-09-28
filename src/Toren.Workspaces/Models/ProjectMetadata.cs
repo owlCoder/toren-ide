@@ -9,4 +9,7 @@ public sealed record ProjectMetadata(
     bool UsesCentralPackageManagement,
     string? DirectoryBuildPropsPath,
     string? DirectoryBuildTargetsPath,
-    string? DirectoryPackagesPropsPath);
+    string? DirectoryPackagesPropsPath)
+{
+    public IReadOnlyList<string> AnalyzerPaths { get; init; } = [];
+}
