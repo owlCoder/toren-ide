@@ -41,33 +41,24 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
         int column,
         CancellationToken cancellationToken)
     {
-        if (line < 1 || column < 1)
-        {
-            return null;
-        }
-
         var roslynContext = RoslynCompilationContextFactory.Create(context, cancellationToken);
-        if (roslynContext is null || line > roslynContext.SourceText.Lines.Count)
+        if (roslynContext is null)
         {
             return null;
         }
 
-        var sourceLine = roslynContext.SourceText.Lines[line - 1];
-        var columnOffset = column - 1;
-        if (columnOffset > sourceLine.Span.Length)
+        var position = RoslynSymbolResolver.GetPosition(roslynContext.SourceText, line, column);
+        if (position is null)
         {
             return null;
-        }
-
-        var position = sourceLine.Start + columnOffset;
-        if (position == roslynContext.SourceText.Length && position > 0)
-        {
-            position--;
         }
 
         var root = roslynContext.ActiveTree.GetRoot(cancellationToken);
-        var token = root.FindToken(position);
-        var symbol = FindSymbol(roslynContext.SemanticModel, token.Parent, cancellationToken);
+        var token = root.FindToken(position.Value);
+        var symbol = RoslynSymbolResolver.FindSymbol(
+            roslynContext.SemanticModel,
+            token.Parent,
+            cancellationToken);
         if (symbol is null)
         {
             return null;
@@ -78,28 +69,6 @@ public sealed class RoslynCSharpSemanticService : ICSharpSemanticService
             symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
             RoslynSymbolMapper.MapKind(symbol.Kind),
             FindDefinition(symbol));
-    }
-
-    private static ISymbol? FindSymbol(
-        SemanticModel semanticModel,
-        SyntaxNode? node,
-        CancellationToken cancellationToken)
-    {
-        while (node is not null)
-        {
-            var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken);
-            var symbol = symbolInfo.Symbol
-                ?? symbolInfo.CandidateSymbols.FirstOrDefault()
-                ?? semanticModel.GetDeclaredSymbol(node, cancellationToken);
-            if (symbol is not null)
-            {
-                return symbol;
-            }
-
-            node = node.Parent;
-        }
-
-        return null;
     }
 
     private static CSharpSourceLocation? FindDefinition(ISymbol symbol)
