@@ -74,6 +74,82 @@ public sealed class RoslynCSharpCodeActionServiceTests
     }
 
     [Test]
+    public async Task MissingFrameworkTypeOffersAddUsingAction()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public List<int> Values { get; } = new();\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("List", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate =>
+            candidate.DiagnosticId == "CS0246"
+            && candidate.Title == "Add using System.Collections.Generic");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Edit.StartOffset, Is.Zero);
+            Assert.That(action.Edit.Length, Is.Zero);
+            Assert.That(action.Edit.NewText, Is.EqualTo("using System.Collections.Generic;\n"));
+            Assert.That(action.Edit.FilePath, Is.EqualTo("Sample.cs"));
+        });
+    }
+
+    [Test]
+    public async Task MissingTypeWithMultipleNamespacesOffersOneActionPerNamespace()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "namespace Demo;\npublic sealed class Sample\n{\n    public Widget Value { get; } = new();\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [
+                new CSharpSourceDocument("Sample.cs", source),
+                new CSharpSourceDocument("Alpha.cs", "namespace Alpha; public sealed class Widget { }"),
+                new CSharpSourceDocument("Beta.cs", "namespace Beta; public sealed class Widget { }"),
+            ]);
+        var position = source.IndexOf("Widget", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var addUsingActions = actions
+            .Where(candidate => candidate.DiagnosticId == "CS0246")
+            .Select(candidate => candidate.Title)
+            .ToArray();
+
+        Assert.That(addUsingActions, Is.EqualTo([
+            "Add using Alpha",
+            "Add using Beta",
+        ]));
+    }
+
+    [Test]
+    public async Task AddUsingPreservesExistingUsingBlockAndLineEndings()
+    {
+        var service = new RoslynCSharpCodeActionService();
+        const string source = "using System;\r\n\r\nnamespace Demo;\r\npublic sealed class Sample\r\n{\r\n    public List<int> Values { get; } = new();\r\n}";
+        var context = new CSharpSemanticContext(
+            "Sample.cs",
+            [new CSharpSourceDocument("Sample.cs", source)]);
+        var position = source.IndexOf("List", StringComparison.Ordinal);
+
+        var actions = await service.GetActionsAsync(context, position);
+        var action = actions.Single(candidate =>
+            candidate.DiagnosticId == "CS0246"
+            && candidate.Title == "Add using System.Collections.Generic");
+        var updated = source.Insert(action.Edit.StartOffset, action.Edit.NewText);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(action.Edit.NewText, Is.EqualTo("using System.Collections.Generic;\r\n"));
+            Assert.That(updated.IndexOf("using System;", StringComparison.Ordinal), Is.LessThan(
+                updated.IndexOf("using System.Collections.Generic;", StringComparison.Ordinal)));
+            Assert.That(updated.IndexOf("using System.Collections.Generic;", StringComparison.Ordinal), Is.LessThan(
+                updated.IndexOf("namespace Demo;", StringComparison.Ordinal)));
+        });
+    }
+
+    [Test]
     public async Task DifferentMissingTokensAtSameOffsetReturnDistinctActions()
     {
         var service = new RoslynCSharpCodeActionService();
