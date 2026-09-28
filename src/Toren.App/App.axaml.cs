@@ -40,6 +40,8 @@ public sealed partial class App : Application
             IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
                 solutionProjectProvider,
                 projectReferenceProvider);
+            IWorkspaceFileProvider workspaceFileProvider = new FileSystemWorkspaceFileProvider();
+            IWorkspaceFileSearchService workspaceFileSearchService = new WorkspaceFileSearchService();
             var applicationDataDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "TorenIDE");
@@ -66,6 +68,24 @@ public sealed partial class App : Application
             var mainWindow = new MainWindow(viewModel);
             EditorSearchController.Attach(mainWindow);
             CSharpNavigationController.Attach(mainWindow, cSharpSemanticService);
+            WorkspaceQuickOpenController.Attach(
+                mainWindow,
+                workspaceFileProvider,
+                workspaceFileSearchService,
+                () => viewModel.Explorer.IsWorkspaceOpen ? viewModel.WorkspacePath : null,
+                async path =>
+                {
+                    var opened = await viewModel.Documents.OpenAsync(path).ConfigureAwait(true);
+                    if (!opened.IsSuccess)
+                    {
+                        viewModel.SetStatus(opened.Error.Message);
+                        return;
+                    }
+
+                    await viewModel.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
+                    viewModel.SetStatus($"Opened {opened.Value.Title}");
+                },
+                viewModel.SetStatus);
             desktop.MainWindow = mainWindow;
         }
 
