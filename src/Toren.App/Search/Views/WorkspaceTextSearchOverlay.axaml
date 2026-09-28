@@ -28,7 +28,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="4" />
     </Style>
-    <Style Selector="Button.workspace-search-option">
+    <Style Selector="ToggleButton.workspace-search-option">
       <Setter Property="Width" Value="32" />
       <Setter Property="Height" Value="30" />
       <Setter Property="Padding" Value="0" />
@@ -40,7 +40,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="4" />
     </Style>
-    <Style Selector="Button.workspace-search-option:checked">
+    <Style Selector="ToggleButton.workspace-search-option:checked">
       <Setter Property="Foreground" Value="{DynamicResource TorenAccentBrush}" />
       <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
@@ -70,7 +70,7 @@
                       Classes="workspace-search-option"
                       Content="Aa"
                       ToolTip.Tip="Match case"
-                      IsCheckedChanged="MatchCaseButton_OnIsCheckedChanged" />
+                      Click="MatchCaseButton_OnClick" />
       </Grid>
 
       <TextBlock x:Name="StatusText"
