@@ -7,9 +7,6 @@ namespace Toren.Language.CSharp.Services;
 
 internal static class RoslynCompilationContextFactory
 {
-    private static readonly Lazy<MetadataReference[]> MetadataReferences =
-        new(CreateMetadataReferences);
-
     private static readonly StringComparison PathComparison =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
             ? StringComparison.OrdinalIgnoreCase
@@ -44,29 +41,13 @@ internal static class RoslynCompilationContextFactory
         var compilation = CSharpCompilation.Create(
             "Toren.SemanticAnalysis",
             syntaxTrees,
-            MetadataReferences.Value,
+            RoslynMetadataReferenceProvider.GetReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         return new RoslynCompilationContext(
             compilation,
             activeTree,
             compilation.GetSemanticModel(activeTree, ignoreAccessibility: true),
             activeTree.GetText(cancellationToken));
-    }
-
-    private static MetadataReference[] CreateMetadataReferences()
-    {
-        var trustedPlatformAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
-        var paths = string.IsNullOrWhiteSpace(trustedPlatformAssemblies)
-            ? new[] { typeof(object).Assembly.Location, typeof(Enumerable).Assembly.Location }
-            : trustedPlatformAssemblies.Split(
-                Path.PathSeparator,
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        return paths
-            .Where(File.Exists)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToArray();
     }
 }
 
