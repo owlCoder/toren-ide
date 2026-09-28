@@ -6,6 +6,8 @@ using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Services;
+using Toren.App.Search.Contracts;
+using Toren.App.Search.Services;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
@@ -23,6 +25,11 @@ namespace Toren.App;
 
 public sealed partial class App : Application
 {
+    private static readonly StringComparer PathComparer =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -56,6 +63,9 @@ public sealed partial class App : Application
             IRecentWorkspaceStore recentWorkspaceStore = new FileRecentWorkspaceStore(
                 Path.Combine(applicationDataDirectory, "recent-workspaces.json"));
             ITextDocumentStore textDocumentStore = new FileTextDocumentStore();
+            IWorkspaceTextSearchService workspaceTextSearchService = new WorkspaceTextSearchService(
+                workspaceFileProvider,
+                textDocumentStore);
             IDocumentSessionStore documentSessionStore = new FileDocumentSessionStore(
                 Path.Combine(applicationDataDirectory, "document-session.json"));
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
@@ -90,6 +100,12 @@ public sealed partial class App : Application
                     .Where(document => Path.GetExtension(document.Path).Equals(".cs", StringComparison.OrdinalIgnoreCase))
                     .Select(document => new CSharpSourceDocument(document.Path, document.Text))
                     .ToArray();
+
+            IReadOnlyDictionary<string, string> GetOpenDocumentTextOverrides() =>
+                documentHost.OpenDocuments.ToDictionary(
+                    document => Path.GetFullPath(document.Path),
+                    document => document.Text,
+                    PathComparer);
 
             async Task<CSharpSemanticContext?> GetSemanticContextAsync(
                 CSharpSourceDocument activeDocument,
@@ -187,6 +203,13 @@ public sealed partial class App : Application
                 workspaceFileProvider,
                 workspaceFileSearchService,
                 GetWorkspacePath,
+                OpenDocumentPathAsync,
+                viewModel.SetStatus);
+            WorkspaceTextSearchController.Attach(
+                mainWindow,
+                workspaceTextSearchService,
+                GetWorkspacePath,
+                GetOpenDocumentTextOverrides,
                 OpenDocumentPathAsync,
                 viewModel.SetStatus);
             desktop.MainWindow = mainWindow;
