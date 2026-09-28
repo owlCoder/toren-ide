@@ -47,6 +47,8 @@ public sealed partial class App : Application
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
             IProjectMetadataProvider projectMetadataProvider = new MsBuildProjectMetadataProvider(processRunner);
             IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(processRunner);
+            IProjectCompilationReferenceProvider projectCompilationReferenceProvider =
+                new MsBuildProjectCompilationReferenceProvider(processRunner);
             IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
                 solutionProjectProvider,
                 projectReferenceProvider);
@@ -94,7 +96,8 @@ public sealed partial class App : Application
                 workspaceClassifier,
                 projectGraphService,
                 workspaceFileProvider,
-                textDocumentStore);
+                textDocumentStore,
+                projectCompilationReferenceProvider);
             IWorkspaceDiagnosticsCoordinator workspaceDiagnosticsCoordinator = new WorkspaceDiagnosticsCoordinator(
                 cSharpSemanticContextProvider,
                 cSharpWorkspaceDiagnosticService,
