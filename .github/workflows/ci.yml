@@ -47,6 +47,9 @@ jobs:
       - name: Test
         run: dotnet test Toren.slnx --configuration Release --no-build --verbosity normal
 
+      - name: NUnit compatibility
+        run: dotnet test .github/test-fixtures/nunit-vstest/NUnitFixture.csproj --configuration Release --verbosity minimal
+
       - name: xUnit compatibility
         run: dotnet test .github/test-fixtures/xunit-vstest/XunitFixture.csproj --configuration Release --verbosity minimal
 
