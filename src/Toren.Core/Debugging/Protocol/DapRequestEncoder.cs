@@ -14,7 +14,7 @@ public sealed class DapRequestEncoder(DapSequenceGenerator sequenceGenerator)
 
         var sequence = _sequenceGenerator.Next();
         var payload = JsonSerializer.Serialize(
-            new RequestEnvelope(sequence, command, arguments));
+            new RequestEnvelope(sequence, "request", command, arguments));
         return new DapOutboundRequest(
             sequence,
             command,
@@ -23,10 +23,7 @@ public sealed class DapRequestEncoder(DapSequenceGenerator sequenceGenerator)
 
     private sealed record RequestEnvelope(
         [property: JsonPropertyName("seq")] int Sequence,
+        [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("command")] string Command,
-        [property: JsonPropertyName("arguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] object? Arguments)
-    {
-        [JsonPropertyName("type")]
-        public string Type => "request";
-    }
+        [property: JsonPropertyName("arguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] object? Arguments);
 }
