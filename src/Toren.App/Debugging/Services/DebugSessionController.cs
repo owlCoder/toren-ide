@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
@@ -62,6 +63,7 @@ internal sealed class DebugSessionController
         ToolTip.SetTip(_debugButton, "Debug");
         _debugButton.Click += DebugButton_OnClick;
         _coordinator.StateChanged += Coordinator_OnStateChanged;
+        _window.KeyDown += Window_OnKeyDown;
         _window.Closed += Window_OnClosed;
         SynchronizeSession();
     }
@@ -109,6 +111,31 @@ internal sealed class DebugSessionController
     {
         _toolTabs.SelectedItem = _debugTab;
         _setStatus(_viewModel.StatusText);
+    }
+
+    private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key != Key.F9 || eventArgs.KeyModifiers != KeyModifiers.None)
+        {
+            return;
+        }
+
+        var activeDocument = _shell.Documents.ActiveDocument;
+        if (activeDocument is null)
+        {
+            _setStatus("Open a source document before toggling a breakpoint.");
+            eventArgs.Handled = true;
+            return;
+        }
+
+        var location = _editor.Document.GetLocation(_editor.CaretOffset);
+        var added = await _viewModel
+            .ToggleBreakpointAsync(activeDocument.Path, location.Line)
+            .ConfigureAwait(true);
+        _setStatus(added
+            ? $"Breakpoint set at {activeDocument.Title}:{location.Line}."
+            : $"Breakpoint removed from {activeDocument.Title}:{location.Line}.");
+        eventArgs.Handled = true;
     }
 
     private void Coordinator_OnStateChanged(object? sender, EventArgs eventArgs)
@@ -292,6 +319,7 @@ internal sealed class DebugSessionController
         CancelMonitor();
         _debugButton.Click -= DebugButton_OnClick;
         _coordinator.StateChanged -= Coordinator_OnStateChanged;
+        _window.KeyDown -= Window_OnKeyDown;
         _window.Closed -= Window_OnClosed;
         _panel.NavigateFrameAsync = null;
         _panel.AddBreakpointAtCaretAsync = null;
