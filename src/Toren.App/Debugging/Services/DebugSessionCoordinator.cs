@@ -15,6 +15,8 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
     private int _stoppedThreadId;
     private bool _disposed;
 
+    public event EventHandler? StateChanged;
+
     public bool IsAttached => _session is not null;
 
     public int? ProcessId => _session?.ProcessId;
@@ -49,6 +51,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
 
             _session = attached.Value;
             Interlocked.Exchange(ref _stoppedThreadId, 0);
+            NotifyStateChanged();
             return Result.Success(true);
         }
         finally
@@ -82,6 +85,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
         if (stopped.IsSuccess)
         {
             Interlocked.Exchange(ref _stoppedThreadId, stopped.Value!.ThreadId);
+            NotifyStateChanged();
         }
 
         return stopped;
@@ -207,6 +211,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
 
             await DisposeSessionAsync().ConfigureAwait(false);
             Interlocked.Exchange(ref _stoppedThreadId, 0);
+            NotifyStateChanged();
             return stopped;
         }
         finally
@@ -229,6 +234,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             var disconnected = await _session.DisconnectAsync(cancellationToken).ConfigureAwait(false);
             await DisposeSessionAsync().ConfigureAwait(false);
             Interlocked.Exchange(ref _stoppedThreadId, 0);
+            NotifyStateChanged();
             return disconnected;
         }
         finally
@@ -255,6 +261,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             _disposed = true;
             Interlocked.Exchange(ref _stoppedThreadId, 0);
             await DisposeSessionAsync().ConfigureAwait(false);
+            NotifyStateChanged();
         }
         finally
         {
@@ -277,6 +284,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
         if (result.IsSuccess)
         {
             Interlocked.Exchange(ref _stoppedThreadId, 0);
+            NotifyStateChanged();
         }
     }
 
@@ -317,4 +325,6 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
         _session = null;
         await session.DisposeAsync().ConfigureAwait(false);
     }
+
+    private void NotifyStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
 }

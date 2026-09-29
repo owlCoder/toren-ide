@@ -1,0 +1,176 @@
+<UserControl x:Class="Toren.App.Views.Debugging.DebugPanel"
+             x:ClassModifier="internal"
+             x:DataType="debugvm:DebugSessionViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:debugvm="clr-namespace:Toren.App.Debugging.ViewModels"
+             xmlns:debugmodels="clr-namespace:Toren.Debugging.Models;assembly=Toren.Debugging">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <Border Grid.Row="0" Padding="10,7"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Spacing="2">
+          <TextBlock Text="DEBUG" FontSize="10" FontWeight="SemiBold" />
+          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="10.5"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="muted" FontSize="10.5"
+                   Text="{Binding IsAttached, StringFormat='Attached: {0}'}"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1" Padding="10,5"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" Spacing="5">
+        <Button Classes="toolbar-button" Content="Continue" Click="Continue_OnClick"
+                IsEnabled="{Binding CanContinue}" />
+        <Button Classes="toolbar-button" Content="Pause" Click="Pause_OnClick"
+                IsEnabled="{Binding CanPause}" />
+        <Button Classes="toolbar-button" Content="Step Over" Click="StepOver_OnClick"
+                IsEnabled="{Binding CanStep}" />
+        <Button Classes="toolbar-button" Content="Step Into" Click="StepInto_OnClick"
+                IsEnabled="{Binding CanStep}" />
+        <Button Classes="toolbar-button" Content="Step Out" Click="StepOut_OnClick"
+                IsEnabled="{Binding CanStep}" />
+        <Button Classes="toolbar-button" Content="Run to Cursor" Click="RunToCursor_OnClick"
+                IsEnabled="{Binding CanRunToCursor}" />
+        <Button Classes="toolbar-button" Content="Restart" Click="Restart_OnClick"
+                IsEnabled="{Binding CanRestart}" />
+        <Button Classes="toolbar-button" Content="Stop" Click="Stop_OnClick"
+                IsEnabled="{Binding CanStop}" />
+      </StackPanel>
+    </Border>
+
+    <TabControl Grid.Row="2" Classes="tool-tabs">
+      <TabItem Header="Call Stack">
+        <Grid RowDefinitions="Auto,*">
+          <TextBlock Grid.Row="0" Margin="10,8,10,4" Classes="muted" FontSize="10.5"
+                     Text="Double-click a frame to open its source." />
+          <ListBox Grid.Row="1" ItemsSource="{Binding StackFrames}"
+                   SelectionChanged="StackFrames_OnSelectionChanged"
+                   DoubleTapped="StackFrames_OnDoubleTapped">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="debugmodels:DebugStackFrame">
+                <Grid Margin="8,3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <StackPanel Grid.Column="0" Spacing="1">
+                    <TextBlock Text="{Binding Name}" FontSize="10.5" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" Text="{Binding SourcePath}" FontSize="9.5"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Classes="muted" FontSize="9.5"
+                             Text="{Binding Line, StringFormat='Line {0}'}" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Locals">
+        <ListBox ItemsSource="{Binding Locals}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="debugvm:DebugLocalItemViewModel">
+              <Grid Margin="8,3" ColumnDefinitions="110,160,*,110" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Classes="muted" Text="{Binding ScopeName}"
+                           FontSize="9.5" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="10.5"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="10.5"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="3" Classes="muted" Text="{Binding Type}" FontSize="9.5"
+                           TextTrimming="CharacterEllipsis" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+
+      <TabItem Header="Watch">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0" Margin="10,8" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Watermark="Expression"
+                     Text="{Binding WatchExpression, Mode=TwoWay}" KeyDown="WatchExpression_OnKeyDown" />
+            <Button Grid.Column="1" Classes="toolbar-button" Content="Add"
+                    Click="AddWatch_OnClick" />
+          </Grid>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Watches}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="debugvm:DebugWatchItemViewModel">
+                <Grid Margin="8,3" ColumnDefinitions="170,*,110,Auto" ColumnSpacing="8">
+                  <TextBlock Grid.Column="0" Text="{Binding Expression}" FontSize="10.5"
+                             TextTrimming="CharacterEllipsis" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="{Binding Value}" FontSize="10.5"
+                               FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Foreground="{DynamicResource TorenErrorBrush}"
+                               Text="{Binding ErrorMessage}" FontSize="9.5"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Type}" FontSize="9.5" />
+                  <Button Grid.Column="3" Classes="toolbar-button" Content="Remove"
+                          Click="RemoveWatch_OnClick" Padding="6,1" FontSize="9.5" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Breakpoints">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0" Margin="10,8" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Watermark="Optional condition"
+                     Text="{Binding BreakpointCondition, Mode=TwoWay}" />
+            <Button Grid.Column="1" Classes="toolbar-button" Content="Add at Caret"
+                    Click="AddBreakpoint_OnClick" />
+          </Grid>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Breakpoints}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="debugvm:DebugBreakpointItemViewModel">
+                <Grid Margin="8,3" ColumnDefinitions="150,60,*,Auto" ColumnSpacing="8">
+                  <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="10.5"
+                             ToolTip.Tip="{Binding SourcePath}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Line}" FontSize="10" />
+                  <StackPanel Grid.Column="2" Spacing="1">
+                    <TextBlock Text="{Binding Condition}" FontSize="9.5"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted" Text="{Binding Message}" FontSize="9.5"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Button Grid.Column="3" Classes="toolbar-button" Content="Remove"
+                          Click="RemoveBreakpoint_OnClick" Padding="6,1" FontSize="9.5" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Debug Console">
+        <Grid RowDefinitions="*,Auto">
+          <ListBox Grid.Row="0" ItemsSource="{Binding ConsoleLines}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="debugvm:DebugConsoleLineViewModel">
+                <TextBlock Margin="8,2" Text="{Binding Text}" FontSize="10"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           TextWrapping="Wrap" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Grid Grid.Row="1" Margin="10,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Watermark="Evaluate expression"
+                     Text="{Binding ConsoleExpression, Mode=TwoWay}" KeyDown="ConsoleExpression_OnKeyDown" />
+            <Button Grid.Column="1" Classes="toolbar-button" Content="Evaluate"
+                    Click="EvaluateConsole_OnClick" IsEnabled="{Binding CanEvaluate}" />
+            <Button Grid.Column="2" Classes="toolbar-button" Content="Clear"
+                    Click="ClearConsole_OnClick" IsEnabled="{Binding HasConsoleLines}" />
+          </Grid>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Toren.App.Debugging.Services;
+using Toren.App.Debugging.ViewModels;
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
@@ -251,6 +252,12 @@ public sealed partial class App : Application
                 workspaceClassifier,
                 workspaceTestDiscoveryService,
                 new TestExplorerViewModel(dotNetTestRunService, dotNetTestDebugService),
+                viewModel.SetStatus);
+            DebugSessionController.Attach(
+                mainWindow,
+                viewModel,
+                debugSessionCoordinator,
+                new DebugSessionViewModel(debugSessionCoordinator),
                 viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,
