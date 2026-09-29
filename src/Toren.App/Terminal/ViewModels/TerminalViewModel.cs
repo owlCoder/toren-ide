@@ -77,11 +77,12 @@ public sealed partial class TerminalViewModel(
             return;
         }
 
-        _session = started.Value;
+        var session = started.Value!;
+        _session = session;
         IsRunning = true;
         StatusText = $"Terminal running in {workingDirectory}.";
         AddLine($"[{Path.GetFileName(request.FileName)}] {workingDirectory}");
-        _ = ObserveCompletionAsync(started.Value);
+        _ = ObserveCompletionAsync(session);
     }
 
     public async Task SubmitAsync(CancellationToken cancellationToken = default)
