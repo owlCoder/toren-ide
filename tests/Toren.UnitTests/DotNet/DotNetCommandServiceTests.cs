@@ -29,10 +29,10 @@ public sealed class DotNetCommandServiceTests
             Assert.Multiple(() =>
             {
                 Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value.Succeeded, Is.True);
+                Assert.That(result.Value!.Succeeded, Is.True);
                 Assert.That(runner.LastRequest!.FileName, Is.EqualTo("dotnet"));
                 Assert.That(runner.LastRequest.WorkingDirectory, Is.EqualTo(directory));
-                Assert.That(runner.LastRequest.Arguments, Is.EqualTo(new[] { "restore", "Toren.sln" }));
+                Assert.That(string.Join("|", runner.LastRequest.Arguments), Is.EqualTo("restore|Toren.sln"));
             });
         }
         finally
@@ -63,17 +63,8 @@ public sealed class DotNetCommandServiceTests
             {
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(
-                    runner.LastRequest!.Arguments,
-                    Is.EqualTo(new[]
-                    {
-                        "build",
-                        "src/App/App.csproj",
-                        "--configuration",
-                        "Release",
-                        "--framework",
-                        "net10.0",
-                        "--no-restore",
-                    }));
+                    string.Join("|", runner.LastRequest!.Arguments),
+                    Is.EqualTo("build|src/App/App.csproj|--configuration|Release|--framework|net10.0|--no-restore"));
             });
         }
         finally
@@ -98,8 +89,8 @@ public sealed class DotNetCommandServiceTests
             {
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(
-                    runner.LastRequest!.Arguments,
-                    Is.EqualTo(new[] { "build", "App.csproj", "--no-incremental" }));
+                    string.Join("|", runner.LastRequest!.Arguments),
+                    Is.EqualTo("build|App.csproj|--no-incremental"));
             });
         }
         finally
@@ -128,8 +119,8 @@ public sealed class DotNetCommandServiceTests
             {
                 Assert.That(result.IsSuccess, Is.True);
                 Assert.That(
-                    runner.LastRequest!.Arguments,
-                    Is.EqualTo(new[] { "run", "--project", "App.csproj", "--configuration", "Debug" }));
+                    string.Join("|", runner.LastRequest!.Arguments),
+                    Is.EqualTo("run|--project|App.csproj|--configuration|Debug"));
             });
         }
         finally
@@ -153,7 +144,7 @@ public sealed class DotNetCommandServiceTests
             Assert.Multiple(() =>
             {
                 Assert.That(result.IsSuccess, Is.True);
-                Assert.That(result.Value.Succeeded, Is.False);
+                Assert.That(result.Value!.Succeeded, Is.False);
                 Assert.That(result.Value.ExitCode, Is.EqualTo(1));
                 Assert.That(result.Value.StandardOutput, Is.EqualTo("build output"));
                 Assert.That(result.Value.StandardError, Is.EqualTo("build failed"));
