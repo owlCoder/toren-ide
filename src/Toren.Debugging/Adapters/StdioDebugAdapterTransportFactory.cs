@@ -73,7 +73,7 @@ public sealed class StdioDebugAdapterTransportFactory : IDebugAdapterTransportFa
             return _process.ExitCode;
         }
 
-        public void Stop()
+        public void Terminate()
         {
             TryKill(_process);
         }
