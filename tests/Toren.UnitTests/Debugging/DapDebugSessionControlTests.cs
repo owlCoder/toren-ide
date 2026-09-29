@@ -12,6 +12,9 @@ namespace Toren.UnitTests.Debugging;
 [TestFixture]
 public sealed class DapDebugSessionControlTests
 {
+    private static readonly string[] ExpectedControlCommands =
+        ["pause", "next", "stepIn", "stepOut"];
+
     [Test]
     public async Task ThreadControlsMapToDapCommands()
     {
@@ -37,7 +40,7 @@ public sealed class DapDebugSessionControlTests
             Assert.That(steppedOut.IsSuccess, Is.True);
             Assert.That(
                 client.Commands.TakeLast(4),
-                Is.EqualTo(new[] { "pause", "next", "stepIn", "stepOut" }));
+                Is.EqualTo(ExpectedControlCommands));
             Assert.That(
                 client.Arguments.TakeLast(4),
                 Has.All.Contains("\"threadId\":11"));
