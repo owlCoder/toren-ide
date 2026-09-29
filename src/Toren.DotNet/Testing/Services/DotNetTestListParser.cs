@@ -2,7 +2,7 @@ using Toren.DotNet.Testing.Models;
 
 namespace Toren.DotNet.Testing.Services;
 
-public sealed class DotNetTestListParser
+public static class DotNetTestListParser
 {
     private static readonly string[] SectionMarkers =
     [
@@ -10,7 +10,7 @@ public sealed class DotNetTestListParser
         "The following tests are available:",
     ];
 
-    public IReadOnlyList<DotNetTestCase> Parse(string output)
+    public static IReadOnlyList<DotNetTestCase> Parse(string output)
     {
         ArgumentNullException.ThrowIfNull(output);
 
