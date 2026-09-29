@@ -182,7 +182,7 @@ public sealed class DapDebugAdapterClient : IDebugAdapterClient
                     break;
                 }
 
-                var message = parsed.Value;
+                var message = parsed.Value!;
                 if (message.Kind == DapProtocolMessageKind.Response)
                 {
                     HandleResponse(message);
@@ -225,7 +225,7 @@ public sealed class DapDebugAdapterClient : IDebugAdapterClient
             return;
         }
 
-        if (!_responses.TryRemove(completed.Value.Sequence, out var completion))
+        if (!_responses.TryRemove(completed.Value!.Sequence, out var completion))
         {
             return;
         }
@@ -266,9 +266,6 @@ public sealed class DapDebugAdapterClient : IDebugAdapterClient
 
     private void ThrowIfDisposed()
     {
-        if (Volatile.Read(ref _disposeState) != 0)
-        {
-            throw new ObjectDisposedException(nameof(DapDebugAdapterClient));
-        }
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
     }
 }
