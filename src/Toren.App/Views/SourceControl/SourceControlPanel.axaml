@@ -1,0 +1,48 @@
+<UserControl x:Class="Toren.App.Views.SourceControl.SourceControlPanel"
+             x:ClassModifier="internal"
+             x:DataType="scvm:SourceControlViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:scvm="clr-namespace:Toren.App.SourceControl.ViewModels">
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0" Padding="10,7"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <StackPanel Grid.Column="0" Spacing="2">
+          <TextBlock Text="SOURCE CONTROL" FontSize="10" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding BranchText}" FontSize="10.5" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
+                Click="Refresh_OnClick" IsEnabled="{Binding !IsRefreshing}" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="300,*">
+      <Border Grid.Column="0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
+        <ListBox ItemsSource="{Binding Changes}"
+                 SelectedIndex="{Binding SelectedChangeIndex, Mode=TwoWay}"
+                 SelectionChanged="Changes_OnSelectionChanged">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="scvm:SourceControlChangeViewModel">
+              <Grid Margin="8,4" ColumnDefinitions="30,*" ColumnSpacing="7">
+                <TextBlock Grid.Column="0" Text="{Binding StatusText}" FontSize="10"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" FontSize="10.5"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayPath}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+
+      <TextBox Grid.Column="1" Text="{Binding DiffText}" IsReadOnly="True"
+               AcceptsReturn="True" TextWrapping="NoWrap"
+               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+               BorderThickness="0" Padding="10"
+               FontSize="10.5" FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
+    </Grid>
+  </Grid>
+</UserControl>
