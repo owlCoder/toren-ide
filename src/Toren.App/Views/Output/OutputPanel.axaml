@@ -1,0 +1,80 @@
+<UserControl x:Class="Toren.App.Views.Output.OutputPanel"
+             x:ClassModifier="internal"
+             x:DataType="execvm:WorkspaceExecutionViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:execvm="clr-namespace:Toren.App.Execution.ViewModels">
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0"
+            BorderBrush="{DynamicResource TorenBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="10,5">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="7">
+        <ComboBox Grid.Column="0" Width="92"
+                  SelectedIndex="{Binding ConfigurationIndex}"
+                  IsEnabled="{Binding CanExecute}"
+                  ToolTip.Tip="Build configuration">
+          <ComboBoxItem Content="Debug" />
+          <ComboBoxItem Content="Release" />
+        </ComboBox>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+          <Button Classes="toolbar-button" Content="Restore" Click="Restore_OnClick"
+                  IsEnabled="{Binding CanExecute}" />
+          <Button Classes="toolbar-button" Content="Build" Click="Build_OnClick"
+                  IsEnabled="{Binding CanExecute}" />
+          <Button Classes="toolbar-button" Content="Rebuild" Click="Rebuild_OnClick"
+                  IsEnabled="{Binding CanExecute}" />
+          <Button Classes="toolbar-button" Content="Clean" Click="Clean_OnClick"
+                  IsEnabled="{Binding CanExecute}" />
+          <Button Classes="toolbar-button" Content="Publish" Click="Publish_OnClick"
+                  IsEnabled="{Binding CanExecute}" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding StatusText}"
+                   FontSize="10.5" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Cancel" Click="Cancel_OnClick"
+                IsEnabled="{Binding CanCancel}" />
+        <Button Grid.Column="4" Classes="toolbar-button" Content="Clear" Click="Clear_OnClick"
+                IsEnabled="{Binding HasOutput}" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding IsOutputEmpty}">
+        <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
+        <TextBlock Classes="muted" Text="Run Restore, Build, Rebuild, Clean, or Publish to see .NET CLI output."
+                   FontSize="11" />
+      </StackPanel>
+
+      <ListBox ItemsSource="{Binding OutputLines}"
+               IsVisible="{Binding HasOutput}"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="execvm:ExecutionOutputLineViewModel">
+            <Grid Margin="12,2">
+              <TextBlock Text="{Binding Text}"
+                         IsVisible="{Binding IsStandardOutput}"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         FontSize="11" TextWrapping="NoWrap" />
+              <TextBlock Text="{Binding Text}"
+                         IsVisible="{Binding IsStandardError}"
+                         Foreground="{DynamicResource TorenErrorBrush}"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         FontSize="11" TextWrapping="NoWrap" />
+              <TextBlock Text="{Binding Text}"
+                         IsVisible="{Binding IsCommand}"
+                         Foreground="{DynamicResource TorenAccentBrush}"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         FontSize="11" FontWeight="SemiBold" TextWrapping="NoWrap" />
+              <TextBlock Text="{Binding Text}"
+                         IsVisible="{Binding IsStatus}"
+                         Foreground="{DynamicResource TorenTextMutedBrush}"
+                         FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                         FontSize="11" FontStyle="Italic" TextWrapping="NoWrap" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Grid>
+</UserControl>
