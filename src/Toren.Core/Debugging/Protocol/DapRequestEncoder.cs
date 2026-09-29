@@ -24,8 +24,7 @@ public sealed class DapRequestEncoder(DapSequenceGenerator sequenceGenerator)
     private sealed record RequestEnvelope(
         [property: JsonPropertyName("seq")] int Sequence,
         [property: JsonPropertyName("command")] string Command,
-        [property: JsonPropertyName("arguments"),
-         property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] object? Arguments)
+        [property: JsonPropertyName("arguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] object? Arguments)
     {
         [JsonPropertyName("type")]
         public string Type => "request";
