@@ -46,6 +46,31 @@ public sealed class DotNetTestRunServiceTests
         });
     }
 
+    [Test]
+    public async Task RunSelectedTestAddsExactFullyQualifiedNameFilter()
+    {
+        var runner = new RecordingStreamingProcessRunner();
+        var service = new DotNetTestRunService(runner);
+        var projectPath = Path.GetFullPath(Path.Combine("repo", "Tests.csproj"));
+
+        var result = await service.RunAsync(
+            new DotNetTestRunRequest(
+                projectPath,
+                FullyQualifiedName: "Tests.Sample.Passes"),
+            static _ => { });
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(
+            runner.Request!.Arguments,
+            Is.EqualTo(new[]
+            {
+                "test",
+                projectPath,
+                "--filter",
+                "FullyQualifiedName=Tests.Sample.Passes",
+            }));
+    }
+
     private sealed class RecordingStreamingProcessRunner : IStreamingProcessRunner
     {
         public ProcessRequest? Request { get; private set; }

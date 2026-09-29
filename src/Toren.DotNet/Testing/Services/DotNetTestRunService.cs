@@ -38,6 +38,12 @@ public sealed class DotNetTestRunService(IStreamingProcessRunner processRunner) 
             arguments.Add(request.TargetFramework);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.FullyQualifiedName))
+        {
+            arguments.Add("--filter");
+            arguments.Add($"FullyQualifiedName={request.FullyQualifiedName}");
+        }
+
         return _processRunner.RunStreamingAsync(
             new ProcessRequest(
                 "dotnet",

@@ -68,11 +68,15 @@
                   <ItemsControl ItemsSource="{Binding Tests}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="dotnettests:DotNetTestCase">
-                        <TextBlock Text="{Binding DisplayName}"
-                                   Margin="12,2,0,2"
-                                   FontSize="10.5"
-                                   TextTrimming="CharacterEllipsis"
-                                   ToolTip.Tip="{Binding FullyQualifiedName}" />
+                        <Grid Margin="12,2,0,2" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                          <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                     FontSize="10.5"
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding FullyQualifiedName}" />
+                          <Button Grid.Column="1" Classes="toolbar-button"
+                                  Content="Run" Click="RunTest_OnClick"
+                                  Padding="6,1" FontSize="9.5" />
+                        </Grid>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>

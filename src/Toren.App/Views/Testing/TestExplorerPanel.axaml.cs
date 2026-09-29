@@ -1,6 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
+using Toren.App.Testing.Models;
 using Toren.App.Testing.ViewModels;
+using Toren.DotNet.Testing.Models;
 
 namespace Toren.App.Views.Testing;
 
@@ -19,6 +22,28 @@ internal sealed partial class TestExplorerPanel : UserControl
         {
             await viewModel.RunAllAsync().ConfigureAwait(true);
         }
+    }
+
+    private async void RunTest_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { DataContext: DotNetTestCase test } button
+            || ViewModel is not { } viewModel)
+        {
+            return;
+        }
+
+        var project = button
+            .GetVisualAncestors()
+            .OfType<Control>()
+            .Select(static control => control.DataContext)
+            .OfType<WorkspaceTestProjectDiscovery>()
+            .FirstOrDefault();
+        if (project is null)
+        {
+            return;
+        }
+
+        await viewModel.RunTestAsync(project, test).ConfigureAwait(true);
     }
 
     private void Stop_OnClick(object? sender, RoutedEventArgs eventArgs)

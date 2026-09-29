@@ -138,12 +138,60 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
         }
         finally
         {
-            if (ReferenceEquals(_runCancellation, runCancellation))
-            {
-                _runCancellation = null;
-            }
+            CompleteRun(runCancellation);
+        }
+    }
 
-            IsRunning = false;
+    public async Task RunTestAsync(
+        WorkspaceTestProjectDiscovery project,
+        DotNetTestCase test,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(test);
+        if (_disposed || IsLoading || IsRunning)
+        {
+            return;
+        }
+
+        using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _runCancellation = runCancellation;
+        IsRunning = true;
+        OutputLines.Clear();
+        OnPropertyChanged(nameof(HasOutput));
+        var synchronizationContext = SynchronizationContext.Current;
+
+        try
+        {
+            StatusText = $"Running {test.DisplayName}…";
+            AddOutput(ProcessOutputChannel.StandardOutput, $"[Test] {test.FullyQualifiedName}");
+            var result = await _testRunService
+                .RunAsync(
+                    new DotNetTestRunRequest(
+                        project.ProjectPath,
+                        FullyQualifiedName: test.FullyQualifiedName),
+                    line => ReportOutput(line, synchronizationContext),
+                    runCancellation.Token)
+                .ConfigureAwait(true);
+            if (!result.IsSuccess)
+            {
+                AddOutput(ProcessOutputChannel.StandardError, result.Error.Message);
+                StatusText = result.Error.Message;
+            }
+            else
+            {
+                StatusText = result.Value.Succeeded
+                    ? $"{test.DisplayName} passed."
+                    : $"{test.DisplayName} failed.";
+            }
+        }
+        catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
+        {
+            StatusText = "Test run canceled.";
+        }
+        finally
+        {
+            CompleteRun(runCancellation);
         }
     }
 
@@ -167,6 +215,16 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
 
         _disposed = true;
         Stop();
+    }
+
+    private void CompleteRun(CancellationTokenSource runCancellation)
+    {
+        if (ReferenceEquals(_runCancellation, runCancellation))
+        {
+            _runCancellation = null;
+        }
+
+        IsRunning = false;
     }
 
     private void ReportOutput(ProcessOutputLine line, SynchronizationContext? synchronizationContext)
