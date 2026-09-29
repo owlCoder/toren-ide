@@ -12,6 +12,8 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedChange))]
+    [NotifyPropertyChangedFor(nameof(CanStageSelected))]
+    [NotifyPropertyChangedFor(nameof(CanUnstageSelected))]
     private int _selectedChangeIndex = -1;
 
     [ObservableProperty]
@@ -24,7 +26,19 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     private string _diffText = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBusy))]
     private bool _isRefreshing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBusy))]
+    [NotifyPropertyChangedFor(nameof(CanStageSelected))]
+    [NotifyPropertyChangedFor(nameof(CanUnstageSelected))]
+    [NotifyPropertyChangedFor(nameof(CanCommit))]
+    private bool _isMutating;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanCommit))]
+    private string _commitMessage = string.Empty;
 
     public ObservableCollection<SourceControlChangeViewModel> Changes { get; } = new();
 
@@ -35,6 +49,17 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
     public bool HasChanges => Changes.Count > 0;
 
+    public bool IsBusy => IsRefreshing || IsMutating;
+
+    public bool CanStageSelected => !IsMutating && SelectedChange?.HasWorkingTreeChange == true;
+
+    public bool CanUnstageSelected => !IsMutating && SelectedChange?.IsStaged == true;
+
+    public bool CanCommit =>
+        !IsMutating
+        && !string.IsNullOrWhiteSpace(CommitMessage)
+        && Changes.Any(static change => change.IsStaged);
+
     public void SetWorkingDirectory(string? workingDirectory)
     {
         _workingDirectory = string.IsNullOrWhiteSpace(workingDirectory)
@@ -43,11 +68,12 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         Changes.Clear();
         SelectedChangeIndex = -1;
         DiffText = string.Empty;
+        CommitMessage = string.Empty;
         BranchText = "No repository";
         StatusText = _workingDirectory is null
             ? "Open a Git workspace to inspect source control."
             : "Refresh source control status.";
-        OnPropertyChanged(nameof(HasChanges));
+        NotifyChangeState();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -70,7 +96,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
                 DiffText = string.Empty;
                 BranchText = "No repository";
                 StatusText = statusResult.Error.Message;
-                OnPropertyChanged(nameof(HasChanges));
+                NotifyChangeState();
                 return;
             }
 
@@ -82,11 +108,11 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
                 Changes.Add(new SourceControlChangeViewModel(change));
             }
 
-            OnPropertyChanged(nameof(HasChanges));
             StatusText = status.IsClean
                 ? "Working tree is clean."
                 : $"{status.Changes.Count} change{(status.Changes.Count == 1 ? string.Empty : "s")}.";
             SelectedChangeIndex = Changes.Count > 0 ? 0 : -1;
+            NotifyChangeState();
             await LoadSelectedDiffAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -116,6 +142,82 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         DiffText = diffResult.IsSuccess
             ? diffResult.Value ?? string.Empty
             : diffResult.Error.Message;
+    }
+
+    public Task StageSelectedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanStageSelected || SelectedChange is not { } selected)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.StageAsync(_workingDirectory, selected.Path, token),
+            clearCommitMessage: false,
+            cancellationToken);
+    }
+
+    public Task UnstageSelectedAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanUnstageSelected || SelectedChange is not { } selected)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.UnstageAsync(_workingDirectory, selected.Path, token),
+            clearCommitMessage: false,
+            cancellationToken);
+    }
+
+    public Task CommitAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanCommit)
+        {
+            return Task.CompletedTask;
+        }
+
+        var message = CommitMessage;
+        return RunMutationAsync(
+            token => _repositoryService.CommitAsync(_workingDirectory, message, token),
+            clearCommitMessage: true,
+            cancellationToken);
+    }
+
+    private async Task RunMutationAsync(
+        Func<CancellationToken, Task<Toren.Core.Results.Result<bool>>> action,
+        bool clearCommitMessage,
+        CancellationToken cancellationToken)
+    {
+        IsMutating = true;
+        try
+        {
+            var result = await action(cancellationToken).ConfigureAwait(true);
+            if (result.IsFailure)
+            {
+                StatusText = result.Error.Message;
+                return;
+            }
+
+            if (clearCommitMessage)
+            {
+                CommitMessage = string.Empty;
+            }
+
+            await RefreshAsync(cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsMutating = false;
+        }
+    }
+
+    private void NotifyChangeState()
+    {
+        OnPropertyChanged(nameof(HasChanges));
+        OnPropertyChanged(nameof(CanStageSelected));
+        OnPropertyChanged(nameof(CanUnstageSelected));
+        OnPropertyChanged(nameof(CanCommit));
     }
 
     private static string CreateBranchText(

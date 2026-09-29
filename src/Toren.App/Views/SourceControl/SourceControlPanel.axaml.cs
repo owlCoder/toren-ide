@@ -21,6 +21,30 @@ internal sealed partial class SourceControlPanel : UserControl
         }
     }
 
+    private async void Stage_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.StageSelectedAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void Unstage_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.UnstageSelectedAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void Commit_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.CommitAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void Changes_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
     {
         if (ViewModel is { } viewModel)
