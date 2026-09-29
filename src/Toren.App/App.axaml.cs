@@ -12,6 +12,8 @@ using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Services;
+using Toren.App.Terminal.Services;
+using Toren.App.Terminal.ViewModels;
 using Toren.App.Testing.Contracts;
 using Toren.App.Testing.Services;
 using Toren.App.Testing.ViewModels;
@@ -57,6 +59,8 @@ public sealed partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var processRunner = new SystemProcessRunner();
+            IInteractiveProcessRunner interactiveProcessRunner = new SystemInteractiveProcessRunner();
+            INativeShellProvider nativeShellProvider = new SystemNativeShellProvider();
             IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
@@ -259,6 +263,10 @@ public sealed partial class App : Application
                 debugSessionCoordinator,
                 new DebugSessionViewModel(debugSessionCoordinator),
                 viewModel.SetStatus);
+            TerminalController.Attach(
+                mainWindow,
+                viewModel,
+                new TerminalViewModel(interactiveProcessRunner, nativeShellProvider));
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,

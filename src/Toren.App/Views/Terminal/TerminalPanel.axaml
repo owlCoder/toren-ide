@@ -1,0 +1,49 @@
+<UserControl x:Class="Toren.App.Views.Terminal.TerminalPanel"
+             x:ClassModifier="internal"
+             x:DataType="terminalvm:TerminalViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:terminalvm="clr-namespace:Toren.App.Terminal.ViewModels">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Padding="10,6"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+        <StackPanel Grid.Column="0" Spacing="2">
+          <TextBlock Text="TERMINAL" FontSize="10" FontWeight="SemiBold" />
+          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="10.5"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="muted" Text="{Binding WorkingDirectory}" FontSize="9.5"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="toolbar-button" Content="Start"
+                IsEnabled="{Binding CanStart}" Click="Start_OnClick" />
+        <Button Grid.Column="2" Classes="toolbar-button" Content="Stop"
+                IsEnabled="{Binding CanStop}" Click="Stop_OnClick" />
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Clear"
+                IsEnabled="{Binding HasOutput}" Click="Clear_OnClick" />
+      </Grid>
+    </Border>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Lines}" BorderThickness="0">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="terminalvm:TerminalLineViewModel">
+          <TextBlock Margin="10,2" Text="{Binding Text}" FontSize="10.5"
+                     FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                     TextWrapping="Wrap" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Grid Grid.Row="2" Margin="10,7" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
+      <TextBlock Grid.Column="0" Text=">" FontSize="11"
+                 FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                 VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" PlaceholderText="Enter command"
+               Text="{Binding InputText, Mode=TwoWay}"
+               IsEnabled="{Binding IsRunning}" KeyDown="Command_OnKeyDown"
+               FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
+      <Button Grid.Column="2" Classes="toolbar-button" Content="Run"
+              IsEnabled="{Binding CanSubmit}" Click="Submit_OnClick" />
+    </Grid>
+  </Grid>
+</UserControl>
