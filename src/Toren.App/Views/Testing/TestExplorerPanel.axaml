@@ -93,6 +93,7 @@
       <Border Grid.Row="1" MaxHeight="190" IsVisible="{Binding HasOutput}"
               BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
         <ListBox ItemsSource="{Binding OutputLines}"
+                 DoubleTapped="TestOutputList_OnDoubleTapped"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="testvm:TestRunOutputLineViewModel">

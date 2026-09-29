@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using AvaloniaEdit;
 using Toren.App.Testing.Contracts;
 using Toren.App.Testing.ViewModels;
 using Toren.App.ViewModels;
@@ -19,6 +20,7 @@ internal sealed class TestExplorerController
     private readonly IWorkspaceTestDiscoveryService _testDiscoveryService;
     private readonly TestExplorerViewModel _viewModel;
     private readonly Action<string> _setStatus;
+    private readonly TextEditor _editor;
     private readonly Button _explorerButton;
     private readonly Button _testsButton;
     private readonly Border _explorerPanel;
@@ -50,7 +52,13 @@ internal sealed class TestExplorerController
         _testsButton = testsButton;
         _explorerPanel = explorerPanel;
         _explorerContent = explorerPanel.Child;
-        _testPanel = new TestExplorerPanel { DataContext = viewModel };
+        _editor = window.FindControl<TextEditor>("DocumentEditor")
+            ?? throw new InvalidOperationException("The document editor could not be located.");
+        _testPanel = new TestExplorerPanel
+        {
+            DataContext = viewModel,
+            NavigateOutputAsync = NavigateOutputAsync,
+        };
         _refreshButton = _testPanel.FindControl<Button>("RefreshTestsButton");
 
         _testsButton.IsEnabled = true;
@@ -204,6 +212,37 @@ internal sealed class TestExplorerController
         }
     }
 
+    private async Task NavigateOutputAsync(TestRunOutputLineViewModel outputLine)
+    {
+        if (outputLine.Location is not { } location)
+        {
+            return;
+        }
+
+        var filePath = Path.GetFullPath(location.FilePath);
+        if (!File.Exists(filePath))
+        {
+            _setStatus($"Test source file not found: {filePath}");
+            return;
+        }
+
+        var opened = await _shell.Documents.OpenAsync(filePath).ConfigureAwait(true);
+        if (!opened.IsSuccess)
+        {
+            _setStatus(opened.Error.Message);
+            return;
+        }
+
+        await _shell.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
+        var line = Math.Clamp(location.Line, 1, _editor.Document.LineCount);
+        var documentLine = _editor.Document.GetLineByNumber(line);
+        var column = Math.Clamp(location.Column, 1, documentLine.Length + 1);
+        _editor.CaretOffset = documentLine.Offset + column - 1;
+        _editor.ScrollTo(line, column);
+        _editor.Focus();
+        _setStatus($"Opened {opened.Value.Title}:{line}");
+    }
+
     private WorkspaceDescriptor? ResolveWorkspace()
     {
         if (!_shell.Explorer.IsWorkspaceOpen)
@@ -260,6 +299,7 @@ internal sealed class TestExplorerController
 
         _detached = true;
         CancelRefresh();
+        _testPanel.NavigateOutputAsync = null;
         _explorerButton.Click -= ExplorerButton_OnClick;
         _testsButton.Click -= TestsButton_OnClick;
         if (_refreshButton is not null)

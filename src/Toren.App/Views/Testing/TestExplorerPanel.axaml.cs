@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Toren.App.Testing.Models;
@@ -13,6 +14,8 @@ internal sealed partial class TestExplorerPanel : UserControl
     {
         InitializeComponent();
     }
+
+    internal Func<TestRunOutputLineViewModel, Task>? NavigateOutputAsync { get; set; }
 
     private TestExplorerViewModel? ViewModel => DataContext as TestExplorerViewModel;
 
@@ -52,6 +55,15 @@ internal sealed partial class TestExplorerPanel : UserControl
         }
 
         await viewModel.RunTestAsync(project, test).ConfigureAwait(true);
+    }
+
+    private async void TestOutputList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        if (sender is ListBox { SelectedItem: TestRunOutputLineViewModel { CanNavigate: true } line }
+            && NavigateOutputAsync is { } navigateOutputAsync)
+        {
+            await navigateOutputAsync(line).ConfigureAwait(true);
+        }
     }
 
     private void Stop_OnClick(object? sender, RoutedEventArgs eventArgs)
