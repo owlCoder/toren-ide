@@ -213,11 +213,7 @@ public sealed class DapDebugSessionService(
             int variablesReference,
             CancellationToken cancellationToken = default)
         {
-            if (variablesReference < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(variablesReference));
-            }
-
+            ArgumentOutOfRangeException.ThrowIfNegative(variablesReference);
             var response = await _client.SendRequestAsync(
                 "variables",
                 new { variablesReference },
@@ -234,9 +230,9 @@ public sealed class DapDebugSessionService(
             CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(expression);
-            if (frameId is <= 0)
+            if (frameId.HasValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(frameId));
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(frameId.Value);
             }
 
             var response = await _client.SendRequestAsync(
