@@ -6,14 +6,10 @@ using Toren.DotNet.Testing.Models;
 
 namespace Toren.DotNet.Testing.Services;
 
-public sealed class DotNetTestDiscoveryService(
-    IProcessRunner processRunner,
-    DotNetTestListParser parser) : IDotNetTestDiscoveryService
+public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : IDotNetTestDiscoveryService
 {
     private readonly IProcessRunner _processRunner = processRunner
         ?? throw new ArgumentNullException(nameof(processRunner));
-    private readonly DotNetTestListParser _parser = parser
-        ?? throw new ArgumentNullException(nameof(parser));
 
     public async Task<Result<IReadOnlyList<DotNetTestCase>>> DiscoverAsync(
         DotNetTestDiscoveryRequest request,
@@ -65,6 +61,6 @@ public sealed class DotNetTestDiscoveryService(
         }
 
         return Result.Success<IReadOnlyList<DotNetTestCase>>(
-            _parser.Parse(result.Value.StandardOutput));
+            DotNetTestListParser.Parse(result.Value.StandardOutput));
     }
 }
