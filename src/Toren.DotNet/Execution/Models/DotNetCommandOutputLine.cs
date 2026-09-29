@@ -1,11 +1,11 @@
 namespace Toren.DotNet.Execution.Models;
 
-public enum DotNetCommandOutputStream
+public enum DotNetCommandOutputChannel
 {
     StandardOutput,
     StandardError,
 }
 
 public sealed record DotNetCommandOutputLine(
-    DotNetCommandOutputStream Stream,
+    DotNetCommandOutputChannel Channel,
     string Text);

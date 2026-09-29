@@ -283,7 +283,7 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         DotNetCommandOutputLine line,
         SynchronizationContext? synchronizationContext)
     {
-        var kind = line.Stream == DotNetCommandOutputStream.StandardError
+        var kind = line.Channel == DotNetCommandOutputChannel.StandardError
             ? ExecutionOutputLineKind.StandardError
             : ExecutionOutputLineKind.StandardOutput;
         if (synchronizationContext is null

@@ -32,9 +32,9 @@ public sealed class StreamingDotNetCommandServiceTests
                 Assert.That(commandResult.StandardOutput, Is.EqualTo("first"));
                 Assert.That(commandResult.StandardError, Is.EqualTo("second"));
                 Assert.That(lines, Has.Count.EqualTo(2));
-                Assert.That(lines[0].Stream, Is.EqualTo(DotNetCommandOutputStream.StandardOutput));
+                Assert.That(lines[0].Channel, Is.EqualTo(DotNetCommandOutputChannel.StandardOutput));
                 Assert.That(lines[0].Text, Is.EqualTo("first"));
-                Assert.That(lines[1].Stream, Is.EqualTo(DotNetCommandOutputStream.StandardError));
+                Assert.That(lines[1].Channel, Is.EqualTo(DotNetCommandOutputChannel.StandardError));
                 Assert.That(lines[1].Text, Is.EqualTo("second"));
             });
         }
@@ -92,8 +92,8 @@ public sealed class StreamingDotNetCommandServiceTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            onOutput(new ProcessOutputLine(ProcessOutputStream.StandardOutput, "first"));
-            onOutput(new ProcessOutputLine(ProcessOutputStream.StandardError, "second"));
+            onOutput(new ProcessOutputLine(ProcessOutputChannel.StandardOutput, "first"));
+            onOutput(new ProcessOutputLine(ProcessOutputChannel.StandardError, "second"));
             return Task.FromResult(Result.Success(new ProcessResult(1, "first", "second")));
         }
     }

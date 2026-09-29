@@ -62,10 +62,10 @@ public sealed class StreamingWorkspaceExecutionViewModelTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             onOutput(new DotNetCommandOutputLine(
-                DotNetCommandOutputStream.StandardOutput,
+                DotNetCommandOutputChannel.StandardOutput,
                 "compile output"));
             onOutput(new DotNetCommandOutputLine(
-                DotNetCommandOutputStream.StandardError,
+                DotNetCommandOutputChannel.StandardError,
                 "compile warning"));
             return Task.FromResult(
                 Result.Success(

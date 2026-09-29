@@ -66,11 +66,11 @@ public sealed class SystemProcessRunner : IStreamingProcessRunner
         using var process = processStart.Value;
         var standardOutput = ReadLinesAsync(
             process.StandardOutput,
-            ProcessOutputStream.StandardOutput,
+            ProcessOutputChannel.StandardOutput,
             onOutput);
         var standardError = ReadLinesAsync(
             process.StandardError,
-            ProcessOutputStream.StandardError,
+            ProcessOutputChannel.StandardError,
             onOutput);
 
         try
@@ -117,14 +117,14 @@ public sealed class SystemProcessRunner : IStreamingProcessRunner
 
     private static async Task<string> ReadLinesAsync(
         StreamReader reader,
-        ProcessOutputStream stream,
+        ProcessOutputChannel channel,
         Action<ProcessOutputLine> onOutput)
     {
         var lines = new List<string>();
         while (await reader.ReadLineAsync(CancellationToken.None).ConfigureAwait(false) is { } line)
         {
             lines.Add(line);
-            onOutput(new ProcessOutputLine(stream, line));
+            onOutput(new ProcessOutputLine(channel, line));
         }
 
         return string.Join(Environment.NewLine, lines);

@@ -55,9 +55,9 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IStream
             .RunStreamingAsync(
                 processRequest.Value,
                 line => onOutput(new DotNetCommandOutputLine(
-                    line.Stream == ProcessOutputStream.StandardError
-                        ? DotNetCommandOutputStream.StandardError
-                        : DotNetCommandOutputStream.StandardOutput,
+                    line.Channel == ProcessOutputChannel.StandardError
+                        ? DotNetCommandOutputChannel.StandardError
+                        : DotNetCommandOutputChannel.StandardOutput,
                     line.Text)),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -104,13 +104,13 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IStream
         DotNetCommandResult result,
         Action<DotNetCommandOutputLine> onOutput)
     {
-        ReportLines(result.StandardOutput, DotNetCommandOutputStream.StandardOutput, onOutput);
-        ReportLines(result.StandardError, DotNetCommandOutputStream.StandardError, onOutput);
+        ReportLines(result.StandardOutput, DotNetCommandOutputChannel.StandardOutput, onOutput);
+        ReportLines(result.StandardError, DotNetCommandOutputChannel.StandardError, onOutput);
     }
 
     private static void ReportLines(
         string output,
-        DotNetCommandOutputStream stream,
+        DotNetCommandOutputChannel channel,
         Action<DotNetCommandOutputLine> onOutput)
     {
         if (string.IsNullOrWhiteSpace(output))
@@ -122,7 +122,7 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IStream
         {
             if (!string.IsNullOrWhiteSpace(line))
             {
-                onOutput(new DotNetCommandOutputLine(stream, line));
+                onOutput(new DotNetCommandOutputLine(channel, line));
             }
         }
     }
