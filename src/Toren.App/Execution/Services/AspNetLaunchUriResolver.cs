@@ -1,8 +1,9 @@
+using Toren.App.Execution.Contracts;
 using Toren.DotNet.Execution.Models;
 
 namespace Toren.App.Execution.Services;
 
-public sealed class AspNetLaunchUriResolver
+public sealed class AspNetLaunchUriResolver : IAspNetLaunchUriResolver
 {
     private const string ListeningMarker = "Now listening on:";
 
