@@ -102,6 +102,7 @@ public sealed class DapDebugSessionService(
     private sealed class DapDebugSession(int processId, IDebugAdapterClient client) : IDebugSession
     {
         private const string EndedBeforeStopErrorCode = "debug.session.ended-before-stop";
+        private const string InvalidBreakpointResponseErrorCode = "debug.session.invalid-breakpoints";
         private const string InvalidStopErrorCode = "debug.session.invalid-stop";
 
         private readonly IDebugAdapterClient _client = client;
@@ -141,6 +142,38 @@ public sealed class DapDebugSessionService(
                 OperationError.Create(
                     EndedBeforeStopErrorCode,
                     "The debug adapter ended before reporting a stopped thread."));
+        }
+
+        public async Task<Result<IReadOnlyList<DebugBreakpoint>>> SetBreakpointsAsync(
+            string sourcePath,
+            IReadOnlyList<DebugSourceBreakpoint> breakpoints,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+            ArgumentNullException.ThrowIfNull(breakpoints);
+            foreach (var breakpoint in breakpoints)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(breakpoint.Line);
+            }
+
+            var response = await _client.SendRequestAsync(
+                "setBreakpoints",
+                new
+                {
+                    source = new { path = sourcePath },
+                    breakpoints = breakpoints
+                        .Select(static breakpoint => new
+                        {
+                            line = breakpoint.Line,
+                            condition = breakpoint.Condition,
+                        })
+                        .ToArray(),
+                    sourceModified = false,
+                },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<IReadOnlyList<DebugBreakpoint>>(response.Error)
+                : ParseBreakpoints(response.Value!.Payload, breakpoints);
         }
 
         public Task<Result<bool>> ContinueAsync(
@@ -216,6 +249,59 @@ public sealed class DapDebugSessionService(
             return response.IsFailure
                 ? Result.Failure<bool>(response.Error)
                 : Result.Success(true);
+        }
+
+        private static Result<IReadOnlyList<DebugBreakpoint>> ParseBreakpoints(
+            string payload,
+            IReadOnlyList<DebugSourceBreakpoint> requestedBreakpoints)
+        {
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("body", out var body)
+                || body.ValueKind != JsonValueKind.Object
+                || !body.TryGetProperty("breakpoints", out var breakpointsElement)
+                || breakpointsElement.ValueKind != JsonValueKind.Array)
+            {
+                return Result.Failure<IReadOnlyList<DebugBreakpoint>>(
+                    OperationError.Create(
+                        InvalidBreakpointResponseErrorCode,
+                        "The debug adapter returned an invalid setBreakpoints response."));
+            }
+
+            var parsed = new List<DebugBreakpoint>();
+            var index = 0;
+            foreach (var element in breakpointsElement.EnumerateArray())
+            {
+                if (element.ValueKind != JsonValueKind.Object
+                    || !element.TryGetProperty("verified", out var verifiedProperty)
+                    || verifiedProperty.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                {
+                    return Result.Failure<IReadOnlyList<DebugBreakpoint>>(
+                        OperationError.Create(
+                            InvalidBreakpointResponseErrorCode,
+                            "The debug adapter returned a breakpoint without a verification state."));
+                }
+
+                int? id = element.TryGetProperty("id", out var idProperty)
+                    && idProperty.TryGetInt32(out var parsedId)
+                        ? parsedId
+                        : null;
+                var line = element.TryGetProperty("line", out var lineProperty)
+                    && lineProperty.TryGetInt32(out var parsedLine)
+                    && parsedLine > 0
+                        ? parsedLine
+                        : index < requestedBreakpoints.Count
+                            ? requestedBreakpoints[index].Line
+                            : 0;
+                var message = element.TryGetProperty("message", out var messageProperty)
+                    && messageProperty.ValueKind == JsonValueKind.String
+                        ? messageProperty.GetString()
+                        : null;
+                parsed.Add(new DebugBreakpoint(id, verifiedProperty.GetBoolean(), line, message));
+                index++;
+            }
+
+            return Result.Success<IReadOnlyList<DebugBreakpoint>>(parsed);
         }
 
         private static Result<DebugStopInfo> ParseStop(string payload)

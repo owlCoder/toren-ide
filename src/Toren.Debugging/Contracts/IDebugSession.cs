@@ -9,6 +9,11 @@ public interface IDebugSession : IAsyncDisposable
 
     Task<Result<DebugStopInfo>> WaitForStopAsync(CancellationToken cancellationToken = default);
 
+    Task<Result<IReadOnlyList<DebugBreakpoint>>> SetBreakpointsAsync(
+        string sourcePath,
+        IReadOnlyList<DebugSourceBreakpoint> breakpoints,
+        CancellationToken cancellationToken = default);
+
     Task<Result<bool>> ContinueAsync(int threadId, CancellationToken cancellationToken = default);
 
     Task<Result<bool>> PauseAsync(int threadId, CancellationToken cancellationToken = default);
