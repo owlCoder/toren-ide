@@ -10,6 +10,8 @@ namespace Toren.UnitTests.Debugging;
 [TestFixture]
 public sealed class DebugSessionAttachViewModelTests
 {
+    private static readonly int[] ExpectedProcessIds = [4321];
+
     [Test]
     public async Task AttachUsesValidatedProcessIdAndUpdatesSessionState()
     {
@@ -24,7 +26,7 @@ public sealed class DebugSessionAttachViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(service.ProcessIds, Is.EqualTo(new[] { 4321 }));
+            Assert.That(service.ProcessIds, Is.EqualTo(ExpectedProcessIds));
             Assert.That(coordinator.IsAttached, Is.True);
             Assert.That(coordinator.ProcessId, Is.EqualTo(4321));
             Assert.That(viewModel.AttachProcessId, Is.Empty);
