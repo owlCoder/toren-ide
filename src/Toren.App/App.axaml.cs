@@ -6,6 +6,8 @@ using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Services;
+using Toren.App.Execution.Services;
+using Toren.App.Execution.ViewModels;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Services;
 using Toren.App.ViewModels;
@@ -13,6 +15,8 @@ using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
+using Toren.DotNet.Execution.Contracts;
+using Toren.DotNet.Execution.Services;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
@@ -42,6 +46,7 @@ public sealed partial class App : Application
             IProcessRunner processRunner = new SystemProcessRunner();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
+            IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -190,6 +195,12 @@ public sealed partial class App : Application
                 documentHost,
                 workspaceDiagnosticsCoordinator);
             var mainWindow = new MainWindow(viewModel);
+            var workspaceExecution = new WorkspaceExecutionViewModel(dotNetCommandService);
+            WorkspaceExecutionController.Attach(
+                mainWindow,
+                viewModel,
+                workspaceClassifier,
+                workspaceExecution);
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,
