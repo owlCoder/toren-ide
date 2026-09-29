@@ -13,6 +13,7 @@ using Toren.App.Search.Services;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
+using Toren.Core.Navigation.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
@@ -22,6 +23,7 @@ using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
 using Toren.Platform.Execution.Adapters;
+using Toren.Platform.Navigation.Adapters;
 using Toren.Workspaces.Adapters;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Services;
@@ -45,6 +47,7 @@ public sealed partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             IProcessRunner processRunner = new SystemProcessRunner();
+            IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
@@ -207,6 +210,12 @@ public sealed partial class App : Application
                 workspaceExecutionTargetService,
                 dotNetLaunchProfileProvider,
                 workspaceExecution);
+            WorkspaceRunBrowserController.Attach(
+                mainWindow,
+                workspaceExecution,
+                new AspNetLaunchUriResolver(),
+                externalUriLauncher,
+                viewModel.SetStatus);
             WorkspaceExecutionDiagnosticsController.Attach(
                 mainWindow,
                 workspaceExecution,

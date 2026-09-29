@@ -27,6 +27,9 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
     private bool _isRunning;
 
     [ObservableProperty]
+    private DotNetCommandKind? _currentCommandKind;
+
+    [ObservableProperty]
     private string _statusText = "No .NET command has run yet.";
 
     [ObservableProperty]
@@ -168,6 +171,7 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _executionCancellation = executionCancellation;
         IsRunning = true;
+        CurrentCommandKind = kind;
         var workspace = _workspace;
         var displayName = kind.ToString();
         var synchronizationContext = SynchronizationContext.Current;
@@ -223,6 +227,7 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
                 _executionCancellation = null;
             }
 
+            CurrentCommandKind = null;
             IsRunning = false;
         }
     }
