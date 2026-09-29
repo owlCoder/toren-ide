@@ -9,7 +9,6 @@ public sealed class DotNetTestListParserTests
     [Test]
     public void ParsesIndentedTestsAfterVSTestHeader()
     {
-        var parser = new DotNetTestListParser();
         const string output = """
             Test run for Sample.Tests.dll (.NETCoreApp,Version=v10.0)
             The following Tests are available:
@@ -18,7 +17,7 @@ public sealed class DotNetTestListParserTests
             Total tests: 2
             """;
 
-        var tests = parser.Parse(output);
+        var tests = DotNetTestListParser.Parse(output);
 
         Assert.That(tests, Has.Count.EqualTo(2));
         Assert.Multiple(() =>
@@ -33,9 +32,7 @@ public sealed class DotNetTestListParserTests
     [Test]
     public void ReturnsEmptyWhenNoListHeaderExists()
     {
-        var parser = new DotNetTestListParser();
-
-        var tests = parser.Parse("No test is available in Sample.Tests.dll.");
+        var tests = DotNetTestListParser.Parse("No test is available in Sample.Tests.dll.");
 
         Assert.That(tests, Is.Empty);
     }
