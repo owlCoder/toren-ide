@@ -60,7 +60,7 @@ public sealed class FileDotNetLaunchProfileProvider : IDotNetLaunchProfileProvid
         }
     }
 
-    private static IReadOnlyList<DotNetLaunchProfile> ParseProfiles(JsonElement root)
+    private static List<DotNetLaunchProfile> ParseProfiles(JsonElement root)
     {
         if (!root.TryGetProperty("profiles", out var profiles)
             || profiles.ValueKind != JsonValueKind.Object)
@@ -89,7 +89,7 @@ public sealed class FileDotNetLaunchProfileProvider : IDotNetLaunchProfileProvid
         return result;
     }
 
-    private static IReadOnlyDictionary<string, string> GetEnvironmentVariables(JsonElement profile)
+    private static Dictionary<string, string> GetEnvironmentVariables(JsonElement profile)
     {
         if (!profile.TryGetProperty("environmentVariables", out var environmentVariables)
             || environmentVariables.ValueKind != JsonValueKind.Object)
