@@ -82,7 +82,7 @@
       </Grid>
     </Border>
 
-    <!-- IDE command bar: editor actions work now; build/run controls are honest M3 placeholders. -->
+    <!-- IDE command bar: editor actions work now; build/run controls are wired by the M3 execution controller. -->
     <Border Grid.Row="1" Grid.ColumnSpan="3" Height="36" Classes="command-bar"
             BorderThickness="0,0,0,1">
       <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*,Auto">
@@ -117,11 +117,9 @@
             <ComboBoxItem Content="Debug" />
             <ComboBoxItem Content="Release" />
           </ComboBox>
-          <ComboBox Classes="command-select" Width="190" SelectedIndex="0" IsEnabled="False"
-                    ToolTip.Tip="Startup project selection arrives with M3" ToolTip.ShowOnDisabled="True"
-                    AutomationProperties.Name="Startup project, coming in M3">
-            <ComboBoxItem Content="Startup project" />
-          </ComboBox>
+          <ComboBox Classes="command-select" Width="190" SelectedIndex="-1" IsEnabled="False"
+                    ToolTip.Tip="Startup project" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Startup project" />
           <Button Classes="command-button run" IsEnabled="False"
                   ToolTip.Tip="Build and run arrives with M3" ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="Run, coming in M3">
