@@ -62,6 +62,7 @@ public sealed partial class App : Application
                 solutionProjectProvider,
                 projectMetadataProvider,
                 projectReferenceProvider);
+            var workspaceExecutionTargetService = new WorkspaceExecutionTargetService(projectGraphService);
             IWorkspaceFileProvider workspaceFileProvider = new FileSystemWorkspaceFileProvider();
             IWorkspaceFileSearchService workspaceFileSearchService = new WorkspaceFileSearchService();
             var applicationDataDirectory = Path.Combine(
@@ -201,6 +202,7 @@ public sealed partial class App : Application
                 mainWindow,
                 viewModel,
                 workspaceClassifier,
+                workspaceExecutionTargetService,
                 workspaceExecution);
             WorkspaceExecutionDiagnosticsController.Attach(
                 mainWindow,

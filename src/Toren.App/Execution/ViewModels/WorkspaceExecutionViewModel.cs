@@ -22,21 +22,45 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanExecute))]
+    [NotifyPropertyChangedFor(nameof(CanRun))]
     [NotifyPropertyChangedFor(nameof(CanCancel))]
     private bool _isRunning;
 
     [ObservableProperty]
     private string _statusText = "No .NET command has run yet.";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRun))]
+    private int _selectedRunTargetIndex = -1;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TargetFramework))]
+    private int _selectedTargetFrameworkIndex = -1;
+
     public event EventHandler<WorkspaceCommandCompletedEventArgs>? CommandCompleted;
 
     public ObservableCollection<ExecutionOutputLineViewModel> OutputLines { get; } = new();
 
+    public ObservableCollection<WorkspaceExecutionTarget> RunTargets { get; } = new();
+
+    public ObservableCollection<string> TargetFrameworks { get; } = new();
+
     public string Configuration => ConfigurationIndex == 1 ? "Release" : "Debug";
+
+    public string? TargetFramework =>
+        SelectedTargetFrameworkIndex >= 0 && SelectedTargetFrameworkIndex < TargetFrameworks.Count
+            ? TargetFrameworks[SelectedTargetFrameworkIndex]
+            : null;
 
     public bool CanExecute => _workspace is not null && !IsRunning;
 
+    public bool CanRun => GetSelectedRunTarget() is not null && !IsRunning;
+
     public bool CanCancel => IsRunning;
+
+    public bool HasRunTargets => RunTargets.Count > 0;
+
+    public bool HasTargetFrameworks => TargetFrameworks.Count > 0;
 
     public bool HasOutput => OutputLines.Count > 0;
 
@@ -51,18 +75,47 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
 
         Cancel();
         _workspace = workspace;
+        ClearRunTargets();
         ClearOutput();
         StatusText = workspace is null
             ? "Open a .NET workspace to run commands."
-            : $"Ready to run .NET commands for {workspace.DisplayName}.";
+            : $"Loading runnable projects for {workspace.DisplayName}…";
         OnPropertyChanged(nameof(CanExecute));
+        OnPropertyChanged(nameof(CanRun));
+    }
+
+    public void SetRunTargets(IReadOnlyList<WorkspaceExecutionTarget> targets)
+    {
+        ArgumentNullException.ThrowIfNull(targets);
+        ClearRunTargets();
+        foreach (var target in targets)
+        {
+            RunTargets.Add(target);
+        }
+
+        SelectedRunTargetIndex = RunTargets.Count > 0 ? 0 : -1;
+        StatusText = _workspace is null
+            ? "Open a .NET workspace to run commands."
+            : RunTargets.Count > 0
+                ? $"Ready to run .NET commands for {_workspace.DisplayName}."
+                : $"No runnable projects were found in {_workspace.DisplayName}.";
+        OnPropertyChanged(nameof(HasRunTargets));
+        OnPropertyChanged(nameof(CanRun));
+    }
+
+    public void SetRunTargetLoadError(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ClearRunTargets();
+        StatusText = message;
     }
 
     public async Task ExecuteAsync(
         DotNetCommandKind kind,
         CancellationToken cancellationToken = default)
     {
-        if (_disposed || _workspace is null || IsRunning)
+        var canStart = kind == DotNetCommandKind.Run ? CanRun : CanExecute;
+        if (_disposed || _workspace is null || !canStart)
         {
             return;
         }
@@ -145,8 +198,25 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         Cancel();
     }
 
+    partial void OnSelectedRunTargetIndexChanged(int value)
+    {
+        RefreshTargetFrameworks();
+        OnPropertyChanged(nameof(CanRun));
+    }
+
     private DotNetCommandRequest CreateRequest(DotNetCommandKind kind, WorkspaceDescriptor workspace)
     {
+        if (kind == DotNetCommandKind.Run && GetSelectedRunTarget() is { } runTarget)
+        {
+            var projectPath = Path.GetFullPath(runTarget.ProjectPath);
+            return new DotNetCommandRequest(
+                kind,
+                Path.GetDirectoryName(projectPath) ?? Directory.GetCurrentDirectory(),
+                projectPath,
+                Configuration,
+                TargetFramework);
+        }
+
         var fullPath = Path.GetFullPath(workspace.Path);
         var workingDirectory = workspace.Kind == WorkspaceKind.Folder
             ? fullPath
@@ -159,6 +229,41 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
             workingDirectory,
             targetPath,
             configuration);
+    }
+
+    private WorkspaceExecutionTarget? GetSelectedRunTarget() =>
+        SelectedRunTargetIndex >= 0 && SelectedRunTargetIndex < RunTargets.Count
+            ? RunTargets[SelectedRunTargetIndex]
+            : null;
+
+    private void RefreshTargetFrameworks()
+    {
+        TargetFrameworks.Clear();
+        if (GetSelectedRunTarget() is { } target)
+        {
+            foreach (var targetFramework in target.TargetFrameworks
+                         .Where(static value => !string.IsNullOrWhiteSpace(value))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                TargetFrameworks.Add(targetFramework);
+            }
+        }
+
+        SelectedTargetFrameworkIndex = TargetFrameworks.Count > 0 ? 0 : -1;
+        OnPropertyChanged(nameof(HasTargetFrameworks));
+        OnPropertyChanged(nameof(TargetFramework));
+    }
+
+    private void ClearRunTargets()
+    {
+        RunTargets.Clear();
+        TargetFrameworks.Clear();
+        SelectedRunTargetIndex = -1;
+        SelectedTargetFrameworkIndex = -1;
+        OnPropertyChanged(nameof(HasRunTargets));
+        OnPropertyChanged(nameof(HasTargetFrameworks));
+        OnPropertyChanged(nameof(CanRun));
+        OnPropertyChanged(nameof(TargetFramework));
     }
 
     private void AddLines(string output, ExecutionOutputLineKind kind)

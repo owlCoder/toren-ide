@@ -54,6 +54,14 @@ internal sealed partial class OutputPanel : UserControl
         }
     }
 
+    private async void Run_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.ExecuteAsync(DotNetCommandKind.Run).ConfigureAwait(true);
+        }
+    }
+
     private void Cancel_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         ViewModel?.Cancel();
