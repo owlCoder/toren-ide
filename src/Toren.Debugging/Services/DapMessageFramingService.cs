@@ -4,11 +4,11 @@ using System.Text;
 
 namespace Toren.Debugging.Services;
 
-public sealed class DapMessageFramingService
+public static class DapMessageFramingService
 {
     private static readonly byte[] HeaderTerminator = "\r\n\r\n"u8.ToArray();
 
-    public async Task<string?> ReadPayloadAsync(
+    public static async Task<string?> ReadPayloadAsync(
         Stream stream,
         CancellationToken cancellationToken = default)
     {
@@ -16,9 +16,9 @@ public sealed class DapMessageFramingService
 
         var headerBytes = new ArrayBufferWriter<byte>();
         var terminatorMatch = 0;
+        var next = new byte[1];
         while (true)
         {
-            var next = new byte[1];
             var read = await stream.ReadAsync(next, cancellationToken).ConfigureAwait(false);
             if (read == 0)
             {
@@ -62,7 +62,7 @@ public sealed class DapMessageFramingService
         return Encoding.UTF8.GetString(payload);
     }
 
-    public async Task WritePayloadAsync(
+    public static async Task WritePayloadAsync(
         Stream stream,
         string payload,
         CancellationToken cancellationToken = default)
