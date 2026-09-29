@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.Git.Contracts;
+using Toren.Git.Models;
 
 namespace Toren.App.SourceControl.ViewModels;
 
@@ -15,6 +16,11 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     [NotifyPropertyChangedFor(nameof(CanStageSelected))]
     [NotifyPropertyChangedFor(nameof(CanUnstageSelected))]
     private int _selectedChangeIndex = -1;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedBranch))]
+    [NotifyPropertyChangedFor(nameof(CanSwitchBranch))]
+    private int _selectedBranchIndex = -1;
 
     [ObservableProperty]
     private string _branchText = "No repository";
@@ -34,17 +40,31 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     [NotifyPropertyChangedFor(nameof(CanStageSelected))]
     [NotifyPropertyChangedFor(nameof(CanUnstageSelected))]
     [NotifyPropertyChangedFor(nameof(CanCommit))]
+    [NotifyPropertyChangedFor(nameof(CanSwitchBranch))]
+    [NotifyPropertyChangedFor(nameof(CanCreateBranch))]
+    [NotifyPropertyChangedFor(nameof(CanSync))]
     private bool _isMutating;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanCommit))]
     private string _commitMessage = string.Empty;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanCreateBranch))]
+    private string _newBranchName = string.Empty;
+
     public ObservableCollection<SourceControlChangeViewModel> Changes { get; } = new();
+
+    public ObservableCollection<GitBranchInfo> Branches { get; } = new();
 
     public SourceControlChangeViewModel? SelectedChange =>
         SelectedChangeIndex >= 0 && SelectedChangeIndex < Changes.Count
             ? Changes[SelectedChangeIndex]
+            : null;
+
+    public GitBranchInfo? SelectedBranch =>
+        SelectedBranchIndex >= 0 && SelectedBranchIndex < Branches.Count
+            ? Branches[SelectedBranchIndex]
             : null;
 
     public bool HasChanges => Changes.Count > 0;
@@ -60,20 +80,30 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         && !string.IsNullOrWhiteSpace(CommitMessage)
         && Changes.Any(static change => change.IsStaged);
 
+    public bool CanSwitchBranch => !IsMutating && SelectedBranch is { IsCurrent: false };
+
+    public bool CanCreateBranch => !IsMutating && !string.IsNullOrWhiteSpace(NewBranchName);
+
+    public bool CanSync => !IsMutating && _workingDirectory is not null && Branches.Count > 0;
+
     public void SetWorkingDirectory(string? workingDirectory)
     {
         _workingDirectory = string.IsNullOrWhiteSpace(workingDirectory)
             ? null
             : Path.GetFullPath(workingDirectory);
         Changes.Clear();
+        Branches.Clear();
         SelectedChangeIndex = -1;
+        SelectedBranchIndex = -1;
         DiffText = string.Empty;
         CommitMessage = string.Empty;
+        NewBranchName = string.Empty;
         BranchText = "No repository";
         StatusText = _workingDirectory is null
             ? "Open a Git workspace to inspect source control."
             : "Refresh source control status.";
         NotifyChangeState();
+        NotifyBranchState();
     }
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -92,11 +122,14 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
             if (statusResult.IsFailure)
             {
                 Changes.Clear();
+                Branches.Clear();
                 SelectedChangeIndex = -1;
+                SelectedBranchIndex = -1;
                 DiffText = string.Empty;
                 BranchText = "No repository";
                 StatusText = statusResult.Error.Message;
                 NotifyChangeState();
+                NotifyBranchState();
                 return;
             }
 
@@ -113,6 +146,8 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
                 : $"{status.Changes.Count} change{(status.Changes.Count == 1 ? string.Empty : "s")}.";
             SelectedChangeIndex = Changes.Count > 0 ? 0 : -1;
             NotifyChangeState();
+
+            await LoadBranchesAsync(cancellationToken).ConfigureAwait(true);
             await LoadSelectedDiffAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -154,6 +189,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         return RunMutationAsync(
             token => _repositoryService.StageAsync(_workingDirectory, selected.Path, token),
             clearCommitMessage: false,
+            clearNewBranchName: false,
             cancellationToken);
     }
 
@@ -167,6 +203,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         return RunMutationAsync(
             token => _repositoryService.UnstageAsync(_workingDirectory, selected.Path, token),
             clearCommitMessage: false,
+            clearNewBranchName: false,
             cancellationToken);
     }
 
@@ -181,12 +218,110 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         return RunMutationAsync(
             token => _repositoryService.CommitAsync(_workingDirectory, message, token),
             clearCommitMessage: true,
+            clearNewBranchName: false,
             cancellationToken);
+    }
+
+    public Task SwitchSelectedBranchAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanSwitchBranch || SelectedBranch is not { } branch)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.SwitchBranchAsync(_workingDirectory, branch.Name, token),
+            clearCommitMessage: false,
+            clearNewBranchName: false,
+            cancellationToken);
+    }
+
+    public Task CreateBranchAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanCreateBranch)
+        {
+            return Task.CompletedTask;
+        }
+
+        var branchName = NewBranchName;
+        return RunMutationAsync(
+            token => _repositoryService.CreateBranchAsync(_workingDirectory, branchName, token),
+            clearCommitMessage: false,
+            clearNewBranchName: true,
+            cancellationToken);
+    }
+
+    public Task FetchAsync(CancellationToken cancellationToken = default) =>
+        RunSyncMutationAsync(
+            token => _repositoryService.FetchAsync(_workingDirectory!, token),
+            cancellationToken);
+
+    public Task PullAsync(CancellationToken cancellationToken = default) =>
+        RunSyncMutationAsync(
+            token => _repositoryService.PullAsync(_workingDirectory!, token),
+            cancellationToken);
+
+    public Task PushAsync(CancellationToken cancellationToken = default) =>
+        RunSyncMutationAsync(
+            token => _repositoryService.PushAsync(_workingDirectory!, token),
+            cancellationToken);
+
+    private Task RunSyncMutationAsync(
+        Func<CancellationToken, Task<Toren.Core.Results.Result<bool>>> action,
+        CancellationToken cancellationToken) =>
+        CanSync
+            ? RunMutationAsync(
+                action,
+                clearCommitMessage: false,
+                clearNewBranchName: false,
+                cancellationToken)
+            : Task.CompletedTask;
+
+    private async Task LoadBranchesAsync(CancellationToken cancellationToken)
+    {
+        if (_workingDirectory is null)
+        {
+            return;
+        }
+
+        var branchesResult = await _repositoryService
+            .GetBranchesAsync(_workingDirectory, cancellationToken)
+            .ConfigureAwait(true);
+        Branches.Clear();
+        SelectedBranchIndex = -1;
+        if (branchesResult.IsFailure)
+        {
+            StatusText = branchesResult.Error.Message;
+            NotifyBranchState();
+            return;
+        }
+
+        foreach (var branch in branchesResult.Value!)
+        {
+            Branches.Add(branch);
+        }
+
+        SelectedBranchIndex = FindCurrentBranchIndex();
+        NotifyBranchState();
+    }
+
+    private int FindCurrentBranchIndex()
+    {
+        for (var index = 0; index < Branches.Count; index++)
+        {
+            if (Branches[index].IsCurrent)
+            {
+                return index;
+            }
+        }
+
+        return Branches.Count > 0 ? 0 : -1;
     }
 
     private async Task RunMutationAsync(
         Func<CancellationToken, Task<Toren.Core.Results.Result<bool>>> action,
         bool clearCommitMessage,
+        bool clearNewBranchName,
         CancellationToken cancellationToken)
     {
         IsMutating = true;
@@ -204,6 +339,11 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
                 CommitMessage = string.Empty;
             }
 
+            if (clearNewBranchName)
+            {
+                NewBranchName = string.Empty;
+            }
+
             await RefreshAsync(cancellationToken).ConfigureAwait(true);
         }
         finally
@@ -218,6 +358,14 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         OnPropertyChanged(nameof(CanStageSelected));
         OnPropertyChanged(nameof(CanUnstageSelected));
         OnPropertyChanged(nameof(CanCommit));
+    }
+
+    private void NotifyBranchState()
+    {
+        OnPropertyChanged(nameof(SelectedBranch));
+        OnPropertyChanged(nameof(CanSwitchBranch));
+        OnPropertyChanged(nameof(CanCreateBranch));
+        OnPropertyChanged(nameof(CanSync));
     }
 
     private static string CreateBranchText(

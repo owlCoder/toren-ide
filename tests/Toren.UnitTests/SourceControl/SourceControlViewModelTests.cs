@@ -18,7 +18,11 @@ public sealed class SourceControlViewModelTests
                 "origin/main",
                 2,
                 1,
-                [new GitChange("src/Program.cs", null, 'M', '.')]));
+                [new GitChange("src/Program.cs", null, 'M', '.')]),
+            [
+                new GitBranchInfo("main", true, "origin/main"),
+                new GitBranchInfo("feature/git", false, "origin/feature/git"),
+            ]);
         var viewModel = new SourceControlViewModel(service);
         viewModel.SetWorkingDirectory(Path.GetTempPath());
 
@@ -32,6 +36,10 @@ public sealed class SourceControlViewModelTests
             Assert.That(viewModel.SelectedChangeIndex, Is.EqualTo(0));
             Assert.That(viewModel.DiffText, Is.EqualTo("diff:src/Program.cs:staged=True"));
             Assert.That(viewModel.CanUnstageSelected, Is.True);
+            Assert.That(viewModel.Branches, Has.Count.EqualTo(2));
+            Assert.That(viewModel.SelectedBranchIndex, Is.EqualTo(0));
+            Assert.That(viewModel.SelectedBranch!.Name, Is.EqualTo("main"));
+            Assert.That(viewModel.CanSync, Is.True);
         });
     }
 
@@ -79,6 +87,7 @@ public sealed class SourceControlViewModelTests
             Assert.That(service.StageRequests, Has.Count.EqualTo(1));
             Assert.That(service.StageRequests[0], Is.EqualTo("notes.txt"));
             Assert.That(service.StatusRequestCount, Is.EqualTo(2));
+            Assert.That(service.BranchRequestCount, Is.EqualTo(2));
         });
     }
 
@@ -103,6 +112,7 @@ public sealed class SourceControlViewModelTests
             Assert.That(service.UnstageRequests, Has.Count.EqualTo(1));
             Assert.That(service.UnstageRequests[0], Is.EqualTo("src/Program.cs"));
             Assert.That(service.StatusRequestCount, Is.EqualTo(2));
+            Assert.That(service.BranchRequestCount, Is.EqualTo(2));
         });
     }
 
@@ -136,6 +146,79 @@ public sealed class SourceControlViewModelTests
     }
 
     [Test]
+    public async Task SwitchSelectedBranchExecutesAndRefreshesRepositoryState()
+    {
+        var service = new StubGitRepositoryService(
+            new GitRepositoryStatus("main", "origin/main", 0, 0, []),
+            [
+                new GitBranchInfo("main", true, "origin/main"),
+                new GitBranchInfo("feature/git", false, null),
+            ]);
+        var viewModel = new SourceControlViewModel(service);
+        viewModel.SetWorkingDirectory(Path.GetTempPath());
+        await viewModel.RefreshAsync();
+        viewModel.SelectedBranchIndex = 1;
+
+        Assert.That(viewModel.CanSwitchBranch, Is.True);
+        await viewModel.SwitchSelectedBranchAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.SwitchBranchRequests, Has.Count.EqualTo(1));
+            Assert.That(service.SwitchBranchRequests[0], Is.EqualTo("feature/git"));
+            Assert.That(service.StatusRequestCount, Is.EqualTo(2));
+            Assert.That(service.BranchRequestCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task CreateBranchRequiresNameAndClearsItAfterSuccess()
+    {
+        var service = new StubGitRepositoryService(
+            new GitRepositoryStatus("main", null, 0, 0, []));
+        var viewModel = new SourceControlViewModel(service);
+        viewModel.SetWorkingDirectory(Path.GetTempPath());
+        await viewModel.RefreshAsync();
+
+        Assert.That(viewModel.CanCreateBranch, Is.False);
+        viewModel.NewBranchName = "feature/new-ui";
+        Assert.That(viewModel.CanCreateBranch, Is.True);
+
+        await viewModel.CreateBranchAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.CreateBranchRequests, Has.Count.EqualTo(1));
+            Assert.That(service.CreateBranchRequests[0], Is.EqualTo("feature/new-ui"));
+            Assert.That(viewModel.NewBranchName, Is.Empty);
+            Assert.That(service.StatusRequestCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task FetchPullAndPushUseSharedRefreshPipeline()
+    {
+        var service = new StubGitRepositoryService(
+            new GitRepositoryStatus("main", "origin/main", 0, 0, []));
+        var viewModel = new SourceControlViewModel(service);
+        viewModel.SetWorkingDirectory(Path.GetTempPath());
+        await viewModel.RefreshAsync();
+
+        await viewModel.FetchAsync();
+        await viewModel.PullAsync();
+        await viewModel.PushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.FetchRequestCount, Is.EqualTo(1));
+            Assert.That(service.PullRequestCount, Is.EqualTo(1));
+            Assert.That(service.PushRequestCount, Is.EqualTo(1));
+            Assert.That(service.StatusRequestCount, Is.EqualTo(4));
+            Assert.That(service.BranchRequestCount, Is.EqualTo(4));
+        });
+    }
+
+    [Test]
     public async Task MutationFailureSurfacesStatusAndDoesNotRefresh()
     {
         var service = new StubGitRepositoryService(
@@ -163,8 +246,20 @@ public sealed class SourceControlViewModelTests
         });
     }
 
-    private sealed class StubGitRepositoryService(GitRepositoryStatus status) : IGitRepositoryService
+    private sealed class StubGitRepositoryService : IGitRepositoryService
     {
+        private readonly GitRepositoryStatus _status;
+        private readonly IReadOnlyList<GitBranchInfo> _branches;
+
+        public StubGitRepositoryService(
+            GitRepositoryStatus status,
+            IReadOnlyList<GitBranchInfo>? branches = null)
+        {
+            _status = status;
+            _branches = branches
+                ?? [new GitBranchInfo(status.BranchName ?? "main", true, status.UpstreamName)];
+        }
+
         public List<(string Path, bool Staged)> DiffRequests { get; } = [];
 
         public List<string> StageRequests { get; } = [];
@@ -173,7 +268,19 @@ public sealed class SourceControlViewModelTests
 
         public List<string> CommitMessages { get; } = [];
 
+        public List<string> SwitchBranchRequests { get; } = [];
+
+        public List<string> CreateBranchRequests { get; } = [];
+
         public int StatusRequestCount { get; private set; }
+
+        public int BranchRequestCount { get; private set; }
+
+        public int FetchRequestCount { get; private set; }
+
+        public int PullRequestCount { get; private set; }
+
+        public int PushRequestCount { get; private set; }
 
         public OperationError MutationError { get; init; } = OperationError.None;
 
@@ -183,7 +290,7 @@ public sealed class SourceControlViewModelTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             StatusRequestCount++;
-            return Task.FromResult(Result.Success(status));
+            return Task.FromResult(Result.Success(_status));
         }
 
         public Task<Result<string>> GetDiffAsync(
@@ -233,35 +340,56 @@ public sealed class SourceControlViewModelTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(Result.Success<IReadOnlyList<GitBranchInfo>>([]));
+            BranchRequestCount++;
+            return Task.FromResult(Result.Success(_branches));
         }
 
         public Task<Result<bool>> SwitchBranchAsync(
             string workingDirectory,
             string branchName,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(true));
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SwitchBranchRequests.Add(branchName);
+            return Task.FromResult(CreateMutationResult());
+        }
 
         public Task<Result<bool>> CreateBranchAsync(
             string workingDirectory,
             string branchName,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(true));
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CreateBranchRequests.Add(branchName);
+            return Task.FromResult(CreateMutationResult());
+        }
 
         public Task<Result<bool>> FetchAsync(
             string workingDirectory,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(true));
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            FetchRequestCount++;
+            return Task.FromResult(CreateMutationResult());
+        }
 
         public Task<Result<bool>> PullAsync(
             string workingDirectory,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(true));
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PullRequestCount++;
+            return Task.FromResult(CreateMutationResult());
+        }
 
         public Task<Result<bool>> PushAsync(
             string workingDirectory,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(true));
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PushRequestCount++;
+            return Task.FromResult(CreateMutationResult());
+        }
 
         private Result<bool> CreateMutationResult() => MutationError.IsNone
             ? Result.Success(true)
