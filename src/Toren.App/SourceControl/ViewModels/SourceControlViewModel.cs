@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Toren.Core.Results;
 using Toren.Git.Contracts;
 using Toren.Git.Models;
 
@@ -20,6 +21,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedBranch))]
     [NotifyPropertyChangedFor(nameof(CanSwitchBranch))]
+    [NotifyPropertyChangedFor(nameof(CanMerge))]
     private int _selectedBranchIndex = -1;
 
     [ObservableProperty]
@@ -43,6 +45,10 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     [NotifyPropertyChangedFor(nameof(CanSwitchBranch))]
     [NotifyPropertyChangedFor(nameof(CanCreateBranch))]
     [NotifyPropertyChangedFor(nameof(CanSync))]
+    [NotifyPropertyChangedFor(nameof(CanMerge))]
+    [NotifyPropertyChangedFor(nameof(CanAbortMerge))]
+    [NotifyPropertyChangedFor(nameof(CanStash))]
+    [NotifyPropertyChangedFor(nameof(CanPopStash))]
     private bool _isMutating;
 
     [ObservableProperty]
@@ -69,6 +75,10 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
     public bool HasChanges => Changes.Count > 0;
 
+    public bool HasConflicts => Changes.Any(static change => change.IsConflicted);
+
+    public int ConflictCount => Changes.Count(static change => change.IsConflicted);
+
     public bool IsBusy => IsRefreshing || IsMutating;
 
     public bool CanStageSelected => !IsMutating && SelectedChange?.HasWorkingTreeChange == true;
@@ -77,14 +87,27 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
     public bool CanCommit =>
         !IsMutating
+        && !HasConflicts
         && !string.IsNullOrWhiteSpace(CommitMessage)
         && Changes.Any(static change => change.IsStaged);
 
-    public bool CanSwitchBranch => !IsMutating && SelectedBranch is { IsCurrent: false };
+    public bool CanSwitchBranch => !IsMutating && !HasConflicts && SelectedBranch is { IsCurrent: false };
 
-    public bool CanCreateBranch => !IsMutating && !string.IsNullOrWhiteSpace(NewBranchName);
+    public bool CanCreateBranch =>
+        !IsMutating
+        && !HasConflicts
+        && _workingDirectory is not null
+        && !string.IsNullOrWhiteSpace(NewBranchName);
 
-    public bool CanSync => !IsMutating && _workingDirectory is not null && Branches.Count > 0;
+    public bool CanSync => !IsMutating && !HasConflicts && _workingDirectory is not null && Branches.Count > 0;
+
+    public bool CanMerge => !IsMutating && !HasConflicts && SelectedBranch is { IsCurrent: false };
+
+    public bool CanAbortMerge => !IsMutating && HasConflicts;
+
+    public bool CanStash => !IsMutating && !HasConflicts && _workingDirectory is not null && HasChanges;
+
+    public bool CanPopStash => !IsMutating && !HasConflicts && _workingDirectory is not null;
 
     public void SetWorkingDirectory(string? workingDirectory)
     {
@@ -141,9 +164,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
                 Changes.Add(new SourceControlChangeViewModel(change));
             }
 
-            StatusText = status.IsClean
-                ? "Working tree is clean."
-                : $"{status.Changes.Count} change{(status.Changes.Count == 1 ? string.Empty : "s")}.";
+            StatusText = CreateStatusText(status.IsClean, status.Changes.Count, ConflictCount);
             SelectedChangeIndex = Changes.Count > 0 ? 0 : -1;
             NotifyChangeState();
 
@@ -188,9 +209,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
         return RunMutationAsync(
             token => _repositoryService.StageAsync(_workingDirectory, selected.Path, token),
-            clearCommitMessage: false,
-            clearNewBranchName: false,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     public Task UnstageSelectedAsync(CancellationToken cancellationToken = default)
@@ -202,9 +221,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
         return RunMutationAsync(
             token => _repositoryService.UnstageAsync(_workingDirectory, selected.Path, token),
-            clearCommitMessage: false,
-            clearNewBranchName: false,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     public Task CommitAsync(CancellationToken cancellationToken = default)
@@ -218,8 +235,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         return RunMutationAsync(
             token => _repositoryService.CommitAsync(_workingDirectory, message, token),
             clearCommitMessage: true,
-            clearNewBranchName: false,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     public Task SwitchSelectedBranchAsync(CancellationToken cancellationToken = default)
@@ -231,9 +247,7 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
 
         return RunMutationAsync(
             token => _repositoryService.SwitchBranchAsync(_workingDirectory, branch.Name, token),
-            clearCommitMessage: false,
-            clearNewBranchName: false,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     public Task CreateBranchAsync(CancellationToken cancellationToken = default)
@@ -246,35 +260,75 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         var branchName = NewBranchName;
         return RunMutationAsync(
             token => _repositoryService.CreateBranchAsync(_workingDirectory, branchName, token),
-            clearCommitMessage: false,
             clearNewBranchName: true,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     public Task FetchAsync(CancellationToken cancellationToken = default) =>
-        RunSyncMutationAsync(
-            token => _repositoryService.FetchAsync(_workingDirectory!, token),
-            cancellationToken);
+        RunSyncMutationAsync(token => _repositoryService.FetchAsync(_workingDirectory!, token), cancellationToken);
 
     public Task PullAsync(CancellationToken cancellationToken = default) =>
-        RunSyncMutationAsync(
-            token => _repositoryService.PullAsync(_workingDirectory!, token),
-            cancellationToken);
+        RunSyncMutationAsync(token => _repositoryService.PullAsync(_workingDirectory!, token), cancellationToken);
 
     public Task PushAsync(CancellationToken cancellationToken = default) =>
-        RunSyncMutationAsync(
-            token => _repositoryService.PushAsync(_workingDirectory!, token),
-            cancellationToken);
+        RunSyncMutationAsync(token => _repositoryService.PushAsync(_workingDirectory!, token), cancellationToken);
+
+    public Task MergeSelectedBranchAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanMerge || SelectedBranch is not { } branch)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.MergeAsync(_workingDirectory, branch.Name, token),
+            refreshOnFailure: true,
+            cancellationToken: cancellationToken);
+    }
+
+    public Task AbortMergeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanAbortMerge)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.AbortMergeAsync(_workingDirectory, token),
+            refreshOnFailure: true,
+            cancellationToken: cancellationToken);
+    }
+
+    public Task StashAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanStash)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.StashAsync(_workingDirectory, cancellationToken: token),
+            cancellationToken: cancellationToken);
+    }
+
+    public Task PopStashAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workingDirectory is null || !CanPopStash)
+        {
+            return Task.CompletedTask;
+        }
+
+        return RunMutationAsync(
+            token => _repositoryService.PopStashAsync(_workingDirectory, token),
+            refreshOnFailure: true,
+            cancellationToken: cancellationToken);
+    }
 
     private Task RunSyncMutationAsync(
-        Func<CancellationToken, Task<Toren.Core.Results.Result<bool>>> action,
+        Func<CancellationToken, Task<Result<bool>>> action,
         CancellationToken cancellationToken) =>
         CanSync
-            ? RunMutationAsync(
-                action,
-                clearCommitMessage: false,
-                clearNewBranchName: false,
-                cancellationToken)
+            ? RunMutationAsync(action, cancellationToken: cancellationToken)
             : Task.CompletedTask;
 
     private async Task LoadBranchesAsync(CancellationToken cancellationToken)
@@ -319,10 +373,11 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     }
 
     private async Task RunMutationAsync(
-        Func<CancellationToken, Task<Toren.Core.Results.Result<bool>>> action,
-        bool clearCommitMessage,
-        bool clearNewBranchName,
-        CancellationToken cancellationToken)
+        Func<CancellationToken, Task<Result<bool>>> action,
+        bool clearCommitMessage = false,
+        bool clearNewBranchName = false,
+        bool refreshOnFailure = false,
+        CancellationToken cancellationToken = default)
     {
         IsMutating = true;
         try
@@ -330,7 +385,19 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
             var result = await action(cancellationToken).ConfigureAwait(true);
             if (result.IsFailure)
             {
-                StatusText = result.Error.Message;
+                var errorMessage = result.Error.Message;
+                if (refreshOnFailure)
+                {
+                    await RefreshAsync(cancellationToken).ConfigureAwait(true);
+                    StatusText = HasConflicts
+                        ? $"{errorMessage} {ConflictCount} conflict{(ConflictCount == 1 ? string.Empty : "s")} need resolution."
+                        : errorMessage;
+                }
+                else
+                {
+                    StatusText = errorMessage;
+                }
+
                 return;
             }
 
@@ -355,9 +422,18 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
     private void NotifyChangeState()
     {
         OnPropertyChanged(nameof(HasChanges));
+        OnPropertyChanged(nameof(HasConflicts));
+        OnPropertyChanged(nameof(ConflictCount));
         OnPropertyChanged(nameof(CanStageSelected));
         OnPropertyChanged(nameof(CanUnstageSelected));
         OnPropertyChanged(nameof(CanCommit));
+        OnPropertyChanged(nameof(CanSwitchBranch));
+        OnPropertyChanged(nameof(CanCreateBranch));
+        OnPropertyChanged(nameof(CanSync));
+        OnPropertyChanged(nameof(CanMerge));
+        OnPropertyChanged(nameof(CanAbortMerge));
+        OnPropertyChanged(nameof(CanStash));
+        OnPropertyChanged(nameof(CanPopStash));
     }
 
     private void NotifyBranchState()
@@ -366,6 +442,19 @@ public sealed partial class SourceControlViewModel(IGitRepositoryService reposit
         OnPropertyChanged(nameof(CanSwitchBranch));
         OnPropertyChanged(nameof(CanCreateBranch));
         OnPropertyChanged(nameof(CanSync));
+        OnPropertyChanged(nameof(CanMerge));
+    }
+
+    private static string CreateStatusText(bool isClean, int changeCount, int conflictCount)
+    {
+        if (conflictCount > 0)
+        {
+            return $"{conflictCount} conflict{(conflictCount == 1 ? string.Empty : "s")}. Stage resolved files, then commit or abort merge.";
+        }
+
+        return isClean
+            ? "Working tree is clean."
+            : $"{changeCount} change{(changeCount == 1 ? string.Empty : "s")}.";
     }
 
     private static string CreateBranchText(

@@ -35,6 +35,11 @@
           </ComboBox>
           <Button Classes="toolbar-button" Content="Switch"
                   Click="SwitchBranch_OnClick" IsEnabled="{Binding CanSwitchBranch}" />
+          <Button Classes="toolbar-button" Content="Merge"
+                  Click="MergeBranch_OnClick" IsEnabled="{Binding CanMerge}"
+                  ToolTip.Tip="Merge selected branch into the current branch" />
+          <Button Classes="toolbar-button" Content="Abort Merge"
+                  Click="AbortMerge_OnClick" IsEnabled="{Binding CanAbortMerge}" />
           <TextBox Width="150" Text="{Binding NewBranchName, Mode=TwoWay}"
                    PlaceholderText="New branch" />
           <Button Classes="toolbar-button" Content="New"
@@ -45,6 +50,10 @@
                   Click="Pull_OnClick" IsEnabled="{Binding CanSync}" />
           <Button Classes="toolbar-button" Content="Push"
                   Click="Push_OnClick" IsEnabled="{Binding CanSync}" />
+          <Button Classes="toolbar-button" Content="Stash"
+                  Click="Stash_OnClick" IsEnabled="{Binding CanStash}" />
+          <Button Classes="toolbar-button" Content="Pop Stash"
+                  Click="PopStash_OnClick" IsEnabled="{Binding CanPopStash}" />
         </StackPanel>
       </ScrollViewer>
     </Border>
@@ -56,7 +65,7 @@
                  PlaceholderText="Commit message" FontSize="10.5" />
         <Button Grid.Column="1" Classes="toolbar-button" Content="Stage"
                 Click="Stage_OnClick" IsEnabled="{Binding CanStageSelected}"
-                ToolTip.Tip="Stage selected change" />
+                ToolTip.Tip="Stage selected change; conflicted files are marked resolved after you edit them" />
         <Button Grid.Column="2" Classes="toolbar-button" Content="Unstage"
                 Click="Unstage_OnClick" IsEnabled="{Binding CanUnstageSelected}"
                 ToolTip.Tip="Unstage selected change" />

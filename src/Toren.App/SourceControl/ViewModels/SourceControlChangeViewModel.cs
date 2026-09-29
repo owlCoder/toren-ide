@@ -9,9 +9,11 @@ public sealed partial class SourceControlChangeViewModel(GitChange change) : Obs
 
     public string Path => Change.Path;
 
-    public string StatusText => Change.IsUntracked
-        ? "U"
-        : string.Concat(Change.IndexStatus, Change.WorkTreeStatus).Replace(".", string.Empty, StringComparison.Ordinal);
+    public string StatusText => Change.IsConflicted
+        ? "C"
+        : Change.IsUntracked
+            ? "U"
+            : string.Concat(Change.IndexStatus, Change.WorkTreeStatus).Replace(".", string.Empty, StringComparison.Ordinal);
 
     public string DisplayPath => Change.OriginalPath is { Length: > 0 } originalPath
         ? $"{originalPath} → {Change.Path}"
@@ -20,4 +22,6 @@ public sealed partial class SourceControlChangeViewModel(GitChange change) : Obs
     public bool IsStaged => Change.IsStaged;
 
     public bool HasWorkingTreeChange => Change.HasWorkingTreeChange;
+
+    public bool IsConflicted => Change.IsConflicted;
 }

@@ -29,6 +29,22 @@ internal sealed partial class SourceControlPanel : UserControl
         }
     }
 
+    private async void MergeBranch_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.MergeSelectedBranchAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void AbortMerge_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.AbortMergeAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void CreateBranch_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (ViewModel is { } viewModel)
@@ -58,6 +74,22 @@ internal sealed partial class SourceControlPanel : UserControl
         if (ViewModel is { } viewModel)
         {
             await viewModel.PushAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void Stash_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.StashAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void PopStash_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.PopStashAsync().ConfigureAwait(true);
         }
     }
 
