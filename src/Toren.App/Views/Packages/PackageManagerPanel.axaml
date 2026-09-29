@@ -1,0 +1,97 @@
+<UserControl x:Class="Toren.App.Views.Packages.PackageManagerPanel"
+             x:ClassModifier="internal"
+             x:DataType="pkgvm:PackageManagerViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pkgvm="clr-namespace:Toren.App.Packages.ViewModels"
+             xmlns:pkg="clr-namespace:Toren.DotNet.Packages.Models;assembly=Toren.DotNet">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Border Grid.Row="0" Padding="10,7"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,220,*,Auto" ColumnSpacing="8">
+        <TextBlock Grid.Column="0" Text="Project" FontSize="10.5" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Projects}"
+                  SelectedIndex="{Binding SelectedProjectIndex, Mode=TwoWay}"
+                  SelectionChanged="Project_OnSelectionChanged">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="pkgvm:PackageProjectTarget">
+              <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Column="2" Classes="muted" Text="{Binding StatusText}"
+                   FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Refresh Installed"
+                Click="RefreshInstalled_OnClick" IsEnabled="{Binding CanManagePackages}" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1" Padding="8,7"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,220,Auto,Auto" ColumnSpacing="7">
+        <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
+                 PlaceholderText="Search NuGet packages" KeyDown="SearchBox_OnKeyDown" />
+        <TextBox Grid.Column="1" Text="{Binding CustomSource, Mode=TwoWay}"
+                 PlaceholderText="Custom feed URL (optional)"
+                 ToolTip.Tip="Leave empty to use configured NuGet sources" />
+        <CheckBox Grid.Column="2" Content="Prerelease" IsChecked="{Binding IncludePrerelease}"
+                  VerticalAlignment="Center" />
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Search"
+                Click="Search_OnClick" IsEnabled="{Binding CanSearch}" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,*">
+      <Border Grid.Column="0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBlock Grid.Column="0" Text="Search Results" FontSize="10.5" FontWeight="SemiBold" />
+            <Button Grid.Column="1" Classes="toolbar-button" Content="Install"
+                    Click="Install_OnClick" IsEnabled="{Binding CanInstallSelected}" />
+          </Grid>
+          <ListBox Grid.Row="1" ItemsSource="{Binding SearchResults}"
+                   SelectedIndex="{Binding SelectedSearchResultIndex, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="pkg:NuGetPackageSearchResult">
+                <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Id}" FontSize="10.5"
+                             FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LatestVersion}" FontSize="10" />
+                  <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="9.5"
+                             Text="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Grid.Column="0" Text="Installed" FontSize="10.5" FontWeight="SemiBold" />
+          <Button Grid.Column="1" Classes="toolbar-button" Content="Update"
+                  Click="Update_OnClick" IsEnabled="{Binding CanUpdateSelected}" />
+          <Button Grid.Column="2" Classes="toolbar-button" Content="Remove"
+                  Click="Remove_OnClick" IsEnabled="{Binding CanRemoveSelected}" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding InstalledPackages}"
+                 SelectedIndex="{Binding SelectedInstalledPackageIndex, Mode=TwoWay}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="pkg:NuGetInstalledPackage">
+              <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Id}" FontSize="10.5"
+                           FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ResolvedVersion}" FontSize="10" />
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="9.5"
+                           Text="{Binding TargetFramework}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Grid>
+
+    <TextBlock Grid.Row="3" Classes="subtle" Margin="9,5" FontSize="9.5"
+               Text="Package changes use the .NET CLI and preserve standard project / Central Package Management files." />
+  </Grid>
+</UserControl>
