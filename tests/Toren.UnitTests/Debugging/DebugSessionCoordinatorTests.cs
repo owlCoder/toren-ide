@@ -48,6 +48,36 @@ public sealed class DebugSessionCoordinatorTests
     }
 
     [Test]
+    public async Task RunToCursorRestartAndStopUpdateCoordinatorState()
+    {
+        var session = new RecordingSession(2468);
+        await using var coordinator = new DebugSessionCoordinator(new StubSessionService(session));
+        await coordinator.AttachAsync(2468);
+        await coordinator.WaitForStopAsync();
+
+        var runToCursor = await coordinator.RunToCursorAsync(
+            7,
+            "/workspace/Program.cs",
+            20,
+            4);
+        var restarted = await coordinator.RestartAsync();
+        var stopped = await coordinator.StopAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(runToCursor.IsSuccess, Is.True);
+            Assert.That(restarted.IsSuccess, Is.True);
+            Assert.That(stopped.IsSuccess, Is.True);
+            Assert.That(session.RunToCursorCount, Is.EqualTo(1));
+            Assert.That(session.RestartCount, Is.EqualTo(1));
+            Assert.That(session.StopCount, Is.EqualTo(1));
+            Assert.That(session.DisposeCount, Is.EqualTo(1));
+            Assert.That(coordinator.IsAttached, Is.False);
+            Assert.That(coordinator.StoppedThreadId, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task WaitingForStopTracksStoppedThreadUntilExecutionResumes()
     {
         var session = new RecordingSession(1357);
@@ -99,6 +129,14 @@ public sealed class DebugSessionCoordinatorTests
         public string? SourcePath { get; private set; }
 
         public int LastThreadId { get; private set; }
+
+        public int RunToCursorCount { get; private set; }
+
+        public int RestartCount { get; private set; }
+
+        public int StopCount { get; private set; }
+
+        public int DisposeCount { get; private set; }
 
         public List<string> ControlCommands { get; } = [];
 
@@ -168,13 +206,43 @@ public sealed class DebugSessionCoordinatorTests
         public Task<Result<bool>> StepOutAsync(int threadId, CancellationToken cancellationToken = default) =>
             RecordAsync("stepOut", threadId, cancellationToken);
 
+        public Task<Result<bool>> RunToCursorAsync(
+            int threadId,
+            string sourcePath,
+            int line,
+            int? column = null,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            RunToCursorCount++;
+            return Task.FromResult(Result.Success(true));
+        }
+
+        public Task<Result<bool>> RestartAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            RestartCount++;
+            return Task.FromResult(Result.Success(true));
+        }
+
+        public Task<Result<bool>> StopAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            StopCount++;
+            return Task.FromResult(Result.Success(true));
+        }
+
         public Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(Result.Success(true));
         }
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync()
+        {
+            DisposeCount++;
+            return ValueTask.CompletedTask;
+        }
 
         private Task<Result<bool>> RecordAsync(
             string command,

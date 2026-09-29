@@ -274,25 +274,69 @@ public sealed class DapDebugSessionService(
             CancellationToken cancellationToken = default) =>
             SendThreadCommandAsync("stepOut", threadId, cancellationToken);
 
-        public async Task<Result<bool>> DisconnectAsync(
+        public async Task<Result<bool>> RunToCursorAsync(
+            int threadId,
+            string sourcePath,
+            int line,
+            int? column = null,
             CancellationToken cancellationToken = default)
         {
-            var response = await _client.SendRequestAsync(
-                "disconnect",
-                new
-                {
-                    restart = false,
-                    terminateDebuggee = false,
-                },
-                cancellationToken).ConfigureAwait(false);
-            if (response.IsFailure)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(threadId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(line);
+            if (column.HasValue)
             {
-                return Result.Failure<bool>(response.Error);
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(column.Value);
             }
 
-            Interlocked.Exchange(ref _disconnected, 1);
-            return Result.Success(true);
+            var targets = await _client.SendRequestAsync(
+                "gotoTargets",
+                new
+                {
+                    source = new { path = sourcePath },
+                    line,
+                    column,
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (targets.IsFailure)
+            {
+                return Result.Failure<bool>(targets.Error);
+            }
+
+            var targetId = DapDebugInspectionParser.ParseGotoTargetId(targets.Value!.Payload);
+            if (targetId.IsFailure)
+            {
+                return Result.Failure<bool>(targetId.Error);
+            }
+
+            var goTo = await _client.SendRequestAsync(
+                "goto",
+                new
+                {
+                    threadId,
+                    targetId = targetId.Value,
+                },
+                cancellationToken).ConfigureAwait(false);
+            return goTo.IsFailure
+                ? Result.Failure<bool>(goTo.Error)
+                : Result.Success(true);
         }
+
+        public async Task<Result<bool>> RestartAsync(CancellationToken cancellationToken = default)
+        {
+            var response = await _client.SendRequestAsync(
+                "restart",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<bool>(response.Error)
+                : Result.Success(true);
+        }
+
+        public Task<Result<bool>> StopAsync(CancellationToken cancellationToken = default) =>
+            DisconnectCoreAsync(terminateDebuggee: true, cancellationToken);
+
+        public Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default) =>
+            DisconnectCoreAsync(terminateDebuggee: false, cancellationToken);
 
         public async ValueTask DisposeAsync()
         {
@@ -307,6 +351,27 @@ public sealed class DapDebugSessionService(
             }
 
             await _client.DisposeAsync().ConfigureAwait(false);
+        }
+
+        private async Task<Result<bool>> DisconnectCoreAsync(
+            bool terminateDebuggee,
+            CancellationToken cancellationToken)
+        {
+            var response = await _client.SendRequestAsync(
+                "disconnect",
+                new
+                {
+                    restart = false,
+                    terminateDebuggee,
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (response.IsFailure)
+            {
+                return Result.Failure<bool>(response.Error);
+            }
+
+            Interlocked.Exchange(ref _disconnected, 1);
+            return Result.Success(true);
         }
 
         private async Task<Result<bool>> SendThreadCommandAsync(

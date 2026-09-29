@@ -136,11 +136,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
         var result = await WithSessionAsync(
             session => session.ContinueAsync(threadId, cancellationToken),
             cancellationToken).ConfigureAwait(false);
-        if (result.IsSuccess)
-        {
-            Interlocked.Exchange(ref _stoppedThreadId, 0);
-        }
-
+        ClearStoppedThreadOnSuccess(result);
         return result;
     }
 
@@ -154,23 +150,70 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
     public Task<Result<bool>> StepOverAsync(
         int threadId,
         CancellationToken cancellationToken = default) =>
-        StepAsync(
+        ResumeAsync(
             session => session.StepOverAsync(threadId, cancellationToken),
             cancellationToken);
 
     public Task<Result<bool>> StepIntoAsync(
         int threadId,
         CancellationToken cancellationToken = default) =>
-        StepAsync(
+        ResumeAsync(
             session => session.StepIntoAsync(threadId, cancellationToken),
             cancellationToken);
 
     public Task<Result<bool>> StepOutAsync(
         int threadId,
         CancellationToken cancellationToken = default) =>
-        StepAsync(
+        ResumeAsync(
             session => session.StepOutAsync(threadId, cancellationToken),
             cancellationToken);
+
+    public Task<Result<bool>> RunToCursorAsync(
+        int threadId,
+        string sourcePath,
+        int line,
+        int? column = null,
+        CancellationToken cancellationToken = default) =>
+        ResumeAsync(
+            session => session.RunToCursorAsync(
+                threadId,
+                sourcePath,
+                line,
+                column,
+                cancellationToken),
+            cancellationToken);
+
+    public Task<Result<bool>> RestartAsync(CancellationToken cancellationToken = default) =>
+        ResumeAsync(
+            session => session.RestartAsync(cancellationToken),
+            cancellationToken);
+
+    public async Task<Result<bool>> StopAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_session is null)
+            {
+                return NoActiveSession<bool>();
+            }
+
+            var stopped = await _session.StopAsync(cancellationToken).ConfigureAwait(false);
+            if (stopped.IsFailure)
+            {
+                return stopped;
+            }
+
+            await DisposeSessionAsync().ConfigureAwait(false);
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
+            return stopped;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     public async Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default)
     {
@@ -220,17 +263,21 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
         }
     }
 
-    private async Task<Result<bool>> StepAsync(
+    private async Task<Result<bool>> ResumeAsync(
         Func<IDebugSession, Task<Result<bool>>> action,
         CancellationToken cancellationToken)
     {
         var result = await WithSessionAsync(action, cancellationToken).ConfigureAwait(false);
+        ClearStoppedThreadOnSuccess(result);
+        return result;
+    }
+
+    private void ClearStoppedThreadOnSuccess(Result<bool> result)
+    {
         if (result.IsSuccess)
         {
             Interlocked.Exchange(ref _stoppedThreadId, 0);
         }
-
-        return result;
     }
 
     private async Task<Result<T>> WithSessionAsync<T>(

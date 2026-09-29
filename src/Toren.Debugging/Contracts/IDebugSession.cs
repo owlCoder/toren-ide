@@ -42,5 +42,16 @@ public interface IDebugSession : IAsyncDisposable
 
     Task<Result<bool>> StepOutAsync(int threadId, CancellationToken cancellationToken = default);
 
+    Task<Result<bool>> RunToCursorAsync(
+        int threadId,
+        string sourcePath,
+        int line,
+        int? column = null,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> RestartAsync(CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> StopAsync(CancellationToken cancellationToken = default);
+
     Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default);
 }

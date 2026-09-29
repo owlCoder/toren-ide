@@ -10,6 +10,7 @@ internal static class DapDebugInspectionParser
     private const string InvalidScopesErrorCode = "debug.session.invalid-scopes";
     private const string InvalidVariablesErrorCode = "debug.session.invalid-variables";
     private const string InvalidEvaluationErrorCode = "debug.session.invalid-evaluation";
+    private const string InvalidGotoTargetsErrorCode = "debug.session.invalid-goto-targets";
 
     public static Result<IReadOnlyList<DebugStackFrame>> ParseStackTrace(string payload)
     {
@@ -144,6 +145,30 @@ internal static class DapDebugInspectionParser
                 ? parsedReference
                 : 0;
         return Result.Success(new DebugEvaluationResult(value!, type, variablesReference));
+    }
+
+    public static Result<int> ParseGotoTargetId(string payload)
+    {
+        using var document = JsonDocument.Parse(payload);
+        if (!TryGetBodyArray(document.RootElement, "targets", out var targetsElement))
+        {
+            return Failure<int>(
+                InvalidGotoTargetsErrorCode,
+                "The debug adapter returned an invalid gotoTargets response.");
+        }
+
+        foreach (var target in targetsElement.EnumerateArray())
+        {
+            if (target.ValueKind == JsonValueKind.Object
+                && TryGetPositiveInt32(target, "id", out var id))
+            {
+                return Result.Success(id);
+            }
+        }
+
+        return Failure<int>(
+            InvalidGotoTargetsErrorCode,
+            "The debug adapter did not return a runnable target for the requested source location.");
     }
 
     private static bool TryGetBodyArray(

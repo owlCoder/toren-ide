@@ -174,6 +174,20 @@ public sealed class DebuggerAttachingTestDebugServiceTests
         public Task<Result<bool>> StepOutAsync(int threadId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success(true));
 
+        public Task<Result<bool>> RunToCursorAsync(
+            int threadId,
+            string sourcePath,
+            int line,
+            int? column = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> RestartAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> StopAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
         public Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default)
         {
             DisconnectCount++;
