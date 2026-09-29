@@ -6,4 +6,5 @@ public sealed record DotNetCommandRequest(
     string? TargetPath = null,
     string? Configuration = null,
     string? TargetFramework = null,
-    bool NoRestore = false);
+    bool NoRestore = false,
+    string? LaunchProfile = null);

@@ -167,6 +167,11 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IStream
             AddOption(arguments, "--framework", request.TargetFramework);
         }
 
+        if (request.Kind == DotNetCommandKind.Run)
+        {
+            AddOption(arguments, "--launch-profile", request.LaunchProfile);
+        }
+
         if (request.NoRestore && request.Kind is DotNetCommandKind.Build
             or DotNetCommandKind.Rebuild
             or DotNetCommandKind.Run
