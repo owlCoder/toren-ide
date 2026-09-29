@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Toren.App.Execution.Models;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Models;
 using Toren.Workspaces.Models;
@@ -26,6 +27,8 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
 
     [ObservableProperty]
     private string _statusText = "No .NET command has run yet.";
+
+    public event EventHandler<WorkspaceCommandCompletedEventArgs>? CommandCompleted;
 
     public ObservableCollection<ExecutionOutputLineViewModel> OutputLines { get; } = new();
 
@@ -94,6 +97,9 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
                 ? $"{displayName} succeeded."
                 : $"{displayName} failed with exit code {result.Value.ExitCode}.";
             AddOutput(StatusText, ExecutionOutputLineKind.Status);
+            CommandCompleted?.Invoke(
+                this,
+                new WorkspaceCommandCompletedEventArgs(workspace, result.Value));
         }
         catch (OperationCanceledException) when (executionCancellation.IsCancellationRequested)
         {
