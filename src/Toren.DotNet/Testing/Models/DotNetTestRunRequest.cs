@@ -4,4 +4,5 @@ public sealed record DotNetTestRunRequest(
     string ProjectPath,
     string? Configuration = null,
     string? TargetFramework = null,
-    string? FullyQualifiedName = null);
+    string? FullyQualifiedName = null,
+    string? RunnerId = null);

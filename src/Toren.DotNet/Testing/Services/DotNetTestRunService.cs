@@ -23,12 +23,13 @@ public sealed class DotNetTestRunService(IStreamingProcessRunner processRunner) 
         var projectPath = Path.GetFullPath(request.ProjectPath);
         var runner = DotNetTestRunnerResolver.Resolve(projectPath);
         if (runner == DotNetTestRunner.MicrosoftTestingPlatform
-            && !string.IsNullOrWhiteSpace(request.FullyQualifiedName))
+            && !string.IsNullOrWhiteSpace(request.FullyQualifiedName)
+            && string.IsNullOrWhiteSpace(request.RunnerId))
         {
             return Task.FromResult(Result.Failure<ProcessResult>(
                 OperationError.Create(
                     "dotnet.test-run.mtp-selection-identity-required",
-                    "Running one Microsoft Testing Platform test requires its MTP test identity; Toren will not substitute a VSTest FullyQualifiedName filter.")));
+                    "Running one Microsoft Testing Platform test requires its discovered MTP test identity.")));
         }
 
         var arguments = new List<string> { "test" };
@@ -56,7 +57,14 @@ public sealed class DotNetTestRunService(IStreamingProcessRunner processRunner) 
             arguments.Add(request.TargetFramework);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.FullyQualifiedName))
+        if (runner == DotNetTestRunner.MicrosoftTestingPlatform
+            && !string.IsNullOrWhiteSpace(request.RunnerId))
+        {
+            arguments.Add("--");
+            arguments.Add("--filter-uid");
+            arguments.Add(request.RunnerId);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.FullyQualifiedName))
         {
             arguments.Add("--filter");
             arguments.Add($"FullyQualifiedName={request.FullyQualifiedName}");

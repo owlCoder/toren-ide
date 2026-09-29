@@ -1,8 +1,10 @@
+using System.Text.Json;
 using Toren.Core.Execution.Contracts;
 using Toren.Core.Execution.Models;
 using Toren.Core.Results;
 using Toren.DotNet.Testing.Contracts;
 using Toren.DotNet.Testing.Models;
+using Toren.DotNet.Testing.Parsers;
 
 namespace Toren.DotNet.Testing.Services;
 
@@ -42,8 +44,20 @@ public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : I
                 OperationError.Create("dotnet.test-discovery.failed", message));
         }
 
-        return Result.Success<IReadOnlyList<DotNetTestCase>>(
-            DotNetTestListParser.Parse(result.Value.StandardOutput));
+        try
+        {
+            return Result.Success<IReadOnlyList<DotNetTestCase>>(
+                runner == DotNetTestRunner.MicrosoftTestingPlatform
+                    ? DotNetMtpTestListParser.Parse(result.Value.StandardOutput)
+                    : DotNetTestListParser.Parse(result.Value.StandardOutput));
+        }
+        catch (JsonException exception) when (runner == DotNetTestRunner.MicrosoftTestingPlatform)
+        {
+            return Result.Failure<IReadOnlyList<DotNetTestCase>>(
+                OperationError.Create(
+                    "dotnet.test-discovery.mtp-json-invalid",
+                    $"Microsoft Testing Platform structured discovery failed: {exception.Message}"));
+        }
     }
 
     private static List<string> CreateArguments(
@@ -84,6 +98,7 @@ public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : I
             arguments.Add("--no-progress");
             arguments.Add("--");
             arguments.Add("--list-tests");
+            arguments.Add("json");
         }
 
         return arguments;

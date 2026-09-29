@@ -53,6 +53,10 @@ jobs:
       - name: MSTest compatibility
         run: dotnet test .github/test-fixtures/mstest-vstest/MSTestFixture.csproj --configuration Release --verbosity minimal
 
+      - name: Microsoft Testing Platform structured discovery
+        working-directory: .github/test-fixtures/mstest-mtp
+        run: dotnet test --project MtpFixture.csproj --configuration Release --no-ansi --no-progress -- --list-tests json
+
       - name: Microsoft Testing Platform compatibility
         working-directory: .github/test-fixtures/mstest-mtp
         run: dotnet test --project MtpFixture.csproj --configuration Release --no-ansi --no-progress

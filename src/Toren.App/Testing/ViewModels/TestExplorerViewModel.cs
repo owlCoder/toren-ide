@@ -145,7 +145,8 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
                 .RunAsync(
                     new DotNetTestRunRequest(
                         project.ProjectPath,
-                        FullyQualifiedName: test.FullyQualifiedName),
+                        FullyQualifiedName: test.FullyQualifiedName,
+                        RunnerId: test.RunnerId),
                     line => ReportOutput(line, synchronizationContext),
                     runCancellation.Token)
                 .ConfigureAwait(true);
