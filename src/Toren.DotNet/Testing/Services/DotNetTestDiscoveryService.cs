@@ -46,7 +46,7 @@ public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : I
             DotNetTestListParser.Parse(result.Value.StandardOutput));
     }
 
-    private static IReadOnlyList<string> CreateArguments(
+    private static List<string> CreateArguments(
         DotNetTestDiscoveryRequest request,
         string projectPath,
         DotNetTestRunner runner)
