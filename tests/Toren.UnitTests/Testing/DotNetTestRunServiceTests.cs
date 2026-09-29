@@ -23,13 +23,16 @@ public sealed class DotNetTestRunServiceTests
             lines.Add);
 
         Assert.That(result.IsSuccess, Is.True);
+        var processResult = result.Value;
+        var request = runner.Request;
+        Assert.That(processResult, Is.Not.Null);
+        Assert.That(request, Is.Not.Null);
         Assert.Multiple(() =>
         {
-            Assert.That(result.Value.ExitCode, Is.EqualTo(1));
-            Assert.That(runner.Request, Is.Not.Null);
-            Assert.That(runner.Request!.FileName, Is.EqualTo("dotnet"));
+            Assert.That(processResult!.ExitCode, Is.EqualTo(1));
+            Assert.That(request!.FileName, Is.EqualTo("dotnet"));
             Assert.That(
-                runner.Request.Arguments,
+                request.Arguments,
                 Is.EqualTo(new[]
                 {
                     "test",
@@ -39,7 +42,7 @@ public sealed class DotNetTestRunServiceTests
                     "--framework",
                     "net10.0",
                 }));
-            Assert.That(runner.Request.WorkingDirectory, Is.EqualTo(Path.GetDirectoryName(projectPath)));
+            Assert.That(request.WorkingDirectory, Is.EqualTo(Path.GetDirectoryName(projectPath)));
             Assert.That(lines, Has.Count.EqualTo(2));
             Assert.That(lines[0].Channel, Is.EqualTo(ProcessOutputChannel.StandardOutput));
             Assert.That(lines[1].Channel, Is.EqualTo(ProcessOutputChannel.StandardError));
@@ -60,8 +63,10 @@ public sealed class DotNetTestRunServiceTests
             static _ => { });
 
         Assert.That(result.IsSuccess, Is.True);
+        var request = runner.Request;
+        Assert.That(request, Is.Not.Null);
         Assert.That(
-            runner.Request!.Arguments,
+            request!.Arguments,
             Is.EqualTo(new[]
             {
                 "test",
