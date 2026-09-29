@@ -10,11 +10,10 @@ public sealed class DapMessageFramingServiceTests
     [Test]
     public async Task WritePayloadUsesUtf8ByteLength()
     {
-        var service = new DapMessageFramingService();
         await using var stream = new MemoryStream();
         const string payload = "{\"message\":\"Здраво\"}";
 
-        await service.WritePayloadAsync(stream, payload);
+        await DapMessageFramingService.WritePayloadAsync(stream, payload);
 
         var bytes = stream.ToArray();
         var text = Encoding.UTF8.GetString(bytes);
@@ -29,9 +28,8 @@ public sealed class DapMessageFramingServiceTests
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
         var message = Encoding.UTF8.GetBytes($"Content-Length: {payloadBytes.Length}\r\n\r\n{payload}");
         await using var stream = new ChunkedReadStream(message, 3);
-        var service = new DapMessageFramingService();
 
-        var result = await service.ReadPayloadAsync(stream);
+        var result = await DapMessageFramingService.ReadPayloadAsync(stream);
 
         Assert.That(result, Is.EqualTo(payload));
     }
@@ -39,21 +37,19 @@ public sealed class DapMessageFramingServiceTests
     [Test]
     public async Task ReadPayloadReturnsNullAtCleanEndOfStream()
     {
-        var service = new DapMessageFramingService();
         await using var stream = new MemoryStream();
 
-        Assert.That(await service.ReadPayloadAsync(stream), Is.Null);
+        Assert.That(await DapMessageFramingService.ReadPayloadAsync(stream), Is.Null);
     }
 
     [Test]
     public void ReadPayloadRejectsMissingContentLength()
     {
         var bytes = Encoding.ASCII.GetBytes("X-Test: value\r\n\r\n{}");
-        var service = new DapMessageFramingService();
         using var stream = new MemoryStream(bytes);
 
         Assert.That(
-            async () => await service.ReadPayloadAsync(stream),
+            async () => await DapMessageFramingService.ReadPayloadAsync(stream),
             Throws.TypeOf<InvalidDataException>());
     }
 
