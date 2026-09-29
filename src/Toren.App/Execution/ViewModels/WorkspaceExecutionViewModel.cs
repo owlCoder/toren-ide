@@ -126,14 +126,24 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         IsRunning = true;
         var workspace = _workspace;
         var displayName = kind.ToString();
+        var synchronizationContext = SynchronizationContext.Current;
         AddOutput($"[{displayName}] {workspace.DisplayName}", ExecutionOutputLineKind.Command);
         StatusText = $"{displayName} running…";
 
         try
         {
-            var result = await _commandService
-                .ExecuteAsync(CreateRequest(kind, workspace), executionCancellation.Token)
-                .ConfigureAwait(true);
+            var request = CreateRequest(kind, workspace);
+            var isStreaming = _commandService is IStreamingDotNetCommandService;
+            var result = isStreaming
+                ? await ((IStreamingDotNetCommandService)_commandService)
+                    .ExecuteStreamingAsync(
+                        request,
+                        line => ReportStreamingOutput(line, synchronizationContext),
+                        executionCancellation.Token)
+                    .ConfigureAwait(true)
+                : await _commandService
+                    .ExecuteAsync(request, executionCancellation.Token)
+                    .ConfigureAwait(true);
 
             if (!result.IsSuccess)
             {
@@ -143,8 +153,11 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
                 return;
             }
 
-            AddLines(result.Value.StandardOutput, ExecutionOutputLineKind.StandardOutput);
-            AddLines(result.Value.StandardError, ExecutionOutputLineKind.StandardError);
+            if (!isStreaming)
+            {
+                AddLines(result.Value.StandardOutput, ExecutionOutputLineKind.StandardOutput);
+                AddLines(result.Value.StandardError, ExecutionOutputLineKind.StandardError);
+            }
 
             StatusText = result.Value.Succeeded
                 ? $"{displayName} succeeded."
@@ -266,6 +279,29 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         OnPropertyChanged(nameof(TargetFramework));
     }
 
+    private void ReportStreamingOutput(
+        DotNetCommandOutputLine line,
+        SynchronizationContext? synchronizationContext)
+    {
+        var kind = line.Stream == DotNetCommandOutputStream.StandardError
+            ? ExecutionOutputLineKind.StandardError
+            : ExecutionOutputLineKind.StandardOutput;
+        if (synchronizationContext is null
+            || ReferenceEquals(SynchronizationContext.Current, synchronizationContext))
+        {
+            AddOutput(line.Text, kind);
+            return;
+        }
+
+        synchronizationContext.Send(
+            static state =>
+            {
+                var report = (StreamingOutputReport)state!;
+                report.ViewModel.AddOutput(report.Text, report.Kind);
+            },
+            new StreamingOutputReport(this, line.Text, kind));
+    }
+
     private void AddLines(string output, ExecutionOutputLineKind kind)
     {
         if (string.IsNullOrWhiteSpace(output))
@@ -288,4 +324,9 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         OnPropertyChanged(nameof(HasOutput));
         OnPropertyChanged(nameof(IsOutputEmpty));
     }
+
+    private sealed record StreamingOutputReport(
+        WorkspaceExecutionViewModel ViewModel,
+        string Text,
+        ExecutionOutputLineKind Kind);
 }

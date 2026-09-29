@@ -7,7 +7,7 @@ using Toren.DotNet.Execution.Models;
 
 namespace Toren.DotNet.Execution.Services;
 
-public sealed class DotNetCommandService(IProcessRunner processRunner) : IDotNetCommandService
+public sealed class DotNetCommandService(IProcessRunner processRunner) : IStreamingDotNetCommandService
 {
     private readonly IProcessRunner _processRunner = processRunner
         ?? throw new ArgumentNullException(nameof(processRunner));
@@ -16,36 +16,115 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IDotNet
         DotNetCommandRequest request,
         CancellationToken cancellationToken = default)
     {
+        var processRequest = CreateProcessRequest(request, cancellationToken);
+        if (!processRequest.IsSuccess)
+        {
+            return Result.Failure<DotNetCommandResult>(processRequest.Error);
+        }
+
+        var execution = await _processRunner
+            .RunAsync(processRequest.Value, cancellationToken)
+            .ConfigureAwait(false);
+        return MapResult(request.Kind, execution);
+    }
+
+    public async Task<Result<DotNetCommandResult>> ExecuteStreamingAsync(
+        DotNetCommandRequest request,
+        Action<DotNetCommandOutputLine> onOutput,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(onOutput);
+        var processRequest = CreateProcessRequest(request, cancellationToken);
+        if (!processRequest.IsSuccess)
+        {
+            return Result.Failure<DotNetCommandResult>(processRequest.Error);
+        }
+
+        if (_processRunner is not IStreamingProcessRunner streamingProcessRunner)
+        {
+            var bufferedResult = await ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+            if (bufferedResult.IsSuccess)
+            {
+                ReportBufferedOutput(bufferedResult.Value, onOutput);
+            }
+
+            return bufferedResult;
+        }
+
+        var execution = await streamingProcessRunner
+            .RunStreamingAsync(
+                processRequest.Value,
+                line => onOutput(new DotNetCommandOutputLine(
+                    line.Stream == ProcessOutputStream.StandardError
+                        ? DotNetCommandOutputStream.StandardError
+                        : DotNetCommandOutputStream.StandardOutput,
+                    line.Text)),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return MapResult(request.Kind, execution);
+    }
+
+    private static Result<ProcessRequest> CreateProcessRequest(
+        DotNetCommandRequest request,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.WorkingDirectory);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!Directory.Exists(request.WorkingDirectory))
-        {
-            return Result.Failure<DotNetCommandResult>(
-                DotNetCommandErrors.WorkingDirectoryUnavailable(request.WorkingDirectory));
-        }
+        return !Directory.Exists(request.WorkingDirectory)
+            ? Result.Failure<ProcessRequest>(
+                DotNetCommandErrors.WorkingDirectoryUnavailable(request.WorkingDirectory))
+            : Result.Success(
+                new ProcessRequest(
+                    "dotnet",
+                    CreateArguments(request),
+                    request.WorkingDirectory));
+    }
 
-        var processRequest = new ProcessRequest(
-            "dotnet",
-            CreateArguments(request),
-            request.WorkingDirectory);
-        var execution = await _processRunner
-            .RunAsync(processRequest, cancellationToken)
-            .ConfigureAwait(false);
-
+    private static Result<DotNetCommandResult> MapResult(
+        DotNetCommandKind kind,
+        Result<ProcessResult> execution)
+    {
         if (!execution.IsSuccess)
         {
             return Result.Failure<DotNetCommandResult>(
-                DotNetCommandErrors.ExecutionUnavailable(request.Kind, execution.Error.Message));
+                DotNetCommandErrors.ExecutionUnavailable(kind, execution.Error.Message));
         }
 
         return Result.Success(
             new DotNetCommandResult(
-                request.Kind,
+                kind,
                 execution.Value.ExitCode,
                 execution.Value.StandardOutput,
                 execution.Value.StandardError));
+    }
+
+    private static void ReportBufferedOutput(
+        DotNetCommandResult result,
+        Action<DotNetCommandOutputLine> onOutput)
+    {
+        ReportLines(result.StandardOutput, DotNetCommandOutputStream.StandardOutput, onOutput);
+        ReportLines(result.StandardError, DotNetCommandOutputStream.StandardError, onOutput);
+    }
+
+    private static void ReportLines(
+        string output,
+        DotNetCommandOutputStream stream,
+        Action<DotNetCommandOutputLine> onOutput)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return;
+        }
+
+        foreach (var line in output.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                onOutput(new DotNetCommandOutputLine(stream, line));
+            }
+        }
     }
 
     private static List<string> CreateArguments(DotNetCommandRequest request)

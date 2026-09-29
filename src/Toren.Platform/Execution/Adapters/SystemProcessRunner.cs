@@ -6,7 +6,7 @@ using Toren.Core.Results;
 
 namespace Toren.Platform.Execution.Adapters;
 
-public sealed class SystemProcessRunner : IProcessRunner
+public sealed class SystemProcessRunner : IStreamingProcessRunner
 {
     private const string ProcessStartErrorCode = "process.start.failed";
 
@@ -17,24 +17,13 @@ public sealed class SystemProcessRunner : IProcessRunner
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.FileName);
 
-        var startInfo = CreateStartInfo(request);
-        using var process = new Process { StartInfo = startInfo };
+        var processStart = StartProcess(request);
+        if (!processStart.IsSuccess)
+        {
+            return Result.Failure<ProcessResult>(processStart.Error);
+        }
 
-        try
-        {
-            if (!process.Start())
-            {
-                return Result.Failure<ProcessResult>(
-                    OperationError.Create(ProcessStartErrorCode, $"Failed to start process '{request.FileName}'."));
-            }
-        }
-        catch (Win32Exception exception)
-        {
-            return Result.Failure<ProcessResult>(
-                OperationError.Create(
-                    ProcessStartErrorCode,
-                    $"Unable to start process '{request.FileName}': {exception.Message}"));
-        }
+        using var process = processStart.Value;
 
         // Output readers intentionally use CancellationToken.None. Cancellation is handled by
         // WaitForExitAsync below, which terminates the full process tree before the method exits.
@@ -57,6 +46,106 @@ public sealed class SystemProcessRunner : IProcessRunner
             await standardError.ConfigureAwait(false));
 
         return Result.Success(processResult);
+    }
+
+    public async Task<Result<ProcessResult>> RunStreamingAsync(
+        ProcessRequest request,
+        Action<ProcessOutputLine> onOutput,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.FileName);
+        ArgumentNullException.ThrowIfNull(onOutput);
+
+        var processStart = StartProcess(request);
+        if (!processStart.IsSuccess)
+        {
+            return Result.Failure<ProcessResult>(processStart.Error);
+        }
+
+        using var process = processStart.Value;
+        var standardOutput = ReadLinesAsync(
+            process.StandardOutput,
+            ProcessOutputStream.StandardOutput,
+            onOutput);
+        var standardError = ReadLinesAsync(
+            process.StandardError,
+            ProcessOutputStream.StandardError,
+            onOutput);
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKill(process);
+            await ObserveReadersAfterCancellationAsync(standardOutput, standardError).ConfigureAwait(false);
+            throw;
+        }
+
+        var processResult = new ProcessResult(
+            process.ExitCode,
+            await standardOutput.ConfigureAwait(false),
+            await standardError.ConfigureAwait(false));
+        return Result.Success(processResult);
+    }
+
+    private static Result<Process> StartProcess(ProcessRequest request)
+    {
+        var process = new Process { StartInfo = CreateStartInfo(request) };
+        try
+        {
+            if (process.Start())
+            {
+                return Result.Success(process);
+            }
+
+            process.Dispose();
+            return Result.Failure<Process>(
+                OperationError.Create(ProcessStartErrorCode, $"Failed to start process '{request.FileName}'."));
+        }
+        catch (Win32Exception exception)
+        {
+            process.Dispose();
+            return Result.Failure<Process>(
+                OperationError.Create(
+                    ProcessStartErrorCode,
+                    $"Unable to start process '{request.FileName}': {exception.Message}"));
+        }
+    }
+
+    private static async Task<string> ReadLinesAsync(
+        StreamReader reader,
+        ProcessOutputStream stream,
+        Action<ProcessOutputLine> onOutput)
+    {
+        var lines = new List<string>();
+        while (await reader.ReadLineAsync(CancellationToken.None).ConfigureAwait(false) is { } line)
+        {
+            lines.Add(line);
+            onOutput(new ProcessOutputLine(stream, line));
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static async Task ObserveReadersAfterCancellationAsync(
+        Task<string> standardOutput,
+        Task<string> standardError)
+    {
+        try
+        {
+            await Task.WhenAll(standardOutput, standardError).ConfigureAwait(false);
+        }
+        catch (IOException)
+        {
+            // The killed process can close redirected pipes while a reader is completing.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The killed process can dispose redirected streams while a reader is completing.
+        }
     }
 
     private static ProcessStartInfo CreateStartInfo(ProcessRequest request)
