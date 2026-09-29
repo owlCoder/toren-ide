@@ -11,7 +11,7 @@ internal sealed class TerminalController
 {
     private readonly Window _window;
     private readonly MainWindowViewModel _shell;
-    private readonly TerminalViewModel _viewModel;
+    private readonly TerminalHostViewModel _viewModel;
     private readonly TabControl _toolTabs;
     private readonly TabItem _terminalTab;
     private bool _detached;
@@ -19,17 +19,17 @@ internal sealed class TerminalController
     private TerminalController(
         Window window,
         MainWindowViewModel shell,
-        TerminalViewModel viewModel,
+        TerminalViewModel initialSession,
         TabControl toolTabs)
     {
         _window = window;
         _shell = shell;
-        _viewModel = viewModel;
+        _viewModel = new TerminalHostViewModel(initialSession);
         _toolTabs = toolTabs;
         _terminalTab = new TabItem
         {
             Header = "Terminal",
-            Content = new TerminalPanel { DataContext = viewModel },
+            Content = new TerminalPanel { DataContext = _viewModel },
         };
         _toolTabs.Items.Add(_terminalTab);
 

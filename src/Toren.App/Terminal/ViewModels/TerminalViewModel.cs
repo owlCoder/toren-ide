@@ -7,7 +7,8 @@ namespace Toren.App.Terminal.ViewModels;
 
 public sealed partial class TerminalViewModel(
     IInteractiveProcessRunner processRunner,
-    INativeShellProvider shellProvider) : ObservableObject, IAsyncDisposable
+    INativeShellProvider shellProvider,
+    string title = "Terminal 1") : ObservableObject, IAsyncDisposable
 {
     private readonly IInteractiveProcessRunner _processRunner = processRunner
         ?? throw new ArgumentNullException(nameof(processRunner));
@@ -15,6 +16,8 @@ public sealed partial class TerminalViewModel(
         ?? throw new ArgumentNullException(nameof(shellProvider));
     private IInteractiveProcessSession? _session;
     private bool _disposed;
+
+    public string Title { get; } = string.IsNullOrWhiteSpace(title) ? "Terminal" : title;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSubmit))]
@@ -41,6 +44,9 @@ public sealed partial class TerminalViewModel(
     public bool CanSubmit => IsRunning && !string.IsNullOrWhiteSpace(InputText);
 
     public bool HasOutput => Lines.Count > 0;
+
+    internal TerminalViewModel CreateSibling(string title) =>
+        new(_processRunner, _shellProvider, title);
 
     public void SetWorkingDirectory(string workingDirectory)
     {

@@ -1,30 +1,49 @@
 <UserControl x:Class="Toren.App.Views.Terminal.TerminalPanel"
              x:ClassModifier="internal"
-             x:DataType="terminalvm:TerminalViewModel"
+             x:DataType="terminalvm:TerminalHostViewModel"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:terminalvm="clr-namespace:Toren.App.Terminal.ViewModels">
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
     <Border Grid.Row="0" Padding="10,6"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-        <StackPanel Grid.Column="0" Spacing="2">
-          <TextBlock Text="TERMINAL" FontSize="10" FontWeight="SemiBold" />
-          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="10.5"
-                     TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="muted" Text="{Binding WorkingDirectory}" FontSize="9.5"
-                     TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Start"
-                IsEnabled="{Binding CanStart}" Click="Start_OnClick" />
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Stop"
-                IsEnabled="{Binding CanStop}" Click="Stop_OnClick" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Clear"
-                IsEnabled="{Binding HasOutput}" Click="Clear_OnClick" />
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+        <TextBlock Grid.Column="0" Text="TERMINAL" FontSize="10" FontWeight="SemiBold"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="toolbar-button" Content="New"
+                Click="NewSession_OnClick" />
+        <Button Grid.Column="2" Classes="toolbar-button" Content="Close"
+                IsEnabled="{Binding CanCloseSession}" Click="CloseSession_OnClick" />
       </Grid>
     </Border>
 
-    <ListBox Grid.Row="1" ItemsSource="{Binding Lines}" BorderThickness="0">
+    <Border Grid.Row="1" Padding="10,6"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="180,*,Auto,Auto,Auto" ColumnSpacing="6">
+        <ComboBox Grid.Column="0" ItemsSource="{Binding Sessions}"
+                  SelectedIndex="{Binding SelectedSessionIndex, Mode=TwoWay}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="terminalvm:TerminalViewModel">
+              <TextBlock Text="{Binding Title}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+          <TextBlock Classes="muted" Text="{Binding SelectedSession.StatusText}" FontSize="10.5"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="muted" Text="{Binding SelectedSession.WorkingDirectory}" FontSize="9.5"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="toolbar-button" Content="Start"
+                IsEnabled="{Binding SelectedSession.CanStart}" Click="Start_OnClick" />
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Stop"
+                IsEnabled="{Binding SelectedSession.CanStop}" Click="Stop_OnClick" />
+        <Button Grid.Column="4" Classes="toolbar-button" Content="Clear"
+                IsEnabled="{Binding SelectedSession.HasOutput}" Click="Clear_OnClick" />
+      </Grid>
+    </Border>
+
+    <ListBox Grid.Row="2" ItemsSource="{Binding SelectedSession.Lines}" BorderThickness="0">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="terminalvm:TerminalLineViewModel">
           <TextBlock Margin="10,2" Text="{Binding Text}" FontSize="10.5"
@@ -34,16 +53,16 @@
       </ListBox.ItemTemplate>
     </ListBox>
 
-    <Grid Grid.Row="2" Margin="10,7" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
+    <Grid Grid.Row="3" Margin="10,7" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
       <TextBlock Grid.Column="0" Text=">" FontSize="11"
                  FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                  VerticalAlignment="Center" />
       <TextBox Grid.Column="1" PlaceholderText="Enter command"
-               Text="{Binding InputText, Mode=TwoWay}"
-               IsEnabled="{Binding IsRunning}" KeyDown="Command_OnKeyDown"
+               Text="{Binding SelectedSession.InputText, Mode=TwoWay}"
+               IsEnabled="{Binding SelectedSession.IsRunning}" KeyDown="Command_OnKeyDown"
                FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
       <Button Grid.Column="2" Classes="toolbar-button" Content="Run"
-              IsEnabled="{Binding CanSubmit}" Click="Submit_OnClick" />
+              IsEnabled="{Binding SelectedSession.CanSubmit}" Click="Submit_OnClick" />
     </Grid>
   </Grid>
 </UserControl>
