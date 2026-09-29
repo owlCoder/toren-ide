@@ -7,7 +7,7 @@ using Toren.App.Views.Terminal;
 
 namespace Toren.App.Terminal.Services;
 
-internal sealed class TerminalController
+internal sealed class TerminalController : IAsyncDisposable
 {
     private readonly Window _window;
     private readonly MainWindowViewModel _shell;
@@ -59,6 +59,21 @@ internal sealed class TerminalController
         _ = new TerminalController(window, shell, viewModel, toolTabs);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        if (_detached)
+        {
+            return;
+        }
+
+        _detached = true;
+        _shell.PropertyChanged -= Shell_OnPropertyChanged;
+        _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
+        _window.Closed -= Window_OnClosed;
+        _toolTabs.Items.Remove(_terminalTab);
+        await _viewModel.DisposeAsync().ConfigureAwait(true);
+    }
+
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         if (eventArgs.PropertyName == nameof(MainWindowViewModel.WorkspacePath))
@@ -92,21 +107,6 @@ internal sealed class TerminalController
 
     private async void Window_OnClosed(object? sender, EventArgs eventArgs)
     {
-        await DetachAsync().ConfigureAwait(true);
-    }
-
-    private async Task DetachAsync()
-    {
-        if (_detached)
-        {
-            return;
-        }
-
-        _detached = true;
-        _shell.PropertyChanged -= Shell_OnPropertyChanged;
-        _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
-        _window.Closed -= Window_OnClosed;
-        _toolTabs.Items.Remove(_terminalTab);
-        await _viewModel.DisposeAsync().ConfigureAwait(true);
+        await DisposeAsync().ConfigureAwait(true);
     }
 }
