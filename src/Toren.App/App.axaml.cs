@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Toren.App.Debugging.Services;
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
@@ -17,6 +18,9 @@ using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
 using Toren.Core.Navigation.Contracts;
+using Toren.Debugging.Adapters;
+using Toren.Debugging.Contracts;
+using Toren.Debugging.Services;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
@@ -59,7 +63,14 @@ public sealed partial class App : Application
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
             IDotNetTestRunService dotNetTestRunService = new DotNetTestRunService(processRunner);
-            IDotNetTestDebugService dotNetTestDebugService = new DotNetTestDebugService(processRunner);
+            IDebugSessionService debugSessionService = new DapDebugSessionService(
+                new NetCoreDbgAdapterLocator(),
+                new StdioDebugAdapterTransportFactory(),
+                new DapDebugAdapterClientFactory());
+            var debugSessionCoordinator = new DebugSessionCoordinator(debugSessionService);
+            IDotNetTestDebugService dotNetTestDebugService = new DebuggerAttachingTestDebugService(
+                new DotNetTestDebugService(processRunner),
+                debugSessionCoordinator);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -213,6 +224,8 @@ public sealed partial class App : Application
                 documentHost,
                 workspaceDiagnosticsCoordinator);
             var mainWindow = new MainWindow(viewModel);
+            mainWindow.Closed += async (_, _) =>
+                await debugSessionCoordinator.DisposeAsync().ConfigureAwait(true);
             var workspaceExecution = new WorkspaceExecutionViewModel(dotNetCommandService);
             WorkspaceExecutionController.Attach(
                 mainWindow,
