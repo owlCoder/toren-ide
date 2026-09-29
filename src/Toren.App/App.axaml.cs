@@ -61,6 +61,8 @@ public sealed partial class App : Application
             var processRunner = new SystemProcessRunner();
             IInteractiveProcessRunner interactiveProcessRunner = new SystemInteractiveProcessRunner();
             INativeShellProvider nativeShellProvider = new SystemNativeShellProvider();
+            Toren.Git.Contracts.IGitRepositoryService gitRepositoryService =
+                new Toren.Git.Services.GitRepositoryService(processRunner);
             IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
@@ -267,6 +269,11 @@ public sealed partial class App : Application
                 mainWindow,
                 viewModel,
                 new TerminalViewModel(interactiveProcessRunner, nativeShellProvider));
+            Toren.App.SourceControl.Services.SourceControlController.Attach(
+                mainWindow,
+                viewModel,
+                new Toren.App.SourceControl.ViewModels.SourceControlViewModel(gitRepositoryService),
+                viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,
