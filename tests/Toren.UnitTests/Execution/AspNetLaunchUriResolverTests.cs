@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Toren.App.Execution.Contracts;
 using Toren.App.Execution.Services;
 using Toren.DotNet.Execution.Models;
 
@@ -11,7 +10,7 @@ public sealed class AspNetLaunchUriResolverTests
     [Test]
     public void ResolvesLaunchUrlFromListeningAddress()
     {
-        IAspNetLaunchUriResolver resolver = new AspNetLaunchUriResolver();
+        var resolver = new AspNetLaunchUriResolver();
         var profile = CreateProfile("swagger");
 
         var uri = resolver.Resolve(profile, "info: Microsoft.Hosting.Lifetime[14] Now listening on: https://localhost:7240");
