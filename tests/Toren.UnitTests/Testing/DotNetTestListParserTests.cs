@@ -29,6 +29,32 @@ public sealed class DotNetTestListParserTests
         });
     }
 
+    [TestCase(
+        "NUnit",
+        "Sample.Tests.CalculatorTests.Adds_numbers")]
+    [TestCase(
+        "xUnit",
+        "Sample.Tests.CalculatorTests.Adds_numbers(value: 42)")]
+    [TestCase(
+        "MSTest",
+        "Sample.Tests.CalculatorTests.Adds_numbers (42)")]
+    public void ParsesRepresentativeVSTestDiscoveryForSupportedFrameworks(
+        string framework,
+        string discoveredName)
+    {
+        var output = $"""
+            Test run for {framework}.Tests.dll (.NETCoreApp,Version=v10.0)
+            The following Tests are available:
+                {discoveredName}
+            Total tests: 1
+            """;
+
+        var tests = DotNetTestListParser.Parse(output);
+
+        Assert.That(tests, Has.Count.EqualTo(1));
+        Assert.That(tests[0].FullyQualifiedName, Is.EqualTo(discoveredName));
+    }
+
     [Test]
     public void ReturnsEmptyWhenNoListHeaderExists()
     {

@@ -71,13 +71,17 @@
                   <ItemsControl ItemsSource="{Binding Tests}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="dotnettests:DotNetTestCase">
-                        <Grid Margin="12,2,0,2" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <Grid Margin="12,2,0,2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                           <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
                                      FontSize="10.5"
                                      TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding FullyQualifiedName}" />
                           <Button Grid.Column="1" Classes="toolbar-button"
                                   Content="Run" Click="RunTest_OnClick"
+                                  Padding="6,1" FontSize="9.5" />
+                          <Button Grid.Column="2" Classes="toolbar-button"
+                                  Content="Debug" Click="DebugTest_OnClick"
+                                  ToolTip.Tip="Start the selected test and wait for debugger attach"
                                   Padding="6,1" FontSize="9.5" />
                         </Grid>
                       </DataTemplate>

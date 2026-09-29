@@ -59,6 +59,7 @@ public sealed partial class App : Application
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
             IDotNetTestRunService dotNetTestRunService = new DotNetTestRunService(processRunner);
+            IDotNetTestDebugService dotNetTestDebugService = new DotNetTestDebugService(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -236,7 +237,7 @@ public sealed partial class App : Application
                 viewModel,
                 workspaceClassifier,
                 workspaceTestDiscoveryService,
-                new TestExplorerViewModel(dotNetTestRunService),
+                new TestExplorerViewModel(dotNetTestRunService, dotNetTestDebugService),
                 viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,

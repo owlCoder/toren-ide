@@ -37,24 +37,24 @@ internal sealed partial class TestExplorerPanel : UserControl
 
     private async void RunTest_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not Button { DataContext: DotNetTestCase test } button
+        if (!TryGetTestContext(sender, out var project, out var test)
             || ViewModel is not { } viewModel)
         {
             return;
         }
 
-        var project = button
-            .GetVisualAncestors()
-            .OfType<Control>()
-            .Select(static control => control.DataContext)
-            .OfType<WorkspaceTestProjectDiscovery>()
-            .FirstOrDefault();
-        if (project is null)
+        await viewModel.RunTestAsync(project, test).ConfigureAwait(true);
+    }
+
+    private async void DebugTest_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (!TryGetTestContext(sender, out var project, out var test)
+            || ViewModel is not { } viewModel)
         {
             return;
         }
 
-        await viewModel.RunTestAsync(project, test).ConfigureAwait(true);
+        await viewModel.DebugTestAsync(project, test).ConfigureAwait(true);
     }
 
     private async void TestOutputList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
@@ -74,5 +74,33 @@ internal sealed partial class TestExplorerPanel : UserControl
     private void ClearOutput_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         ViewModel?.ClearOutput();
+    }
+
+    private static bool TryGetTestContext(
+        object? sender,
+        out WorkspaceTestProjectDiscovery project,
+        out DotNetTestCase test)
+    {
+        project = null!;
+        test = null!;
+        if (sender is not Button { DataContext: DotNetTestCase selectedTest } button)
+        {
+            return false;
+        }
+
+        var selectedProject = button
+            .GetVisualAncestors()
+            .OfType<Control>()
+            .Select(static control => control.DataContext)
+            .OfType<WorkspaceTestProjectDiscovery>()
+            .FirstOrDefault();
+        if (selectedProject is null)
+        {
+            return false;
+        }
+
+        project = selectedProject;
+        test = selectedTest;
+        return true;
     }
 }
