@@ -76,7 +76,8 @@ public sealed class SourceControlViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(service.StageRequests, Is.EqualTo(new[] { "notes.txt" }));
+            Assert.That(service.StageRequests, Has.Count.EqualTo(1));
+            Assert.That(service.StageRequests[0], Is.EqualTo("notes.txt"));
             Assert.That(service.StatusRequestCount, Is.EqualTo(2));
         });
     }
@@ -99,7 +100,8 @@ public sealed class SourceControlViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(service.UnstageRequests, Is.EqualTo(new[] { "src/Program.cs" }));
+            Assert.That(service.UnstageRequests, Has.Count.EqualTo(1));
+            Assert.That(service.UnstageRequests[0], Is.EqualTo("src/Program.cs"));
             Assert.That(service.StatusRequestCount, Is.EqualTo(2));
         });
     }
@@ -126,7 +128,8 @@ public sealed class SourceControlViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(service.CommitMessages, Is.EqualTo(new[] { "Ship source control actions" }));
+            Assert.That(service.CommitMessages, Has.Count.EqualTo(1));
+            Assert.That(service.CommitMessages[0], Is.EqualTo("Ship source control actions"));
             Assert.That(service.StatusRequestCount, Is.EqualTo(2));
             Assert.That(viewModel.CommitMessage, Is.Empty);
         });

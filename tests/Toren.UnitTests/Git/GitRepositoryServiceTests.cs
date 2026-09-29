@@ -66,7 +66,9 @@ public sealed class GitRepositoryServiceTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(runner.Requests, Has.Count.EqualTo(1));
-            Assert.That(runner.Requests[0].Arguments.TakeLast(3), Is.EqualTo(new[] { "add", "--", "-odd name.cs" }));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(3)),
+                Is.EqualTo("add\u001F--\u001F-odd name.cs"));
         });
     }
 
@@ -82,8 +84,8 @@ public sealed class GitRepositoryServiceTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(
-                runner.Requests[0].Arguments.TakeLast(4),
-                Is.EqualTo(new[] { "restore", "--staged", "--", "src/Program.cs" }));
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(4)),
+                Is.EqualTo("restore\u001F--staged\u001F--\u001Fsrc/Program.cs"));
         });
     }
 
@@ -99,8 +101,8 @@ public sealed class GitRepositoryServiceTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(
-                runner.Requests[0].Arguments.TakeLast(3),
-                Is.EqualTo(new[] { "commit", "--message", "Add Git actions" }));
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(3)),
+                Is.EqualTo("commit\u001F--message\u001FAdd Git actions"));
         });
     }
 
