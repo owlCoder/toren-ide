@@ -15,6 +15,7 @@ using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
+using Toren.DotNet.Execution.Adapters;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Services;
 using Toren.Language.CSharp.Contracts;
@@ -47,6 +48,7 @@ public sealed partial class App : Application
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
+            IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -203,6 +205,7 @@ public sealed partial class App : Application
                 viewModel,
                 workspaceClassifier,
                 workspaceExecutionTargetService,
+                dotNetLaunchProfileProvider,
                 workspaceExecution);
             WorkspaceExecutionDiagnosticsController.Attach(
                 mainWindow,

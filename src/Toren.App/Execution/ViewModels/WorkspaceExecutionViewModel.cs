@@ -31,11 +31,17 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRun))]
+    [NotifyPropertyChangedFor(nameof(SelectedRunTarget))]
     private int _selectedRunTargetIndex = -1;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TargetFramework))]
     private int _selectedTargetFrameworkIndex = -1;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LaunchProfile))]
+    [NotifyPropertyChangedFor(nameof(SelectedLaunchProfile))]
+    private int _selectedLaunchProfileIndex = -1;
 
     public event EventHandler<WorkspaceCommandCompletedEventArgs>? CommandCompleted;
 
@@ -45,22 +51,38 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
 
     public ObservableCollection<string> TargetFrameworks { get; } = new();
 
+    public ObservableCollection<DotNetLaunchProfile> LaunchProfiles { get; } = new();
+
     public string Configuration => ConfigurationIndex == 1 ? "Release" : "Debug";
+
+    public WorkspaceExecutionTarget? SelectedRunTarget =>
+        SelectedRunTargetIndex >= 0 && SelectedRunTargetIndex < RunTargets.Count
+            ? RunTargets[SelectedRunTargetIndex]
+            : null;
 
     public string? TargetFramework =>
         SelectedTargetFrameworkIndex >= 0 && SelectedTargetFrameworkIndex < TargetFrameworks.Count
             ? TargetFrameworks[SelectedTargetFrameworkIndex]
             : null;
 
+    public DotNetLaunchProfile? SelectedLaunchProfile =>
+        SelectedLaunchProfileIndex >= 0 && SelectedLaunchProfileIndex < LaunchProfiles.Count
+            ? LaunchProfiles[SelectedLaunchProfileIndex]
+            : null;
+
+    public string? LaunchProfile => SelectedLaunchProfile?.Name;
+
     public bool CanExecute => _workspace is not null && !IsRunning;
 
-    public bool CanRun => GetSelectedRunTarget() is not null && !IsRunning;
+    public bool CanRun => SelectedRunTarget is not null && !IsRunning;
 
     public bool CanCancel => IsRunning;
 
     public bool HasRunTargets => RunTargets.Count > 0;
 
     public bool HasTargetFrameworks => TargetFrameworks.Count > 0;
+
+    public bool HasLaunchProfiles => LaunchProfiles.Count > 0;
 
     public bool HasOutput => OutputLines.Count > 0;
 
@@ -108,6 +130,28 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         ClearRunTargets();
         StatusText = message;
+    }
+
+    public void SetLaunchProfiles(IReadOnlyList<DotNetLaunchProfile> profiles)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        LaunchProfiles.Clear();
+        foreach (var profile in profiles)
+        {
+            LaunchProfiles.Add(profile);
+        }
+
+        SelectedLaunchProfileIndex = LaunchProfiles.Count > 0 ? 0 : -1;
+        OnPropertyChanged(nameof(HasLaunchProfiles));
+        OnPropertyChanged(nameof(LaunchProfile));
+        OnPropertyChanged(nameof(SelectedLaunchProfile));
+    }
+
+    public void SetLaunchProfileLoadError(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        SetLaunchProfiles([]);
+        StatusText = $"Launch profiles unavailable: {message}";
     }
 
     public async Task ExecuteAsync(
@@ -214,12 +258,13 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
     partial void OnSelectedRunTargetIndexChanged(int value)
     {
         RefreshTargetFrameworks();
+        SetLaunchProfiles([]);
         OnPropertyChanged(nameof(CanRun));
     }
 
     private DotNetCommandRequest CreateRequest(DotNetCommandKind kind, WorkspaceDescriptor workspace)
     {
-        if (kind == DotNetCommandKind.Run && GetSelectedRunTarget() is { } runTarget)
+        if (kind == DotNetCommandKind.Run && SelectedRunTarget is { } runTarget)
         {
             var projectPath = Path.GetFullPath(runTarget.ProjectPath);
             return new DotNetCommandRequest(
@@ -227,7 +272,8 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
                 Path.GetDirectoryName(projectPath) ?? Directory.GetCurrentDirectory(),
                 projectPath,
                 Configuration,
-                TargetFramework);
+                TargetFramework,
+                LaunchProfile: LaunchProfile);
         }
 
         var fullPath = Path.GetFullPath(workspace.Path);
@@ -244,15 +290,10 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
             configuration);
     }
 
-    private WorkspaceExecutionTarget? GetSelectedRunTarget() =>
-        SelectedRunTargetIndex >= 0 && SelectedRunTargetIndex < RunTargets.Count
-            ? RunTargets[SelectedRunTargetIndex]
-            : null;
-
     private void RefreshTargetFrameworks()
     {
         TargetFrameworks.Clear();
-        if (GetSelectedRunTarget() is { } target)
+        if (SelectedRunTarget is { } target)
         {
             foreach (var targetFramework in target.TargetFrameworks
                          .Where(static value => !string.IsNullOrWhiteSpace(value))
@@ -271,12 +312,17 @@ public sealed partial class WorkspaceExecutionViewModel(IDotNetCommandService co
     {
         RunTargets.Clear();
         TargetFrameworks.Clear();
+        LaunchProfiles.Clear();
         SelectedRunTargetIndex = -1;
         SelectedTargetFrameworkIndex = -1;
+        SelectedLaunchProfileIndex = -1;
         OnPropertyChanged(nameof(HasRunTargets));
         OnPropertyChanged(nameof(HasTargetFrameworks));
+        OnPropertyChanged(nameof(HasLaunchProfiles));
         OnPropertyChanged(nameof(CanRun));
         OnPropertyChanged(nameof(TargetFramework));
+        OnPropertyChanged(nameof(LaunchProfile));
+        OnPropertyChanged(nameof(SelectedLaunchProfile));
     }
 
     private void ReportStreamingOutput(

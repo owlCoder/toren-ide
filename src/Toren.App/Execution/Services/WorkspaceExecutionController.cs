@@ -6,6 +6,7 @@ using Toren.App.Execution.Contracts;
 using Toren.App.Execution.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Output;
+using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Models;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
@@ -18,8 +19,10 @@ internal sealed class WorkspaceExecutionController
     private readonly MainWindowViewModel _shell;
     private readonly IWorkspaceClassifier _workspaceClassifier;
     private readonly IWorkspaceExecutionTargetService _targetService;
+    private readonly IDotNetLaunchProfileProvider _launchProfileProvider;
     private readonly WorkspaceExecutionViewModel _execution;
     private CancellationTokenSource? _targetLoadCancellation;
+    private CancellationTokenSource? _launchProfileLoadCancellation;
     private bool _detached;
 
     private WorkspaceExecutionController(
@@ -27,6 +30,7 @@ internal sealed class WorkspaceExecutionController
         MainWindowViewModel shell,
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceExecutionTargetService targetService,
+        IDotNetLaunchProfileProvider launchProfileProvider,
         WorkspaceExecutionViewModel execution)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
@@ -34,14 +38,17 @@ internal sealed class WorkspaceExecutionController
         _workspaceClassifier = workspaceClassifier
             ?? throw new ArgumentNullException(nameof(workspaceClassifier));
         _targetService = targetService ?? throw new ArgumentNullException(nameof(targetService));
+        _launchProfileProvider = launchProfileProvider
+            ?? throw new ArgumentNullException(nameof(launchProfileProvider));
         _execution = execution ?? throw new ArgumentNullException(nameof(execution));
 
         InstallOutputPanel();
-        SynchronizeWorkspace();
         _shell.PropertyChanged += Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged += Explorer_OnPropertyChanged;
+        _execution.PropertyChanged += Execution_OnPropertyChanged;
         _window.KeyDown += Window_OnKeyDown;
         _window.Closed += Window_OnClosed;
+        SynchronizeWorkspace();
     }
 
     public static void Attach(
@@ -49,6 +56,7 @@ internal sealed class WorkspaceExecutionController
         MainWindowViewModel shell,
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceExecutionTargetService targetService,
+        IDotNetLaunchProfileProvider launchProfileProvider,
         WorkspaceExecutionViewModel execution)
     {
         _ = new WorkspaceExecutionController(
@@ -56,6 +64,7 @@ internal sealed class WorkspaceExecutionController
             shell,
             workspaceClassifier,
             targetService,
+            launchProfileProvider,
             execution);
     }
 
@@ -92,9 +101,18 @@ internal sealed class WorkspaceExecutionController
         }
     }
 
+    private void Execution_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(WorkspaceExecutionViewModel.SelectedRunTargetIndex))
+        {
+            SynchronizeLaunchProfiles();
+        }
+    }
+
     private void SynchronizeWorkspace()
     {
         CancelTargetLoad();
+        CancelLaunchProfileLoad();
         var workspace = ResolveWorkspace();
         _execution.SetWorkspace(workspace);
         if (workspace is null)
@@ -105,6 +123,20 @@ internal sealed class WorkspaceExecutionController
         var cancellation = new CancellationTokenSource();
         _targetLoadCancellation = cancellation;
         _ = LoadRunTargetsAsync(workspace, cancellation);
+    }
+
+    private void SynchronizeLaunchProfiles()
+    {
+        CancelLaunchProfileLoad();
+        if (_execution.SelectedRunTarget is not { } target)
+        {
+            _execution.SetLaunchProfiles([]);
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _launchProfileLoadCancellation = cancellation;
+        _ = LoadLaunchProfilesAsync(target.ProjectPath, cancellation);
     }
 
     private WorkspaceDescriptor? ResolveWorkspace()
@@ -163,6 +195,44 @@ internal sealed class WorkspaceExecutionController
         }
     }
 
+    private async Task LoadLaunchProfilesAsync(
+        string projectPath,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            var result = await _launchProfileProvider
+                .GetProfilesAsync(projectPath, cancellation.Token)
+                .ConfigureAwait(true);
+            if (!ReferenceEquals(_launchProfileLoadCancellation, cancellation))
+            {
+                return;
+            }
+
+            if (result.IsSuccess)
+            {
+                _execution.SetLaunchProfiles(result.Value);
+            }
+            else
+            {
+                _execution.SetLaunchProfileLoadError(result.Error.Message);
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A newer startup-project selection superseded this load.
+        }
+        finally
+        {
+            if (ReferenceEquals(_launchProfileLoadCancellation, cancellation))
+            {
+                _launchProfileLoadCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
     private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
     {
         if (eventArgs.Key == Key.F5 && eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift))
@@ -212,6 +282,12 @@ internal sealed class WorkspaceExecutionController
         _targetLoadCancellation = null;
     }
 
+    private void CancelLaunchProfileLoad()
+    {
+        _launchProfileLoadCancellation?.Cancel();
+        _launchProfileLoadCancellation = null;
+    }
+
     private void Detach()
     {
         if (_detached)
@@ -221,8 +297,10 @@ internal sealed class WorkspaceExecutionController
 
         _detached = true;
         CancelTargetLoad();
+        CancelLaunchProfileLoad();
         _shell.PropertyChanged -= Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
+        _execution.PropertyChanged -= Execution_OnPropertyChanged;
         _window.KeyDown -= Window_OnKeyDown;
         _window.Closed -= Window_OnClosed;
         _execution.Dispose();
