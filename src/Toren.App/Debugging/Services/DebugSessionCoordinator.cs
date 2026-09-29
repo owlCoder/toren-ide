@@ -1,19 +1,32 @@
 using Toren.Core.Results;
 using Toren.Debugging.Contracts;
+using Toren.Debugging.Models;
 
 namespace Toren.App.Debugging.Services;
 
 public sealed class DebugSessionCoordinator(IDebugSessionService sessionService) : IAsyncDisposable
 {
+    private const string NoActiveSessionErrorCode = "debug.session.not-active";
+
     private readonly IDebugSessionService _sessionService = sessionService
         ?? throw new ArgumentNullException(nameof(sessionService));
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IDebugSession? _session;
+    private int _stoppedThreadId;
     private bool _disposed;
 
     public bool IsAttached => _session is not null;
 
     public int? ProcessId => _session?.ProcessId;
+
+    public int? StoppedThreadId
+    {
+        get
+        {
+            var threadId = Volatile.Read(ref _stoppedThreadId);
+            return threadId > 0 ? threadId : null;
+        }
+    }
 
     public async Task<Result<bool>> AttachAsync(
         int processId,
@@ -35,6 +48,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             }
 
             _session = attached.Value;
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
             return Result.Success(true);
         }
         finally
@@ -42,6 +56,91 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             _gate.Release();
         }
     }
+
+    public async Task<Result<DebugStopInfo>> WaitForStopAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        IDebugSession? session;
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            session = _session;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        if (session is null)
+        {
+            return NoActiveSession<DebugStopInfo>();
+        }
+
+        var stopped = await session.WaitForStopAsync(cancellationToken).ConfigureAwait(false);
+        if (stopped.IsSuccess)
+        {
+            Interlocked.Exchange(ref _stoppedThreadId, stopped.Value!.ThreadId);
+        }
+
+        return stopped;
+    }
+
+    public Task<Result<IReadOnlyList<DebugBreakpoint>>> SetBreakpointsAsync(
+        string sourcePath,
+        IReadOnlyList<DebugSourceBreakpoint> breakpoints,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentNullException.ThrowIfNull(breakpoints);
+        return WithSessionAsync(
+            session => session.SetBreakpointsAsync(sourcePath, breakpoints, cancellationToken),
+            cancellationToken);
+    }
+
+    public async Task<Result<bool>> ContinueAsync(
+        int threadId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await WithSessionAsync(
+            session => session.ContinueAsync(threadId, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+        if (result.IsSuccess)
+        {
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
+        }
+
+        return result;
+    }
+
+    public Task<Result<bool>> PauseAsync(
+        int threadId,
+        CancellationToken cancellationToken = default) =>
+        WithSessionAsync(
+            session => session.PauseAsync(threadId, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<bool>> StepOverAsync(
+        int threadId,
+        CancellationToken cancellationToken = default) =>
+        StepAsync(
+            session => session.StepOverAsync(threadId, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<bool>> StepIntoAsync(
+        int threadId,
+        CancellationToken cancellationToken = default) =>
+        StepAsync(
+            session => session.StepIntoAsync(threadId, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<bool>> StepOutAsync(
+        int threadId,
+        CancellationToken cancellationToken = default) =>
+        StepAsync(
+            session => session.StepOutAsync(threadId, cancellationToken),
+            cancellationToken);
 
     public async Task<Result<bool>> DisconnectAsync(CancellationToken cancellationToken = default)
     {
@@ -56,6 +155,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
 
             var disconnected = await _session.DisconnectAsync(cancellationToken).ConfigureAwait(false);
             await DisposeSessionAsync().ConfigureAwait(false);
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
             return disconnected;
         }
         finally
@@ -80,6 +180,7 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             }
 
             _disposed = true;
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
             await DisposeSessionAsync().ConfigureAwait(false);
         }
         finally
@@ -88,6 +189,45 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             _gate.Dispose();
         }
     }
+
+    private async Task<Result<bool>> StepAsync(
+        Func<IDebugSession, Task<Result<bool>>> action,
+        CancellationToken cancellationToken)
+    {
+        var result = await WithSessionAsync(action, cancellationToken).ConfigureAwait(false);
+        if (result.IsSuccess)
+        {
+            Interlocked.Exchange(ref _stoppedThreadId, 0);
+        }
+
+        return result;
+    }
+
+    private async Task<Result<T>> WithSessionAsync<T>(
+        Func<IDebugSession, Task<Result<T>>> action,
+        CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(action);
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return _session is null
+                ? NoActiveSession<T>()
+                : await action(_session).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private static Result<T> NoActiveSession<T>() =>
+        Result.Failure<T>(
+            OperationError.Create(
+                NoActiveSessionErrorCode,
+                "No debug session is currently attached."));
 
     private async ValueTask DisposeSessionAsync()
     {
