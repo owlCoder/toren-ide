@@ -8,6 +8,5 @@ public sealed class SmokeTests
     [TestMethod]
     public void Passes()
     {
-        Assert.IsTrue(true);
     }
 }
