@@ -21,11 +21,29 @@ public sealed class DotNetTestRunService(IStreamingProcessRunner processRunner) 
         ArgumentNullException.ThrowIfNull(onOutput);
 
         var projectPath = Path.GetFullPath(request.ProjectPath);
-        var arguments = new List<string>
+        var runner = DotNetTestRunnerResolver.Resolve(projectPath);
+        if (runner == DotNetTestRunner.MicrosoftTestingPlatform
+            && !string.IsNullOrWhiteSpace(request.FullyQualifiedName))
         {
-            "test",
-            projectPath,
-        };
+            return Task.FromResult(Result.Failure<ProcessResult>(
+                OperationError.Create(
+                    "dotnet.test-run.mtp-selection-identity-required",
+                    "Running one Microsoft Testing Platform test requires its MTP test identity; Toren will not substitute a VSTest FullyQualifiedName filter.")));
+        }
+
+        var arguments = new List<string> { "test" };
+        if (runner == DotNetTestRunner.MicrosoftTestingPlatform)
+        {
+            arguments.Add("--project");
+            arguments.Add(projectPath);
+            arguments.Add("--no-ansi");
+            arguments.Add("--no-progress");
+        }
+        else
+        {
+            arguments.Add(projectPath);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Configuration))
         {
             arguments.Add("--configuration");

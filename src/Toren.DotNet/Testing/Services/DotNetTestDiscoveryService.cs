@@ -19,26 +19,8 @@ public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : I
         ArgumentException.ThrowIfNullOrWhiteSpace(request.ProjectPath);
 
         var projectPath = Path.GetFullPath(request.ProjectPath);
-        var arguments = new List<string>
-        {
-            "test",
-            projectPath,
-            "--list-tests",
-            "--nologo",
-            "--verbosity",
-            "quiet",
-        };
-        if (!string.IsNullOrWhiteSpace(request.Configuration))
-        {
-            arguments.Add("--configuration");
-            arguments.Add(request.Configuration);
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.TargetFramework))
-        {
-            arguments.Add("--framework");
-            arguments.Add(request.TargetFramework);
-        }
+        var runner = DotNetTestRunnerResolver.Resolve(projectPath);
+        var arguments = CreateArguments(request, projectPath, runner);
 
         var result = await _processRunner.RunAsync(
             new ProcessRequest(
@@ -62,5 +44,48 @@ public sealed class DotNetTestDiscoveryService(IProcessRunner processRunner) : I
 
         return Result.Success<IReadOnlyList<DotNetTestCase>>(
             DotNetTestListParser.Parse(result.Value.StandardOutput));
+    }
+
+    private static IReadOnlyList<string> CreateArguments(
+        DotNetTestDiscoveryRequest request,
+        string projectPath,
+        DotNetTestRunner runner)
+    {
+        var arguments = new List<string> { "test" };
+        if (runner == DotNetTestRunner.MicrosoftTestingPlatform)
+        {
+            arguments.Add("--project");
+            arguments.Add(projectPath);
+        }
+        else
+        {
+            arguments.Add(projectPath);
+            arguments.Add("--list-tests");
+        }
+
+        arguments.Add("--nologo");
+        arguments.Add("--verbosity");
+        arguments.Add("quiet");
+        if (!string.IsNullOrWhiteSpace(request.Configuration))
+        {
+            arguments.Add("--configuration");
+            arguments.Add(request.Configuration);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.TargetFramework))
+        {
+            arguments.Add("--framework");
+            arguments.Add(request.TargetFramework);
+        }
+
+        if (runner == DotNetTestRunner.MicrosoftTestingPlatform)
+        {
+            arguments.Add("--no-ansi");
+            arguments.Add("--no-progress");
+            arguments.Add("--");
+            arguments.Add("--list-tests");
+        }
+
+        return arguments;
     }
 }
