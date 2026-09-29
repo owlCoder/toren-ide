@@ -55,4 +55,22 @@ public interface IGitRepositoryService
     Task<Result<bool>> PushAsync(
         string workingDirectory,
         CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> MergeAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> AbortMergeAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> StashAsync(
+        string workingDirectory,
+        string? message = null,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> PopStashAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
 }

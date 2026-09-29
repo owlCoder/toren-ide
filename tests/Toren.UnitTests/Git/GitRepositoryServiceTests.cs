@@ -178,6 +178,39 @@ public sealed class GitRepositoryServiceTests
     }
 
     [Test]
+    public async Task MergeAbortAndStashUseExplicitNonInteractiveCommands()
+    {
+        var runner = new RecordingProcessRunner(Result.Success(new ProcessResult(0, string.Empty, string.Empty)));
+        var service = new GitRepositoryService(runner);
+
+        var mergeResult = await service.MergeAsync(Path.GetTempPath(), "feature/git");
+        var abortResult = await service.AbortMergeAsync(Path.GetTempPath());
+        var stashResult = await service.StashAsync(Path.GetTempPath(), "  before merge  ");
+        var popResult = await service.PopStashAsync(Path.GetTempPath());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(mergeResult.IsSuccess, Is.True);
+            Assert.That(abortResult.IsSuccess, Is.True);
+            Assert.That(stashResult.IsSuccess, Is.True);
+            Assert.That(popResult.IsSuccess, Is.True);
+            Assert.That(runner.Requests, Has.Count.EqualTo(4));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(3)),
+                Is.EqualTo("merge\u001F--no-edit\u001Ffeature/git"));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[1].Arguments.TakeLast(2)),
+                Is.EqualTo("merge\u001F--abort"));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[2].Arguments.TakeLast(5)),
+                Is.EqualTo("stash\u001Fpush\u001F--include-untracked\u001F--message\u001Fbefore merge"));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[3].Arguments.TakeLast(2)),
+                Is.EqualTo("stash\u001Fpop"));
+        });
+    }
+
+    [Test]
     public async Task MutationReturnsGitStandardErrorOnNonZeroExit()
     {
         var runner = new RecordingProcessRunner(

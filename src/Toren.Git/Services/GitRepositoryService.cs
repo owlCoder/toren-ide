@@ -82,11 +82,7 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return RunMutationAsync(
-            workingDirectory,
-            "stage",
-            ["add", "--", path],
-            cancellationToken);
+        return RunMutationAsync(workingDirectory, "stage", ["add", "--", path], cancellationToken);
     }
 
     public Task<Result<bool>> UnstageAsync(
@@ -95,11 +91,7 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return RunMutationAsync(
-            workingDirectory,
-            "unstage",
-            ["restore", "--staged", "--", path],
-            cancellationToken);
+        return RunMutationAsync(workingDirectory, "unstage", ["restore", "--staged", "--", path], cancellationToken);
     }
 
     public Task<Result<bool>> CommitAsync(
@@ -108,11 +100,7 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
-        return RunMutationAsync(
-            workingDirectory,
-            "commit",
-            ["commit", "--message", message.Trim()],
-            cancellationToken);
+        return RunMutationAsync(workingDirectory, "commit", ["commit", "--message", message.Trim()], cancellationToken);
     }
 
     public async Task<Result<IReadOnlyList<GitBranchInfo>>> GetBranchesAsync(
@@ -147,11 +135,7 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(branchName);
-        return RunMutationAsync(
-            workingDirectory,
-            "switch",
-            ["switch", branchName],
-            cancellationToken);
+        return RunMutationAsync(workingDirectory, "switch", ["switch", branchName], cancellationToken);
     }
 
     public Task<Result<bool>> CreateBranchAsync(
@@ -160,39 +144,57 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(branchName);
-        return RunMutationAsync(
-            workingDirectory,
-            "branch create",
-            ["switch", "-c", branchName],
-            cancellationToken);
+        return RunMutationAsync(workingDirectory, "branch create", ["switch", "-c", branchName], cancellationToken);
     }
 
     public Task<Result<bool>> FetchAsync(
         string workingDirectory,
         CancellationToken cancellationToken = default) =>
-        RunMutationAsync(
-            workingDirectory,
-            "fetch",
-            ["fetch", "--prune"],
-            cancellationToken);
+        RunMutationAsync(workingDirectory, "fetch", ["fetch", "--prune"], cancellationToken);
 
     public Task<Result<bool>> PullAsync(
         string workingDirectory,
         CancellationToken cancellationToken = default) =>
-        RunMutationAsync(
-            workingDirectory,
-            "pull",
-            ["pull", "--ff-only"],
-            cancellationToken);
+        RunMutationAsync(workingDirectory, "pull", ["pull", "--ff-only"], cancellationToken);
 
     public Task<Result<bool>> PushAsync(
         string workingDirectory,
         CancellationToken cancellationToken = default) =>
-        RunMutationAsync(
-            workingDirectory,
-            "push",
-            ["push"],
-            cancellationToken);
+        RunMutationAsync(workingDirectory, "push", ["push"], cancellationToken);
+
+    public Task<Result<bool>> MergeAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branchName);
+        return RunMutationAsync(workingDirectory, "merge", ["merge", "--no-edit", branchName], cancellationToken);
+    }
+
+    public Task<Result<bool>> AbortMergeAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default) =>
+        RunMutationAsync(workingDirectory, "merge abort", ["merge", "--abort"], cancellationToken);
+
+    public Task<Result<bool>> StashAsync(
+        string workingDirectory,
+        string? message = null,
+        CancellationToken cancellationToken = default)
+    {
+        var arguments = new List<string> { "stash", "push", "--include-untracked" };
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            arguments.Add("--message");
+            arguments.Add(message.Trim());
+        }
+
+        return RunMutationAsync(workingDirectory, "stash", arguments, cancellationToken);
+    }
+
+    public Task<Result<bool>> PopStashAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default) =>
+        RunMutationAsync(workingDirectory, "stash pop", ["stash", "pop"], cancellationToken);
 
     private async Task<Result<bool>> RunMutationAsync(
         string workingDirectory,

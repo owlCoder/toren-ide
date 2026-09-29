@@ -39,6 +39,29 @@ public sealed class GitStatusParserTests
     }
 
     [Test]
+    public void ParseReadsUnmergedConflictRecord()
+    {
+        var output = string.Join(
+            '\0',
+            "# branch.head main",
+            "u UU N... 100644 100644 100644 100644 1111111 2222222 3333333 src/Conflict.cs",
+            string.Empty);
+
+        var status = GitStatusParser.Parse(output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Changes, Has.Count.EqualTo(1));
+            Assert.That(status.Changes[0].Path, Is.EqualTo("src/Conflict.cs"));
+            Assert.That(status.Changes[0].IndexStatus, Is.EqualTo('U'));
+            Assert.That(status.Changes[0].WorkTreeStatus, Is.EqualTo('U'));
+            Assert.That(status.Changes[0].IsConflicted, Is.True);
+            Assert.That(status.Changes[0].IsStaged, Is.False);
+            Assert.That(status.Changes[0].HasWorkingTreeChange, Is.True);
+        });
+    }
+
+    [Test]
     public void ParseTreatsDetachedHeadAsNoBranchName()
     {
         var status = GitStatusParser.Parse("# branch.head (detached)\0");

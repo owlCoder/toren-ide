@@ -59,6 +59,17 @@ public static class GitStatusParser
                 continue;
             }
 
+            if (record.StartsWith("u ", StringComparison.Ordinal))
+            {
+                var fields = record.Split(' ', 11, StringSplitOptions.None);
+                if (fields.Length == 11)
+                {
+                    changes.Add(CreateConflictChange(fields[1], fields[10]));
+                }
+
+                continue;
+            }
+
             if (record.StartsWith("? ", StringComparison.Ordinal))
             {
                 changes.Add(new GitChange(record[2..], null, '?', '?', IsUntracked: true));
@@ -78,6 +89,13 @@ public static class GitStatusParser
         var indexStatus = status.Length > 0 ? status[0] : '.';
         var workTreeStatus = status.Length > 1 ? status[1] : '.';
         return new GitChange(path, originalPath, indexStatus, workTreeStatus);
+    }
+
+    private static GitChange CreateConflictChange(string status, string path)
+    {
+        var indexStatus = status.Length > 0 ? status[0] : 'U';
+        var workTreeStatus = status.Length > 1 ? status[1] : 'U';
+        return new GitChange(path, null, indexStatus, workTreeStatus, IsConflicted: true);
     }
 
     private static string? NormalizeBranchValue(string value)

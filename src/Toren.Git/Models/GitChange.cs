@@ -5,9 +5,10 @@ public sealed record GitChange(
     string? OriginalPath,
     char IndexStatus,
     char WorkTreeStatus,
-    bool IsUntracked = false)
+    bool IsUntracked = false,
+    bool IsConflicted = false)
 {
-    public bool IsStaged => !IsUntracked && IndexStatus != '.';
+    public bool IsStaged => !IsUntracked && !IsConflicted && IndexStatus != '.';
 
-    public bool HasWorkingTreeChange => IsUntracked || WorkTreeStatus != '.';
+    public bool HasWorkingTreeChange => IsUntracked || IsConflicted || WorkTreeStatus != '.';
 }
