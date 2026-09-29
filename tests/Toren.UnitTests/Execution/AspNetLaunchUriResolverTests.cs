@@ -29,6 +29,18 @@ public sealed class AspNetLaunchUriResolverTests
         Assert.That(uri, Is.EqualTo(new Uri("http://localhost:5050")));
     }
 
+    [Test]
+    public void NormalizesLeadingSlashInLaunchUrl()
+    {
+        var resolver = new AspNetLaunchUriResolver();
+
+        var uri = resolver.Resolve(
+            CreateProfile("/swagger/index.html"),
+            "Now listening on: https://localhost:7240");
+
+        Assert.That(uri, Is.EqualTo(new Uri("https://localhost:7240/swagger/index.html")));
+    }
+
     [TestCase("Application started. Press Ctrl+C to shut down.")]
     [TestCase("Now listening on: ftp://localhost:2121")]
     public void IgnoresNonHttpListeningOutput(string output)
