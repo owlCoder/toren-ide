@@ -12,6 +12,8 @@ namespace Toren.UnitTests.Debugging;
 [TestFixture]
 public sealed class DebuggerAttachingTestDebugServiceTests
 {
+    private static readonly int[] ExpectedAttachedProcessIds = [4321];
+
     [Test]
     public async Task StartAttachesDebuggerToPublishedTestHostAndDisconnectsOnDispose()
     {
@@ -30,7 +32,7 @@ public sealed class DebuggerAttachingTestDebugServiceTests
         Assert.That(started.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(sessionService.ProcessIds, Is.EqualTo(new[] { 4321 }));
+            Assert.That(sessionService.ProcessIds, Is.EqualTo(ExpectedAttachedProcessIds));
             Assert.That(coordinator.IsAttached, Is.True);
             Assert.That(coordinator.ProcessId, Is.EqualTo(4321));
         });
