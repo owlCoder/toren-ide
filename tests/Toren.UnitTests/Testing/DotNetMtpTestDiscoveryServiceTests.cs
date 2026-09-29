@@ -35,14 +35,16 @@ public sealed class DotNetMtpTestDiscoveryServiceTests
         var service = new DotNetTestDiscoveryService(runner);
 
         var result = await service.DiscoverAsync(new DotNetTestDiscoveryRequest(projectPath));
+        var tests = result.Value!;
+        var processRequest = runner.Request!;
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(result.Value, Has.Count.EqualTo(1));
-            Assert.That(result.Value[0].RunnerId, Is.EqualTo("uid-123"));
+            Assert.That(tests, Has.Count.EqualTo(1));
+            Assert.That(tests[0].RunnerId, Is.EqualTo("uid-123"));
             Assert.That(
-                runner.Request!.Arguments,
+                processRequest.Arguments,
                 Is.EqualTo(new[]
                 {
                     "test",
