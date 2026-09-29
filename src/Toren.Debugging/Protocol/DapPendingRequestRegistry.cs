@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Toren.Core.Results;
 
-namespace Toren.Core.Debugging.Protocol;
+namespace Toren.Debugging.Protocol;
 
 public sealed class DapPendingRequestRegistry
 {
@@ -16,12 +16,9 @@ public sealed class DapPendingRequestRegistry
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!_pending.TryAdd(
-                request.Sequence,
-                new DapPendingRequest(request.Sequence, request.Command)))
+        if (!_pending.TryAdd(request.Sequence, new DapPendingRequest(request.Sequence, request.Command)))
         {
-            throw new InvalidOperationException(
-                $"DAP request sequence {request.Sequence} is already pending.");
+            throw new InvalidOperationException($"DAP request sequence {request.Sequence} is already pending.");
         }
     }
 
@@ -66,8 +63,5 @@ public sealed class DapPendingRequestRegistry
         return Result.Success(completed);
     }
 
-    public void Clear()
-    {
-        _pending.Clear();
-    }
+    public void Clear() => _pending.Clear();
 }

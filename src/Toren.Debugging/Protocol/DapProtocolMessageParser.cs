@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Toren.Core.Results;
 
-namespace Toren.Core.Debugging.Protocol;
+namespace Toren.Debugging.Protocol;
 
 public static class DapProtocolMessageParser
 {
@@ -40,31 +40,18 @@ public static class DapProtocolMessageParser
         }
     }
 
-    private static Result<DapProtocolMessage> ParseRequest(
-        JsonElement root,
-        string payload,
-        int sequence)
+    private static Result<DapProtocolMessage> ParseRequest(JsonElement root, string payload, int sequence)
     {
         if (!TryGetString(root, "command", out var command))
         {
             return InvalidEnvelope("A DAP request must contain a string 'command' property.");
         }
 
-        return Result.Success(
-            new DapProtocolMessage(
-                sequence,
-                DapProtocolMessageKind.Request,
-                command,
-                null,
-                null,
-                null,
-                payload));
+        return Result.Success(new DapProtocolMessage(
+            sequence, DapProtocolMessageKind.Request, command, null, null, null, payload));
     }
 
-    private static Result<DapProtocolMessage> ParseResponse(
-        JsonElement root,
-        string payload,
-        int sequence)
+    private static Result<DapProtocolMessage> ParseResponse(JsonElement root, string payload, int sequence)
     {
         if (!TryGetInt32(root, "request_seq", out var requestSequence)
             || !TryGetString(root, "command", out var command)
@@ -74,43 +61,23 @@ public static class DapProtocolMessageParser
                 "A DAP response must contain integer 'request_seq', string 'command', and boolean 'success' properties.");
         }
 
-        return Result.Success(
-            new DapProtocolMessage(
-                sequence,
-                DapProtocolMessageKind.Response,
-                command,
-                null,
-                requestSequence,
-                success,
-                payload));
+        return Result.Success(new DapProtocolMessage(
+            sequence, DapProtocolMessageKind.Response, command, null, requestSequence, success, payload));
     }
 
-    private static Result<DapProtocolMessage> ParseEvent(
-        JsonElement root,
-        string payload,
-        int sequence)
+    private static Result<DapProtocolMessage> ParseEvent(JsonElement root, string payload, int sequence)
     {
         if (!TryGetString(root, "event", out var eventName))
         {
             return InvalidEnvelope("A DAP event must contain a string 'event' property.");
         }
 
-        return Result.Success(
-            new DapProtocolMessage(
-                sequence,
-                DapProtocolMessageKind.Event,
-                null,
-                eventName,
-                null,
-                null,
-                payload));
+        return Result.Success(new DapProtocolMessage(
+            sequence, DapProtocolMessageKind.Event, null, eventName, null, null, payload));
     }
 
-    private static Result<DapProtocolMessage> InvalidEnvelope(string message)
-    {
-        return Result.Failure<DapProtocolMessage>(
-            OperationError.Create(InvalidEnvelopeErrorCode, message));
-    }
+    private static Result<DapProtocolMessage> InvalidEnvelope(string message) =>
+        Result.Failure<DapProtocolMessage>(OperationError.Create(InvalidEnvelopeErrorCode, message));
 
     private static bool TryGetInt32(JsonElement root, string propertyName, out int value)
     {
@@ -123,8 +90,7 @@ public static class DapProtocolMessageParser
     private static bool TryGetString(JsonElement root, string propertyName, out string value)
     {
         value = string.Empty;
-        if (!root.TryGetProperty(propertyName, out var property)
-            || property.ValueKind != JsonValueKind.String)
+        if (!root.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
         {
             return false;
         }

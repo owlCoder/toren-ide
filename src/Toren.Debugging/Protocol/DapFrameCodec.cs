@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Text;
 using Toren.Core.Results;
 
-namespace Toren.Core.Debugging.Protocol;
+namespace Toren.Debugging.Protocol;
 
-public static class DapMessageFraming
+public static class DapFrameCodec
 {
     private const string ContentLengthHeader = "Content-Length:";
     private const string InvalidHeaderErrorCode = "debug.dap.frame.header-invalid";

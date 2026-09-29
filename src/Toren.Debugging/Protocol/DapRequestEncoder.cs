@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Toren.Core.Debugging.Protocol;
+namespace Toren.Debugging.Protocol;
 
 public sealed class DapRequestEncoder(DapSequenceGenerator sequenceGenerator)
 {
@@ -13,12 +13,8 @@ public sealed class DapRequestEncoder(DapSequenceGenerator sequenceGenerator)
         ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
         var sequence = _sequenceGenerator.Next();
-        var payload = JsonSerializer.Serialize(
-            new RequestEnvelope(sequence, "request", command, arguments));
-        return new DapOutboundRequest(
-            sequence,
-            command,
-            DapMessageFraming.Encode(payload));
+        var payload = JsonSerializer.Serialize(new RequestEnvelope(sequence, "request", command, arguments));
+        return new DapOutboundRequest(sequence, command, DapFrameCodec.Encode(payload));
     }
 
     private sealed record RequestEnvelope(

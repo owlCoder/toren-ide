@@ -1,4 +1,4 @@
-namespace Toren.Core.Debugging.Protocol;
+namespace Toren.Debugging.Protocol;
 
 public enum DapProtocolMessageKind
 {
