@@ -14,4 +14,19 @@ public interface IGitRepositoryService
         string? path = null,
         bool staged = false,
         CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> StageAsync(
+        string workingDirectory,
+        string path,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> UnstageAsync(
+        string workingDirectory,
+        string path,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> CommitAsync(
+        string workingDirectory,
+        string message,
+        CancellationToken cancellationToken = default);
 }

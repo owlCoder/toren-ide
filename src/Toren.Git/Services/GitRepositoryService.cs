@@ -76,6 +76,73 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
             : Result.Failure<string>(CreateCommandError("diff", processResult));
     }
 
+    public Task<Result<bool>> StageAsync(
+        string workingDirectory,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return RunMutationAsync(
+            workingDirectory,
+            "stage",
+            ["add", "--", path],
+            cancellationToken);
+    }
+
+    public Task<Result<bool>> UnstageAsync(
+        string workingDirectory,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return RunMutationAsync(
+            workingDirectory,
+            "unstage",
+            ["restore", "--staged", "--", path],
+            cancellationToken);
+    }
+
+    public Task<Result<bool>> CommitAsync(
+        string workingDirectory,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        return RunMutationAsync(
+            workingDirectory,
+            "commit",
+            ["commit", "--message", message.Trim()],
+            cancellationToken);
+    }
+
+    private async Task<Result<bool>> RunMutationAsync(
+        string workingDirectory,
+        string command,
+        IReadOnlyList<string> commandArguments,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+        var arguments = new List<string>(commandArguments.Count + 2)
+        {
+            "-C",
+            Path.GetFullPath(workingDirectory),
+        };
+        arguments.AddRange(commandArguments);
+
+        var result = await _processRunner
+            .RunAsync(new ProcessRequest("git", arguments), cancellationToken)
+            .ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return Result.Failure<bool>(result.Error);
+        }
+
+        var processResult = result.Value!;
+        return processResult.Succeeded
+            ? Result.Success(true)
+            : Result.Failure<bool>(CreateCommandError(command, processResult));
+    }
+
     private static OperationError CreateCommandError(string command, ProcessResult result)
     {
         var message = string.IsNullOrWhiteSpace(result.StandardError)

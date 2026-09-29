@@ -79,5 +79,23 @@ public sealed class SourceControlViewModelTests
             DiffRequests.Add((resolvedPath, staged));
             return Task.FromResult(Result.Success($"diff:{resolvedPath}:staged={staged}"));
         }
+
+        public Task<Result<bool>> StageAsync(
+            string workingDirectory,
+            string path,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> UnstageAsync(
+            string workingDirectory,
+            string path,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> CommitAsync(
+            string workingDirectory,
+            string message,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
     }
 }
