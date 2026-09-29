@@ -143,19 +143,30 @@ public sealed class DapDebugSessionService(
                     "The debug adapter ended before reporting a stopped thread."));
         }
 
-        public async Task<Result<bool>> ContinueAsync(
+        public Task<Result<bool>> ContinueAsync(
             int threadId,
-            CancellationToken cancellationToken = default)
-        {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(threadId);
-            var response = await _client.SendRequestAsync(
-                "continue",
-                new { threadId },
-                cancellationToken).ConfigureAwait(false);
-            return response.IsFailure
-                ? Result.Failure<bool>(response.Error)
-                : Result.Success(true);
-        }
+            CancellationToken cancellationToken = default) =>
+            SendThreadCommandAsync("continue", threadId, cancellationToken);
+
+        public Task<Result<bool>> PauseAsync(
+            int threadId,
+            CancellationToken cancellationToken = default) =>
+            SendThreadCommandAsync("pause", threadId, cancellationToken);
+
+        public Task<Result<bool>> StepOverAsync(
+            int threadId,
+            CancellationToken cancellationToken = default) =>
+            SendThreadCommandAsync("next", threadId, cancellationToken);
+
+        public Task<Result<bool>> StepIntoAsync(
+            int threadId,
+            CancellationToken cancellationToken = default) =>
+            SendThreadCommandAsync("stepIn", threadId, cancellationToken);
+
+        public Task<Result<bool>> StepOutAsync(
+            int threadId,
+            CancellationToken cancellationToken = default) =>
+            SendThreadCommandAsync("stepOut", threadId, cancellationToken);
 
         public async Task<Result<bool>> DisconnectAsync(
             CancellationToken cancellationToken = default)
@@ -190,6 +201,21 @@ public sealed class DapDebugSessionService(
             }
 
             await _client.DisposeAsync().ConfigureAwait(false);
+        }
+
+        private async Task<Result<bool>> SendThreadCommandAsync(
+            string command,
+            int threadId,
+            CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(threadId);
+            var response = await _client.SendRequestAsync(
+                command,
+                new { threadId },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<bool>(response.Error)
+                : Result.Success(true);
         }
 
         private static Result<DebugStopInfo> ParseStop(string payload)
