@@ -10,5 +10,5 @@ public interface IDebugAdapterTransport : IAsyncDisposable
 
     Task<int> WaitForExitAsync(CancellationToken cancellationToken = default);
 
-    void Stop();
+    void Terminate();
 }
