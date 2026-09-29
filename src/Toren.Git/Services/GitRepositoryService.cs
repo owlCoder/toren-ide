@@ -115,6 +115,85 @@ public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRep
             cancellationToken);
     }
 
+    public async Task<Result<IReadOnlyList<GitBranchInfo>>> GetBranchesAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+        var request = new ProcessRequest(
+            "git",
+            [
+                "-C",
+                Path.GetFullPath(workingDirectory),
+                "for-each-ref",
+                "--format=%(refname:short)%00%(HEAD)%00%(upstream:short)%00",
+                "refs/heads/",
+            ]);
+        var result = await _processRunner.RunAsync(request, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return Result.Failure<IReadOnlyList<GitBranchInfo>>(result.Error);
+        }
+
+        var processResult = result.Value!;
+        return processResult.Succeeded
+            ? Result.Success(GitBranchParser.Parse(processResult.StandardOutput))
+            : Result.Failure<IReadOnlyList<GitBranchInfo>>(CreateCommandError("branch list", processResult));
+    }
+
+    public Task<Result<bool>> SwitchBranchAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branchName);
+        return RunMutationAsync(
+            workingDirectory,
+            "switch",
+            ["switch", branchName],
+            cancellationToken);
+    }
+
+    public Task<Result<bool>> CreateBranchAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branchName);
+        return RunMutationAsync(
+            workingDirectory,
+            "branch create",
+            ["switch", "-c", branchName],
+            cancellationToken);
+    }
+
+    public Task<Result<bool>> FetchAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default) =>
+        RunMutationAsync(
+            workingDirectory,
+            "fetch",
+            ["fetch", "--prune"],
+            cancellationToken);
+
+    public Task<Result<bool>> PullAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default) =>
+        RunMutationAsync(
+            workingDirectory,
+            "pull",
+            ["pull", "--ff-only"],
+            cancellationToken);
+
+    public Task<Result<bool>> PushAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default) =>
+        RunMutationAsync(
+            workingDirectory,
+            "push",
+            ["push"],
+            cancellationToken);
+
     private async Task<Result<bool>> RunMutationAsync(
         string workingDirectory,
         string command,

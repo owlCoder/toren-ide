@@ -29,4 +29,30 @@ public interface IGitRepositoryService
         string workingDirectory,
         string message,
         CancellationToken cancellationToken = default);
+
+    Task<Result<IReadOnlyList<GitBranchInfo>>> GetBranchesAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> SwitchBranchAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> CreateBranchAsync(
+        string workingDirectory,
+        string branchName,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> FetchAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> PullAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<bool>> PushAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
 }

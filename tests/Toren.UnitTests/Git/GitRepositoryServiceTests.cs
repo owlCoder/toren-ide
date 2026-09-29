@@ -107,6 +107,77 @@ public sealed class GitRepositoryServiceTests
     }
 
     [Test]
+    public async Task BranchListUsesMachineReadableFormatAndParsesCurrentBranch()
+    {
+        var runner = new RecordingProcessRunner(
+            Result.Success(new ProcessResult(0, "main\0*\0origin/main\0\n", string.Empty)));
+        var service = new GitRepositoryService(runner);
+
+        var result = await service.GetBranchesAsync(Path.GetTempPath());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Has.Count.EqualTo(1));
+            Assert.That(result.Value![0].Name, Is.EqualTo("main"));
+            Assert.That(result.Value[0].IsCurrent, Is.True);
+            Assert.That(runner.Requests[0].Arguments, Does.Contain("for-each-ref"));
+            Assert.That(
+                runner.Requests[0].Arguments,
+                Does.Contain("--format=%(refname:short)%00%(HEAD)%00%(upstream:short)%00"));
+        });
+    }
+
+    [Test]
+    public async Task SwitchAndCreateBranchUseExplicitCommands()
+    {
+        var runner = new RecordingProcessRunner(Result.Success(new ProcessResult(0, string.Empty, string.Empty)));
+        var service = new GitRepositoryService(runner);
+
+        var switchResult = await service.SwitchBranchAsync(Path.GetTempPath(), "feature/existing");
+        var createResult = await service.CreateBranchAsync(Path.GetTempPath(), "feature/new");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(switchResult.IsSuccess, Is.True);
+            Assert.That(createResult.IsSuccess, Is.True);
+            Assert.That(runner.Requests, Has.Count.EqualTo(2));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(2)),
+                Is.EqualTo("switch\u001Ffeature/existing"));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[1].Arguments.TakeLast(3)),
+                Is.EqualTo("switch\u001F-c\u001Ffeature/new"));
+        });
+    }
+
+    [Test]
+    public async Task RemoteSyncUsesPrunedFetchAndFastForwardOnlyPull()
+    {
+        var runner = new RecordingProcessRunner(Result.Success(new ProcessResult(0, string.Empty, string.Empty)));
+        var service = new GitRepositoryService(runner);
+
+        var fetchResult = await service.FetchAsync(Path.GetTempPath());
+        var pullResult = await service.PullAsync(Path.GetTempPath());
+        var pushResult = await service.PushAsync(Path.GetTempPath());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fetchResult.IsSuccess, Is.True);
+            Assert.That(pullResult.IsSuccess, Is.True);
+            Assert.That(pushResult.IsSuccess, Is.True);
+            Assert.That(runner.Requests, Has.Count.EqualTo(3));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[0].Arguments.TakeLast(2)),
+                Is.EqualTo("fetch\u001F--prune"));
+            Assert.That(
+                string.Join('\u001F', runner.Requests[1].Arguments.TakeLast(2)),
+                Is.EqualTo("pull\u001F--ff-only"));
+            Assert.That(runner.Requests[2].Arguments[^1], Is.EqualTo("push"));
+        });
+    }
+
+    [Test]
     public async Task MutationReturnsGitStandardErrorOnNonZeroExit()
     {
         var runner = new RecordingProcessRunner(

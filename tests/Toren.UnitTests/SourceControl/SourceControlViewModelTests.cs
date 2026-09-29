@@ -228,6 +228,41 @@ public sealed class SourceControlViewModelTests
             return Task.FromResult(CreateMutationResult());
         }
 
+        public Task<Result<IReadOnlyList<GitBranchInfo>>> GetBranchesAsync(
+            string workingDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Result.Success<IReadOnlyList<GitBranchInfo>>([]));
+        }
+
+        public Task<Result<bool>> SwitchBranchAsync(
+            string workingDirectory,
+            string branchName,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> CreateBranchAsync(
+            string workingDirectory,
+            string branchName,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> FetchAsync(
+            string workingDirectory,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> PullAsync(
+            string workingDirectory,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> PushAsync(
+            string workingDirectory,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
         private Result<bool> CreateMutationResult() => MutationError.IsNone
             ? Result.Success(true)
             : Result.Failure<bool>(MutationError);
