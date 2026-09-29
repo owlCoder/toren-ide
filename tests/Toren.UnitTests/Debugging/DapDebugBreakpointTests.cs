@@ -30,13 +30,18 @@ public sealed class DapDebugBreakpointTests
         var result = await session.SetBreakpointsAsync("/workspace/Program.cs", RequestedBreakpoints);
 
         Assert.That(result.IsSuccess, Is.True);
+        Assert.That(client.LastArguments, Is.Not.Null);
+        using var argumentsDocument = JsonDocument.Parse(client.LastArguments!);
+        var root = argumentsDocument.RootElement;
+        var requestBreakpoints = root.GetProperty("breakpoints");
         Assert.Multiple(() =>
         {
             Assert.That(client.LastCommand, Is.EqualTo("setBreakpoints"));
-            Assert.That(client.LastArguments, Does.Contain("\"path\":\"/workspace/Program.cs\""));
-            Assert.That(client.LastArguments, Does.Contain("\"line\":12"));
-            Assert.That(client.LastArguments, Does.Contain("\"line\":24"));
-            Assert.That(client.LastArguments, Does.Contain("\"condition\":\"count > 3\""));
+            Assert.That(root.GetProperty("source").GetProperty("path").GetString(), Is.EqualTo("/workspace/Program.cs"));
+            Assert.That(requestBreakpoints.GetArrayLength(), Is.EqualTo(2));
+            Assert.That(requestBreakpoints[0].GetProperty("line").GetInt32(), Is.EqualTo(12));
+            Assert.That(requestBreakpoints[1].GetProperty("line").GetInt32(), Is.EqualTo(24));
+            Assert.That(requestBreakpoints[1].GetProperty("condition").GetString(), Is.EqualTo("count > 3"));
             Assert.That(result.Value, Has.Count.EqualTo(2));
             Assert.That(result.Value![0], Is.EqualTo(new DebugBreakpoint(7, true, 12)));
             Assert.That(
