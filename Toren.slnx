@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="src/Toren.App/Toren.App.csproj" />
   <Project Path="src/Toren.Core/Toren.Core.csproj" />
+  <Project Path="src/Toren.Debugging/Toren.Debugging.csproj" />
   <Project Path="src/Toren.DotNet/Toren.DotNet.csproj" />
   <Project Path="src/Toren.Language/Toren.Language.csproj" />
   <Project Path="src/Toren.Platform/Toren.Platform.csproj" />
