@@ -48,7 +48,7 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IDotNet
                 execution.Value.StandardError));
     }
 
-    private static IReadOnlyList<string> CreateArguments(DotNetCommandRequest request)
+    private static List<string> CreateArguments(DotNetCommandRequest request)
     {
         var arguments = new List<string>();
         switch (request.Kind)
@@ -99,7 +99,7 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IDotNet
         return arguments;
     }
 
-    private static void AddTarget(ICollection<string> arguments, DotNetCommandRequest request)
+    private static void AddTarget(List<string> arguments, DotNetCommandRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.TargetPath))
         {
@@ -114,7 +114,7 @@ public sealed class DotNetCommandService(IProcessRunner processRunner) : IDotNet
         arguments.Add(request.TargetPath);
     }
 
-    private static void AddOption(ICollection<string> arguments, string option, string? value)
+    private static void AddOption(List<string> arguments, string option, string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
