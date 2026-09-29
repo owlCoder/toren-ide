@@ -6,7 +6,7 @@
              xmlns:testvm="clr-namespace:Toren.App.Testing.ViewModels"
              xmlns:testmodels="clr-namespace:Toren.App.Testing.Models"
              xmlns:dotnettests="clr-namespace:Toren.DotNet.Testing.Models;assembly=Toren.DotNet">
-  <Grid RowDefinitions="Auto,*">
+  <Grid RowDefinitions="Auto,Auto,*">
     <Border Grid.Row="0"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1"
@@ -19,53 +19,89 @@
         </StackPanel>
         <Button x:Name="RefreshTestsButton" Grid.Column="1"
                 Classes="toolbar-button" Content="Refresh"
+                IsEnabled="{Binding !IsRunning}"
                 VerticalAlignment="Center" />
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1">
-      <StackPanel Margin="12" Spacing="5" IsVisible="{Binding IsLoading}">
-        <TextBlock Text="Discovering tests…" FontWeight="SemiBold" FontSize="11.5" />
-        <ProgressBar IsIndeterminate="True" Height="3" />
+    <Border Grid.Row="1" Padding="10,5"
+            BorderBrush="{DynamicResource TorenBorderBrush}"
+            BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" Spacing="5">
+        <Button Classes="toolbar-button" Content="Run All"
+                Click="RunAll_OnClick" IsEnabled="{Binding CanRunAll}" />
+        <Button Classes="toolbar-button" Content="Stop"
+                Click="Stop_OnClick" IsEnabled="{Binding CanStop}" />
+        <Button Classes="toolbar-button" Content="Clear Output"
+                Click="ClearOutput_OnClick" IsEnabled="{Binding HasOutput}" />
       </StackPanel>
+    </Border>
 
-      <StackPanel Margin="12" Spacing="5" IsVisible="{Binding IsEmpty}">
-        <TextBlock Text="No tests discovered" FontWeight="SemiBold" FontSize="11.5" />
-        <TextBlock Classes="muted" Text="Open a workspace with a test project, then refresh discovery."
-                   FontSize="10.5" TextWrapping="Wrap" />
-      </StackPanel>
+    <Grid Grid.Row="2" RowDefinitions="*,Auto">
+      <Grid Grid.Row="0">
+        <StackPanel Margin="12" Spacing="5" IsVisible="{Binding IsLoading}">
+          <TextBlock Text="Discovering tests…" FontWeight="SemiBold" FontSize="11.5" />
+          <ProgressBar IsIndeterminate="True" Height="3" />
+        </StackPanel>
 
-      <ScrollViewer IsVisible="{Binding HasProjects}">
-        <ItemsControl ItemsSource="{Binding Projects}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="testmodels:WorkspaceTestProjectDiscovery">
-              <StackPanel Margin="10,7" Spacing="4">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                  <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
-                             FontWeight="SemiBold" FontSize="11"
-                             TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Column="1" Classes="muted"
-                             Text="{Binding Tests.Count}" FontSize="10" />
-                </Grid>
-                <TextBlock Text="{Binding ErrorMessage}"
+        <StackPanel Margin="12" Spacing="5" IsVisible="{Binding IsEmpty}">
+          <TextBlock Text="No tests discovered" FontWeight="SemiBold" FontSize="11.5" />
+          <TextBlock Classes="muted" Text="Open a workspace with a test project, then refresh discovery."
+                     FontSize="10.5" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ScrollViewer IsVisible="{Binding HasProjects}">
+          <ItemsControl ItemsSource="{Binding Projects}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="testmodels:WorkspaceTestProjectDiscovery">
+                <StackPanel Margin="10,7" Spacing="4">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                               FontWeight="SemiBold" FontSize="11"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Classes="muted"
+                               Text="{Binding Tests.Count}" FontSize="10" />
+                  </Grid>
+                  <TextBlock Text="{Binding ErrorMessage}"
+                             Foreground="{DynamicResource TorenErrorBrush}"
+                             FontSize="10" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding Tests}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="dotnettests:DotNetTestCase">
+                        <TextBlock Text="{Binding DisplayName}"
+                                   Margin="12,2,0,2"
+                                   FontSize="10.5"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding FullyQualifiedName}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+
+      <Border Grid.Row="1" MaxHeight="190" IsVisible="{Binding HasOutput}"
+              BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
+        <ListBox ItemsSource="{Binding OutputLines}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="testvm:TestRunOutputLineViewModel">
+              <Grid Margin="8,2">
+                <TextBlock Text="{Binding Text}" IsVisible="{Binding IsStandardOutput}"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           FontSize="9.5" TextWrapping="NoWrap" />
+                <TextBlock Text="{Binding Text}" IsVisible="{Binding IsStandardError}"
                            Foreground="{DynamicResource TorenErrorBrush}"
-                           FontSize="10" TextWrapping="Wrap" />
-                <ItemsControl ItemsSource="{Binding Tests}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="dotnettests:DotNetTestCase">
-                      <TextBlock Text="{Binding DisplayName}"
-                                 Margin="12,2,0,2"
-                                 FontSize="10.5"
-                                 TextTrimming="CharacterEllipsis"
-                                 ToolTip.Tip="{Binding FullyQualifiedName}" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           FontSize="9.5" TextWrapping="NoWrap" />
+              </Grid>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
     </Grid>
   </Grid>
 </UserControl>
