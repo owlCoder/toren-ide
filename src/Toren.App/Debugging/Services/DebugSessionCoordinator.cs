@@ -99,6 +99,36 @@ public sealed class DebugSessionCoordinator(IDebugSessionService sessionService)
             cancellationToken);
     }
 
+    public Task<Result<IReadOnlyList<DebugStackFrame>>> GetStackTraceAsync(
+        int threadId,
+        CancellationToken cancellationToken = default) =>
+        WithSessionAsync(
+            session => session.GetStackTraceAsync(threadId, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<IReadOnlyList<DebugScope>>> GetScopesAsync(
+        int frameId,
+        CancellationToken cancellationToken = default) =>
+        WithSessionAsync(
+            session => session.GetScopesAsync(frameId, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<IReadOnlyList<DebugVariable>>> GetVariablesAsync(
+        int variablesReference,
+        CancellationToken cancellationToken = default) =>
+        WithSessionAsync(
+            session => session.GetVariablesAsync(variablesReference, cancellationToken),
+            cancellationToken);
+
+    public Task<Result<DebugEvaluationResult>> EvaluateAsync(
+        string expression,
+        int? frameId = null,
+        DebugEvaluationContext context = DebugEvaluationContext.Watch,
+        CancellationToken cancellationToken = default) =>
+        WithSessionAsync(
+            session => session.EvaluateAsync(expression, frameId, context, cancellationToken),
+            cancellationToken);
+
     public async Task<Result<bool>> ContinueAsync(
         int threadId,
         CancellationToken cancellationToken = default)

@@ -176,6 +176,83 @@ public sealed class DapDebugSessionService(
                 : ParseBreakpoints(response.Value!.Payload, breakpoints);
         }
 
+        public async Task<Result<IReadOnlyList<DebugStackFrame>>> GetStackTraceAsync(
+            int threadId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(threadId);
+            var response = await _client.SendRequestAsync(
+                "stackTrace",
+                new
+                {
+                    threadId,
+                    startFrame = 0,
+                    levels = 0,
+                },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<IReadOnlyList<DebugStackFrame>>(response.Error)
+                : DapDebugInspectionParser.ParseStackTrace(response.Value!.Payload);
+        }
+
+        public async Task<Result<IReadOnlyList<DebugScope>>> GetScopesAsync(
+            int frameId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(frameId);
+            var response = await _client.SendRequestAsync(
+                "scopes",
+                new { frameId },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<IReadOnlyList<DebugScope>>(response.Error)
+                : DapDebugInspectionParser.ParseScopes(response.Value!.Payload);
+        }
+
+        public async Task<Result<IReadOnlyList<DebugVariable>>> GetVariablesAsync(
+            int variablesReference,
+            CancellationToken cancellationToken = default)
+        {
+            if (variablesReference < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(variablesReference));
+            }
+
+            var response = await _client.SendRequestAsync(
+                "variables",
+                new { variablesReference },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<IReadOnlyList<DebugVariable>>(response.Error)
+                : DapDebugInspectionParser.ParseVariables(response.Value!.Payload);
+        }
+
+        public async Task<Result<DebugEvaluationResult>> EvaluateAsync(
+            string expression,
+            int? frameId = null,
+            DebugEvaluationContext context = DebugEvaluationContext.Watch,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(expression);
+            if (frameId is <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(frameId));
+            }
+
+            var response = await _client.SendRequestAsync(
+                "evaluate",
+                new
+                {
+                    expression,
+                    frameId,
+                    context = GetEvaluationContext(context),
+                },
+                cancellationToken).ConfigureAwait(false);
+            return response.IsFailure
+                ? Result.Failure<DebugEvaluationResult>(response.Error)
+                : DapDebugInspectionParser.ParseEvaluation(response.Value!.Payload);
+        }
+
         public Task<Result<bool>> ContinueAsync(
             int threadId,
             CancellationToken cancellationToken = default) =>
@@ -250,6 +327,14 @@ public sealed class DapDebugSessionService(
                 ? Result.Failure<bool>(response.Error)
                 : Result.Success(true);
         }
+
+        private static string GetEvaluationContext(DebugEvaluationContext context) => context switch
+        {
+            DebugEvaluationContext.Watch => "watch",
+            DebugEvaluationContext.Repl => "repl",
+            DebugEvaluationContext.Hover => "hover",
+            _ => throw new ArgumentOutOfRangeException(nameof(context)),
+        };
 
         private static Result<IReadOnlyList<DebugBreakpoint>> ParseBreakpoints(
             string payload,

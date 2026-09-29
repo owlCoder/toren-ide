@@ -137,6 +137,28 @@ public sealed class DebuggerAttachingTestDebugServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success<IReadOnlyList<DebugBreakpoint>>([]));
 
+        public Task<Result<IReadOnlyList<DebugStackFrame>>> GetStackTraceAsync(
+            int threadId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success<IReadOnlyList<DebugStackFrame>>([]));
+
+        public Task<Result<IReadOnlyList<DebugScope>>> GetScopesAsync(
+            int frameId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success<IReadOnlyList<DebugScope>>([]));
+
+        public Task<Result<IReadOnlyList<DebugVariable>>> GetVariablesAsync(
+            int variablesReference,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success<IReadOnlyList<DebugVariable>>([]));
+
+        public Task<Result<DebugEvaluationResult>> EvaluateAsync(
+            string expression,
+            int? frameId = null,
+            DebugEvaluationContext context = DebugEvaluationContext.Watch,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(new DebugEvaluationResult(string.Empty, null, 0)));
+
         public Task<Result<bool>> ContinueAsync(int threadId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Result.Success(true));
 

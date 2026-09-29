@@ -14,6 +14,24 @@ public interface IDebugSession : IAsyncDisposable
         IReadOnlyList<DebugSourceBreakpoint> breakpoints,
         CancellationToken cancellationToken = default);
 
+    Task<Result<IReadOnlyList<DebugStackFrame>>> GetStackTraceAsync(
+        int threadId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<IReadOnlyList<DebugScope>>> GetScopesAsync(
+        int frameId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<IReadOnlyList<DebugVariable>>> GetVariablesAsync(
+        int variablesReference,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<DebugEvaluationResult>> EvaluateAsync(
+        string expression,
+        int? frameId = null,
+        DebugEvaluationContext context = DebugEvaluationContext.Watch,
+        CancellationToken cancellationToken = default);
+
     Task<Result<bool>> ContinueAsync(int threadId, CancellationToken cancellationToken = default);
 
     Task<Result<bool>> PauseAsync(int threadId, CancellationToken cancellationToken = default);
