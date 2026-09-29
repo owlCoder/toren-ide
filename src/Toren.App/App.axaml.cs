@@ -10,6 +10,9 @@ using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Services;
+using Toren.App.Testing.Contracts;
+using Toren.App.Testing.Services;
+using Toren.App.Testing.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.Core.Execution.Contracts;
@@ -19,6 +22,8 @@ using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Services;
+using Toren.DotNet.Testing.Contracts;
+using Toren.DotNet.Testing.Services;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
@@ -52,6 +57,7 @@ public sealed partial class App : Application
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
+            IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -67,6 +73,9 @@ public sealed partial class App : Application
                 solutionProjectProvider,
                 projectMetadataProvider,
                 projectReferenceProvider);
+            IWorkspaceTestDiscoveryService workspaceTestDiscoveryService = new WorkspaceTestDiscoveryService(
+                projectGraphService,
+                dotNetTestDiscoveryService);
             var workspaceExecutionTargetService = new WorkspaceExecutionTargetService(projectGraphService);
             IWorkspaceFileProvider workspaceFileProvider = new FileSystemWorkspaceFileProvider();
             IWorkspaceFileSearchService workspaceFileSearchService = new WorkspaceFileSearchService();
@@ -221,6 +230,13 @@ public sealed partial class App : Application
                 workspaceExecution,
                 dotNetCommandDiagnosticParser,
                 viewModel.Problems);
+            TestExplorerController.Attach(
+                mainWindow,
+                viewModel,
+                workspaceClassifier,
+                workspaceTestDiscoveryService,
+                new TestExplorerViewModel(),
+                viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,
