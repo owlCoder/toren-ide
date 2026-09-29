@@ -111,27 +111,68 @@ public sealed class DapDebugInspectionTests
             cancellationToken.ThrowIfCancellationRequested();
             var requestSequence = Interlocked.Increment(ref _sequence);
             Arguments[command] = arguments is null ? string.Empty : JsonSerializer.Serialize(arguments);
-            var payload = command switch
+            object? body = command switch
             {
-                "stackTrace" => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"stackTrace","body":{"stackFrames":[{"id":101,"name":"Program.Main()","source":{"path":"/workspace/Program.cs"},"line":12,"column":9}]}}
-                    """,
-                "scopes" => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"scopes","body":{"scopes":[{"name":"Locals","variablesReference":200,"expensive":false}]}}
-                    """,
-                "variables" when invalidVariables => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"variables","body":{"variables":[{"name":"count"}]}}
-                    """,
-                "variables" => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"variables","body":{"variables":[{"name":"count","value":"5","type":"int","variablesReference":0}]}}
-                    """,
-                "evaluate" => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"evaluate","body":{"result":"6","type":"int","variablesReference":0}}
-                    """,
-                _ => $$"""
-                    {"seq":{{requestSequence + 100}},"type":"response","request_seq":{{requestSequence}},"success":true,"command":"{{command}}"}
-                    """,
+                "stackTrace" => new
+                {
+                    stackFrames = new[]
+                    {
+                        new
+                        {
+                            id = 101,
+                            name = "Program.Main()",
+                            source = new { path = "/workspace/Program.cs" },
+                            line = 12,
+                            column = 9,
+                        },
+                    },
+                },
+                "scopes" => new
+                {
+                    scopes = new[]
+                    {
+                        new
+                        {
+                            name = "Locals",
+                            variablesReference = 200,
+                            expensive = false,
+                        },
+                    },
+                },
+                "variables" when invalidVariables => new
+                {
+                    variables = new[] { new { name = "count" } },
+                },
+                "variables" => new
+                {
+                    variables = new[]
+                    {
+                        new
+                        {
+                            name = "count",
+                            value = "5",
+                            type = "int",
+                            variablesReference = 0,
+                        },
+                    },
+                },
+                "evaluate" => new
+                {
+                    result = "6",
+                    type = "int",
+                    variablesReference = 0,
+                },
+                _ => null,
             };
+            var payload = JsonSerializer.Serialize(new
+            {
+                seq = requestSequence + 100,
+                type = "response",
+                request_seq = requestSequence,
+                success = true,
+                command,
+                body,
+            });
             return Task.FromResult(Result.Success(new DapProtocolMessage(
                 requestSequence + 100,
                 DapProtocolMessageKind.Response,
