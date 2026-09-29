@@ -21,6 +21,23 @@ internal sealed partial class DebugPanel : UserControl
 
     private DebugSessionViewModel? ViewModel => DataContext as DebugSessionViewModel;
 
+    private async void AttachProcess_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.AttachAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void AttachProcessId_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Key == Key.Enter && ViewModel is { CanAttach: true } viewModel)
+        {
+            eventArgs.Handled = true;
+            await viewModel.AttachAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void Continue_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (ViewModel is { } viewModel)
