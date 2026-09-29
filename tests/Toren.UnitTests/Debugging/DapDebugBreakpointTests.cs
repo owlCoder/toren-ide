@@ -82,12 +82,15 @@ public sealed class DapDebugBreakpointTests
             LastCommand = command;
             LastArguments = arguments is null ? string.Empty : JsonSerializer.Serialize(arguments);
             var payload = string.Equals(command, "setBreakpoints", StringComparison.Ordinal)
-                ? $$"""
-                    {"seq":{{_sequence + 100}},"type":"response","request_seq":{{_sequence}},"success":true,"command":"setBreakpoints","body":{"breakpoints":[{"id":7,"verified":true,"line":12},{"id":8,"verified":false,"line":25,"message":"Breakpoint moved"}]}}
-                    """
-                : $$"""
-                    {"seq":{{_sequence + 100}},"type":"response","request_seq":{{_sequence}},"success":true,"command":"{{command}}"}
-                    """;
+                ? CreateBreakpointResponsePayload()
+                : JsonSerializer.Serialize(new
+                {
+                    seq = _sequence + 100,
+                    type = "response",
+                    request_seq = _sequence,
+                    success = true,
+                    command,
+                });
             return Task.FromResult(Result.Success(new DapProtocolMessage(
                 _sequence + 100,
                 DapProtocolMessageKind.Response,
@@ -113,6 +116,24 @@ public sealed class DapDebugBreakpointTests
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        private string CreateBreakpointResponsePayload()
+        {
+            var breakpoints = new List<object>
+            {
+                new { id = 7, verified = true, line = 12, message = (string?)null },
+                new { id = 8, verified = false, line = 25, message = "Breakpoint moved" },
+            };
+            return JsonSerializer.Serialize(new
+            {
+                seq = _sequence + 100,
+                type = "response",
+                request_seq = _sequence,
+                success = true,
+                command = "setBreakpoints",
+                body = new { breakpoints },
+            });
+        }
 
         private static async IAsyncEnumerable<DapProtocolMessage> EmptyNotifications(
             [EnumeratorCancellation] CancellationToken cancellationToken)
