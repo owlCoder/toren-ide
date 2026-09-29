@@ -82,6 +82,7 @@ public sealed partial class App : Application
                 workspaceClassifier,
                 projectGraphService,
                 workspaceFileProvider);
+            IDotNetCommandDiagnosticParser dotNetCommandDiagnosticParser = new DotNetCommandDiagnosticParser();
             ICSharpSyntaxService cSharpSyntaxService = new RoslynCSharpSyntaxService();
             var roslynDiagnosticService = new RoslynCSharpDiagnosticService();
             ICSharpDiagnosticService cSharpDiagnosticService = roslynDiagnosticService;
@@ -201,6 +202,11 @@ public sealed partial class App : Application
                 viewModel,
                 workspaceClassifier,
                 workspaceExecution);
+            WorkspaceExecutionDiagnosticsController.Attach(
+                mainWindow,
+                workspaceExecution,
+                dotNetCommandDiagnosticParser,
+                viewModel.Problems);
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,

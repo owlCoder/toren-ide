@@ -14,6 +14,8 @@ public sealed partial class ProblemsViewModel : ObservableObject
 
     private readonly Dictionary<string, List<ProblemItemViewModel>> _itemsByFile = new(PathComparer);
     private readonly List<ProblemItemViewModel> _workspaceItems = [];
+    private readonly Dictionary<string, List<ProblemItemViewModel>> _supplementalItemsBySource =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ProblemItemViewModel> _allItems = [];
     private readonly HashSet<string> _projectFilePaths = new(PathComparer);
     private string? _currentDocumentPath;
@@ -170,6 +172,27 @@ public sealed partial class ProblemsViewModel : ObservableObject
         Rebuild();
     }
 
+    public void ReplaceSupplemental(
+        string sourceKey,
+        IReadOnlyList<ProblemDiagnostic> diagnostics)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceKey);
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        if (diagnostics.Count == 0)
+        {
+            _supplementalItemsBySource.Remove(sourceKey);
+        }
+        else
+        {
+            _supplementalItemsBySource[sourceKey] = diagnostics
+                .Select(static diagnostic => new ProblemItemViewModel(diagnostic))
+                .ToList();
+        }
+
+        Rebuild();
+    }
+
     public void ReplaceFile(string filePath, IReadOnlyList<CSharpDiagnostic> diagnostics)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -195,6 +218,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
     {
         _itemsByFile.Clear();
         _workspaceItems.Clear();
+        _supplementalItemsBySource.Clear();
         _allItems.Clear();
         OnPropertyChanged(nameof(HasAnyProblems));
         ApplyFilters();
@@ -227,6 +251,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
     {
         _allItems.Clear();
         _allItems.AddRange(_workspaceItems);
+        _allItems.AddRange(_supplementalItemsBySource.Values.SelectMany(static items => items));
         _allItems.AddRange(_itemsByFile.Values.SelectMany(static items => items));
         _allItems.Sort(CompareItems);
         OnPropertyChanged(nameof(HasAnyProblems));
