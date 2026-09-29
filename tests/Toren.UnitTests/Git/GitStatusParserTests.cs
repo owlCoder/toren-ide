@@ -20,9 +20,8 @@ public sealed class GitStatusParserTests
             "src/Old Name.cs",
             "? notes/todo.txt",
             string.Empty);
-        var parser = new GitStatusParser();
 
-        var status = parser.Parse(output);
+        var status = GitStatusParser.Parse(output);
 
         Assert.Multiple(() =>
         {
@@ -42,9 +41,7 @@ public sealed class GitStatusParserTests
     [Test]
     public void ParseTreatsDetachedHeadAsNoBranchName()
     {
-        var parser = new GitStatusParser();
-
-        var status = parser.Parse("# branch.head (detached)\0");
+        var status = GitStatusParser.Parse("# branch.head (detached)\0");
 
         Assert.That(status.BranchName, Is.Null);
     }

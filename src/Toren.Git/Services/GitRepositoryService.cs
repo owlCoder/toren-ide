@@ -7,15 +7,11 @@ using Toren.Git.Parsers;
 
 namespace Toren.Git.Services;
 
-public sealed class GitRepositoryService(
-    IProcessRunner processRunner,
-    GitStatusParser statusParser) : IGitRepositoryService
+public sealed class GitRepositoryService(IProcessRunner processRunner) : IGitRepositoryService
 {
     private const string GitCommandFailedErrorCode = "git.command.failed";
     private readonly IProcessRunner _processRunner = processRunner
         ?? throw new ArgumentNullException(nameof(processRunner));
-    private readonly GitStatusParser _statusParser = statusParser
-        ?? throw new ArgumentNullException(nameof(statusParser));
 
     public async Task<Result<GitRepositoryStatus>> GetStatusAsync(
         string workingDirectory,
@@ -37,7 +33,7 @@ public sealed class GitRepositoryService(
             return Result.Failure<GitRepositoryStatus>(CreateCommandError("status", processResult));
         }
 
-        return Result.Success(_statusParser.Parse(processResult.StandardOutput));
+        return Result.Success(GitStatusParser.Parse(processResult.StandardOutput));
     }
 
     public async Task<Result<string>> GetDiffAsync(

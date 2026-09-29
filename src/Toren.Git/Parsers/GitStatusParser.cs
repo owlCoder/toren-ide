@@ -2,9 +2,9 @@ using Toren.Git.Models;
 
 namespace Toren.Git.Parsers;
 
-public sealed class GitStatusParser
+public static class GitStatusParser
 {
-    public GitRepositoryStatus Parse(string output)
+    public static GitRepositoryStatus Parse(string output)
     {
         ArgumentNullException.ThrowIfNull(output);
 

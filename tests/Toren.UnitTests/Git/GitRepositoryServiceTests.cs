@@ -2,7 +2,6 @@ using NUnit.Framework;
 using Toren.Core.Execution.Contracts;
 using Toren.Core.Execution.Models;
 using Toren.Core.Results;
-using Toren.Git.Parsers;
 using Toren.Git.Services;
 
 namespace Toren.UnitTests.Git;
@@ -18,7 +17,7 @@ public sealed class GitRepositoryServiceTests
                 0,
                 "# branch.head main\0? src/New.cs\0",
                 string.Empty)));
-        var service = new GitRepositoryService(runner, new GitStatusParser());
+        var service = new GitRepositoryService(runner);
 
         var result = await service.GetStatusAsync(Path.GetTempPath());
 
@@ -39,7 +38,7 @@ public sealed class GitRepositoryServiceTests
     {
         var runner = new RecordingProcessRunner(
             Result.Success(new ProcessResult(0, "diff output", string.Empty)));
-        var service = new GitRepositoryService(runner, new GitStatusParser());
+        var service = new GitRepositoryService(runner);
 
         var result = await service.GetDiffAsync(
             Path.GetTempPath(),
