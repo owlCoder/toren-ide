@@ -11,6 +11,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
 {
     private readonly IDotNetTestRunService _testRunService = testRunService
         ?? throw new ArgumentNullException(nameof(testRunService));
+    private readonly List<WorkspaceTestProjectDiscovery> _failedProjects = [];
     private CancellationTokenSource? _runCancellation;
     private bool _disposed;
 
@@ -21,6 +22,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRunAll))]
     [NotifyPropertyChangedFor(nameof(CanStop))]
+    [NotifyPropertyChangedFor(nameof(CanRerunFailedProjects))]
     private bool _isRunning;
 
     [ObservableProperty]
@@ -42,11 +44,16 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
 
     public bool HasOutput => OutputLines.Count > 0;
 
+    public bool HasFailedProjects => _failedProjects.Count > 0;
+
+    public bool CanRerunFailedProjects => HasFailedProjects && !IsLoading && !IsRunning;
+
     public void BeginRefresh()
     {
         IsLoading = true;
         StatusText = "Discovering tests…";
         OnPropertyChanged(nameof(CanRunAll));
+        OnPropertyChanged(nameof(CanRerunFailedProjects));
     }
 
     public void Replace(IReadOnlyList<WorkspaceTestProjectDiscovery> projects)
@@ -58,6 +65,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
             Projects.Add(project);
         }
 
+        ClearFailedProjects();
         IsLoading = false;
         StatusText = Projects.Count == 0
             ? "No test projects found."
@@ -69,6 +77,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         Projects.Clear();
+        ClearFailedProjects();
         IsLoading = false;
         StatusText = message;
         NotifyCollectionSummary();
@@ -78,6 +87,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
     {
         Stop();
         Projects.Clear();
+        ClearFailedProjects();
         OutputLines.Clear();
         IsLoading = false;
         StatusText = "Open a workspace to discover tests.";
@@ -92,54 +102,20 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
             return;
         }
 
-        using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _runCancellation = runCancellation;
-        IsRunning = true;
-        OutputLines.Clear();
-        OnPropertyChanged(nameof(HasOutput));
-        var synchronizationContext = SynchronizationContext.Current;
-        var failedProjects = 0;
+        ClearFailedProjects();
+        await RunProjectsAsync(Projects.ToArray(), false, cancellationToken).ConfigureAwait(true);
+    }
 
-        try
+    public async Task RerunFailedProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_disposed || !CanRerunFailedProjects)
         {
-            foreach (var project in Projects)
-            {
-                runCancellation.Token.ThrowIfCancellationRequested();
-                StatusText = $"Running {project.DisplayName}…";
-                AddOutput(
-                    ProcessOutputChannel.StandardOutput,
-                    $"[Test] {project.DisplayName}");
-                var result = await _testRunService
-                    .RunAsync(
-                        new DotNetTestRunRequest(project.ProjectPath),
-                        line => ReportOutput(line, synchronizationContext),
-                        runCancellation.Token)
-                    .ConfigureAwait(true);
-                if (!result.IsSuccess)
-                {
-                    failedProjects++;
-                    AddOutput(ProcessOutputChannel.StandardError, result.Error.Message);
-                    continue;
-                }
+            return;
+        }
 
-                if (!result.Value.Succeeded)
-                {
-                    failedProjects++;
-                }
-            }
-
-            StatusText = failedProjects == 0
-                ? $"All {Projects.Count} test project{(Projects.Count == 1 ? string.Empty : "s")} passed."
-                : $"{failedProjects} of {Projects.Count} test projects failed.";
-        }
-        catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
-        {
-            StatusText = "Test run canceled.";
-        }
-        finally
-        {
-            CompleteRun(runCancellation);
-        }
+        var failedProjects = _failedProjects.ToArray();
+        ClearFailedProjects();
+        await RunProjectsAsync(failedProjects, true, cancellationToken).ConfigureAwait(true);
     }
 
     public async Task RunTestAsync(
@@ -217,6 +193,63 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
         Stop();
     }
 
+    private async Task RunProjectsAsync(
+        IReadOnlyList<WorkspaceTestProjectDiscovery> projects,
+        bool isRerun,
+        CancellationToken cancellationToken)
+    {
+        using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _runCancellation = runCancellation;
+        IsRunning = true;
+        OutputLines.Clear();
+        OnPropertyChanged(nameof(HasOutput));
+        var synchronizationContext = SynchronizationContext.Current;
+
+        try
+        {
+            foreach (var project in projects)
+            {
+                runCancellation.Token.ThrowIfCancellationRequested();
+                StatusText = $"Running {project.DisplayName}…";
+                AddOutput(ProcessOutputChannel.StandardOutput, $"[Test] {project.DisplayName}");
+                var result = await _testRunService
+                    .RunAsync(
+                        new DotNetTestRunRequest(project.ProjectPath),
+                        line => ReportOutput(line, synchronizationContext),
+                        runCancellation.Token)
+                    .ConfigureAwait(true);
+                if (!result.IsSuccess)
+                {
+                    _failedProjects.Add(project);
+                    AddOutput(ProcessOutputChannel.StandardError, result.Error.Message);
+                    continue;
+                }
+
+                if (!result.Value.Succeeded)
+                {
+                    _failedProjects.Add(project);
+                }
+            }
+
+            NotifyFailedProjectsChanged();
+            StatusText = _failedProjects.Count == 0
+                ? isRerun
+                    ? "All previously failed test projects passed."
+                    : $"All {projects.Count} test project{(projects.Count == 1 ? string.Empty : "s")} passed."
+                : isRerun
+                    ? $"{_failedProjects.Count} test project{(_failedProjects.Count == 1 ? string.Empty : "s")} still failing."
+                    : $"{_failedProjects.Count} of {projects.Count} test projects failed.";
+        }
+        catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
+        {
+            StatusText = "Test run canceled.";
+        }
+        finally
+        {
+            CompleteRun(runCancellation);
+        }
+    }
+
     private void CompleteRun(CancellationTokenSource runCancellation)
     {
         if (ReferenceEquals(_runCancellation, runCancellation))
@@ -225,6 +258,24 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
         }
 
         IsRunning = false;
+        OnPropertyChanged(nameof(CanRerunFailedProjects));
+    }
+
+    private void ClearFailedProjects()
+    {
+        if (_failedProjects.Count == 0)
+        {
+            return;
+        }
+
+        _failedProjects.Clear();
+        NotifyFailedProjectsChanged();
+    }
+
+    private void NotifyFailedProjectsChanged()
+    {
+        OnPropertyChanged(nameof(HasFailedProjects));
+        OnPropertyChanged(nameof(CanRerunFailedProjects));
     }
 
     private void ReportOutput(ProcessOutputLine line, SynchronizationContext? synchronizationContext)
@@ -257,6 +308,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(TotalTests));
         OnPropertyChanged(nameof(CanRunAll));
+        OnPropertyChanged(nameof(CanRerunFailedProjects));
     }
 
     private sealed record OutputReport(

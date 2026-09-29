@@ -24,6 +24,14 @@ internal sealed partial class TestExplorerPanel : UserControl
         }
     }
 
+    private async void RerunFailedProjects_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (ViewModel is { } viewModel)
+        {
+            await viewModel.RerunFailedProjectsAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void RunTest_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         if (sender is not Button { DataContext: DotNetTestCase test } button

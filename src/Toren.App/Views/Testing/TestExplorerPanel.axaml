@@ -30,6 +30,9 @@
       <StackPanel Orientation="Horizontal" Spacing="5">
         <Button Classes="toolbar-button" Content="Run All"
                 Click="RunAll_OnClick" IsEnabled="{Binding CanRunAll}" />
+        <Button Classes="toolbar-button" Content="Rerun Failed Projects"
+                Click="RerunFailedProjects_OnClick"
+                IsEnabled="{Binding CanRerunFailedProjects}" />
         <Button Classes="toolbar-button" Content="Stop"
                 Click="Stop_OnClick" IsEnabled="{Binding CanStop}" />
         <Button Classes="toolbar-button" Content="Clear Output"
