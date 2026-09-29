@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace Toren.TestFixtures.Xunit;
 
 public sealed class SmokeTests
