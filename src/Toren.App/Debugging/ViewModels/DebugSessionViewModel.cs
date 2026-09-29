@@ -122,7 +122,7 @@ public sealed partial class DebugSessionViewModel(DebugSessionCoordinator coordi
             return;
         }
 
-        foreach (var frame in stack.Value)
+        foreach (var frame in stack.Value!)
         {
             StackFrames.Add(frame);
         }
@@ -156,7 +156,7 @@ public sealed partial class DebugSessionViewModel(DebugSessionCoordinator coordi
             return;
         }
 
-        foreach (var scope in scopes.Value)
+        foreach (var scope in scopes.Value!)
         {
             if (scope.VariablesReference == 0)
             {
@@ -172,7 +172,7 @@ public sealed partial class DebugSessionViewModel(DebugSessionCoordinator coordi
                 continue;
             }
 
-            foreach (var variable in variables.Value)
+            foreach (var variable in variables.Value!)
             {
                 Locals.Add(new DebugLocalItemViewModel(
                     scope.Name,
@@ -515,7 +515,7 @@ public sealed partial class DebugSessionViewModel(DebugSessionCoordinator coordi
                 sourcePath,
                 resolved?.Line > 0 ? resolved.Line : definition.Line,
                 definition.Condition,
-                resolved?.IsVerified ?? false,
+                resolved?.Verified ?? false,
                 resolved?.Message));
         }
 
