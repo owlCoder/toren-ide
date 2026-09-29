@@ -51,13 +51,14 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            IProcessRunner processRunner = new SystemProcessRunner();
+            var processRunner = new SystemProcessRunner();
             IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
+            IDotNetTestRunService dotNetTestRunService = new DotNetTestRunService(processRunner);
             IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
             ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
             IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
@@ -235,7 +236,7 @@ public sealed partial class App : Application
                 viewModel,
                 workspaceClassifier,
                 workspaceTestDiscoveryService,
-                new TestExplorerViewModel(),
+                new TestExplorerViewModel(dotNetTestRunService),
                 viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,
