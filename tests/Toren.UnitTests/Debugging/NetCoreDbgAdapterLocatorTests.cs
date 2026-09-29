@@ -6,6 +6,8 @@ namespace Toren.UnitTests.Debugging;
 [TestFixture]
 public sealed class NetCoreDbgAdapterLocatorTests
 {
+    private static readonly string[] ExpectedAdapterArguments = ["--interpreter=vscode"];
+
     [Test]
     public void LocateUsesConfiguredPathBeforeSearchPath()
     {
@@ -24,7 +26,7 @@ public sealed class NetCoreDbgAdapterLocatorTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Value!.FileName, Is.EqualTo(Path.GetFullPath(configured)));
-            Assert.That(result.Value.Arguments, Is.EqualTo(new[] { "--interpreter=vscode" }));
+            Assert.That(result.Value.Arguments, Is.EqualTo(ExpectedAdapterArguments));
             Assert.That(result.Value.DisplayName, Is.EqualTo("netcoredbg"));
         });
     }
