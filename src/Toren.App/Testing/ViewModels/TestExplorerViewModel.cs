@@ -194,7 +194,7 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
     }
 
     private async Task RunProjectsAsync(
-        IReadOnlyList<WorkspaceTestProjectDiscovery> projects,
+        WorkspaceTestProjectDiscovery[] projects,
         bool isRerun,
         CancellationToken cancellationToken)
     {
@@ -235,10 +235,10 @@ public sealed partial class TestExplorerViewModel(IDotNetTestRunService testRunS
             StatusText = _failedProjects.Count == 0
                 ? isRerun
                     ? "All previously failed test projects passed."
-                    : $"All {projects.Count} test project{(projects.Count == 1 ? string.Empty : "s")} passed."
+                    : $"All {projects.Length} test project{(projects.Length == 1 ? string.Empty : "s")} passed."
                 : isRerun
                     ? $"{_failedProjects.Count} test project{(_failedProjects.Count == 1 ? string.Empty : "s")} still failing."
-                    : $"{_failedProjects.Count} of {projects.Count} test projects failed.";
+                    : $"{_failedProjects.Count} of {projects.Length} test projects failed.";
         }
         catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
         {
