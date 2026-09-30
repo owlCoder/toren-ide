@@ -105,7 +105,8 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
                 HttpRequestErrors.InvalidRequestLine(requestNumber, requestLine));
         }
 
-        if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
             return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidUri(requestNumber, uriText));
         }
