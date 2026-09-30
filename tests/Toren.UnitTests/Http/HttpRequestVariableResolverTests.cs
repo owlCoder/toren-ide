@@ -8,11 +8,11 @@ namespace Toren.UnitTests.Http;
 public sealed class HttpRequestVariableResolverTests
 {
     [Test]
-    public void ResolveSubstitutesUriHeadersAndBody()
+    public void ResolveSubstitutesTargetHeadersAndBody()
     {
         var request = new HttpRequestDefinition(
             "POST",
-            new Uri("https://example.test/{{tenant}}/widgets"),
+            "{{baseUrl}}/{{tenant}}/widgets",
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Authorization"] = "Bearer {{token}}",
@@ -22,6 +22,7 @@ public sealed class HttpRequestVariableResolverTests
             "createWidget");
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            ["baseUrl"] = "https://example.test",
             ["tenant"] = "contoso",
             ["token"] = "secret-token",
             ["environment"] = "development",
@@ -33,7 +34,7 @@ public sealed class HttpRequestVariableResolverTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(result.Value!.Uri.AbsoluteUri, Is.EqualTo("https://example.test/contoso/widgets"));
+            Assert.That(result.Value!.RequestTarget, Is.EqualTo("https://example.test/contoso/widgets"));
             Assert.That(result.Value.Headers["Authorization"], Is.EqualTo("Bearer secret-token"));
             Assert.That(result.Value.Headers["X-Environment"], Is.EqualTo("development"));
             Assert.That(result.Value.Body, Is.EqualTo("{\"name\":\"demo\"}"));
@@ -63,7 +64,7 @@ public sealed class HttpRequestVariableResolverTests
     {
         var request = new HttpRequestDefinition(
             "POST",
-            new Uri("https://example.test/widgets"),
+            "https://example.test/widgets",
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             "{{token");
 
@@ -90,12 +91,12 @@ public sealed class HttpRequestVariableResolverTests
         var result = new HttpRequestVariableResolver().Resolve(request, variables);
 
         Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value!.Uri.AbsoluteUri, Is.EqualTo("https://example.test/api/widgets"));
+        Assert.That(result.Value!.RequestTarget, Is.EqualTo("https://example.test/api/widgets"));
     }
 
-    private static HttpRequestDefinition CreateRequest(string uri) =>
+    private static HttpRequestDefinition CreateRequest(string requestTarget) =>
         new(
             "GET",
-            new Uri(uri),
+            requestTarget,
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 }

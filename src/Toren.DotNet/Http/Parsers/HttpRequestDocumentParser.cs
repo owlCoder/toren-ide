@@ -98,17 +98,17 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
         }
 
         var method = requestLine[..whitespaceIndex].Trim();
-        var uriText = requestLine[whitespaceIndex..].Trim();
+        var requestTarget = requestLine[whitespaceIndex..].Trim();
         if (method.Length == 0 || method.Any(static character => !char.IsLetter(character)))
         {
             return Result.Failure<HttpRequestDefinition>(
                 HttpRequestErrors.InvalidRequestLine(requestNumber, requestLine));
         }
 
-        if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (!ContainsVariablePlaceholder(requestTarget) && !IsAbsoluteHttpUri(requestTarget))
         {
-            return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidUri(requestNumber, uriText));
+            return Result.Failure<HttpRequestDefinition>(
+                HttpRequestErrors.InvalidUri(requestNumber, requestTarget));
         }
 
         index++;
@@ -157,11 +157,18 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
 
         return Result.Success(new HttpRequestDefinition(
             method.ToUpperInvariant(),
-            uri,
+            requestTarget,
             headers,
             body,
             name));
     }
+
+    private static bool ContainsVariablePlaceholder(string value) =>
+        value.Contains("{{", StringComparison.Ordinal);
+
+    private static bool IsAbsoluteHttpUri(string value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     private static int FindWhitespace(string value)
     {

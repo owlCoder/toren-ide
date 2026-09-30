@@ -17,7 +17,14 @@ public sealed class HttpRequestRunner(HttpClient httpClient) : IHttpRequestRunne
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        using var message = new HttpRequestMessage(new HttpMethod(request.Method), request.Uri);
+        if (!Uri.TryCreate(request.RequestTarget, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return Result.Failure<HttpResponseSnapshot>(
+                HttpRequestErrors.InvalidResolvedUri(request.RequestTarget));
+        }
+
+        using var message = new HttpRequestMessage(new HttpMethod(request.Method), uri);
         if (request.Body is not null)
         {
             message.Content = new StringContent(request.Body, Encoding.UTF8);

@@ -24,7 +24,7 @@ public sealed class HttpRequestHistory(int capacity = 50) : IHttpRequestHistory
             completedAt,
             request.Name,
             request.Method,
-            request.Uri,
+            request.RequestTarget,
             response.StatusCode,
             response.Duration));
 

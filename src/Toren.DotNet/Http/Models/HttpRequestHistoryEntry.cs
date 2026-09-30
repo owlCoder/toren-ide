@@ -4,6 +4,6 @@ public sealed record HttpRequestHistoryEntry(
     DateTimeOffset CompletedAt,
     string? Name,
     string Method,
-    Uri Uri,
+    string RequestTarget,
     int StatusCode,
     TimeSpan Duration);

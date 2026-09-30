@@ -15,17 +15,17 @@ public sealed class HttpRequestVariableResolver : IHttpRequestVariableResolver
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(variables);
 
-        var uriResult = ReplaceVariables(request.Uri.OriginalString, variables);
-        if (uriResult.IsFailure)
+        var targetResult = ReplaceVariables(request.RequestTarget, variables);
+        if (targetResult.IsFailure)
         {
-            return Result.Failure<HttpRequestDefinition>(uriResult.Error);
+            return Result.Failure<HttpRequestDefinition>(targetResult.Error);
         }
 
-        var resolvedUriText = uriResult.Value!;
-        if (!Uri.TryCreate(resolvedUriText, UriKind.Absolute, out var uri)
+        var resolvedTarget = targetResult.Value!;
+        if (!Uri.TryCreate(resolvedTarget, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidResolvedUri(resolvedUriText));
+            return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidResolvedUri(resolvedTarget));
         }
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -54,7 +54,7 @@ public sealed class HttpRequestVariableResolver : IHttpRequestVariableResolver
 
         return Result.Success(request with
         {
-            Uri = uri,
+            RequestTarget = resolvedTarget,
             Headers = headers,
             Body = body,
         });

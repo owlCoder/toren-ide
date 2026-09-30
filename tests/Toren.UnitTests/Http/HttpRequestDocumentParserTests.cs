@@ -35,7 +35,7 @@ public sealed class HttpRequestDocumentParserTests
         {
             Assert.That(requests[0].Name, Is.EqualTo("listWidgets"));
             Assert.That(requests[0].Method, Is.EqualTo("GET"));
-            Assert.That(requests[0].Uri.AbsoluteUri, Is.EqualTo("https://example.test/widgets"));
+            Assert.That(requests[0].RequestTarget, Is.EqualTo("https://example.test/widgets"));
             Assert.That(requests[0].Headers["Accept"], Is.EqualTo("application/json"));
             Assert.That(requests[0].Body, Is.Null);
             Assert.That(requests[1].Name, Is.EqualTo("createWidget"));
@@ -47,7 +47,28 @@ public sealed class HttpRequestDocumentParserTests
     }
 
     [Test]
-    public void ParseRejectsRelativeRequestUri()
+    public void ParsePreservesVariableBasedRequestTargetUntilResolution()
+    {
+        var parsed = new HttpRequestDocumentParser().Parse("GET {{baseUrl}}/api/widgets");
+
+        Assert.That(parsed.IsSuccess, Is.True);
+        Assert.That(parsed.Value, Has.Count.EqualTo(1));
+        var resolved = new HttpRequestVariableResolver().Resolve(
+            parsed.Value![0],
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["baseUrl"] = "https://example.test",
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resolved.IsSuccess, Is.True);
+            Assert.That(resolved.Value!.RequestTarget, Is.EqualTo("https://example.test/api/widgets"));
+        });
+    }
+
+    [Test]
+    public void ParseRejectsRelativeRequestUriWithoutVariables()
     {
         var result = new HttpRequestDocumentParser().Parse("GET /api/widgets");
 
@@ -102,7 +123,7 @@ public sealed class HttpRequestRunnerTests
         var runner = new HttpRequestRunner(client);
         var request = new HttpRequestDefinition(
             "POST",
-            new Uri("https://example.test/widgets"),
+            "https://example.test/widgets",
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Content-Type"] = "application/json",
@@ -125,6 +146,26 @@ public sealed class HttpRequestRunnerTests
             Assert.That(result.Value.Headers["X-Toren"], Has.Count.EqualTo(1));
             Assert.That(result.Value.Headers["X-Toren"][0], Is.EqualTo("response"));
             Assert.That(result.Value.Duration, Is.GreaterThanOrEqualTo(TimeSpan.Zero));
+        });
+    }
+
+    [Test]
+    public async Task ExecuteRejectsUnresolvedVariableRequestTarget()
+    {
+        using var client = new HttpClient(new RecordingHandler(static (_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+        var runner = new HttpRequestRunner(client);
+        var request = new HttpRequestDefinition(
+            "GET",
+            "{{baseUrl}}/api/widgets",
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
+        var result = await runner.ExecuteAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsFailure, Is.True);
+            Assert.That(result.Error.Code, Is.EqualTo("http.variable.uri.invalid"));
         });
     }
 
@@ -167,7 +208,7 @@ public sealed class HttpRequestRunnerTests
     private static HttpRequestDefinition CreateGetRequest() =>
         new(
             "GET",
-            new Uri("https://example.test/widgets"),
+            "https://example.test/widgets",
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
     private sealed class RecordingHandler(
