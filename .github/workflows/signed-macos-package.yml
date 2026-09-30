@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Git ref to build
+        description: Immutable release tag, for example v1.0.0-preview.1
         required: true
-        default: main
         type: string
       rid:
         description: macOS runtime
@@ -33,6 +32,45 @@ jobs:
     name: ${{ inputs.rid }}
     runs-on: macos-latest
     steps:
+      - name: Validate immutable release identity
+        shell: pwsh
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-preview\.\d+)?$') {
+            throw "Unsupported release version '$env:RELEASE_VERSION'."
+          }
+
+          $expectedTag = "v$env:RELEASE_VERSION"
+          if ($env:SOURCE_REF -ne $expectedTag) {
+            throw "Signed macOS packages must be built from immutable release tag '$expectedTag', not '$env:SOURCE_REF'."
+          }
+
+      - name: Checkout immutable release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Verify release tag checkout
+        shell: pwsh
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git show-ref --verify --quiet "refs/tags/$env:SOURCE_REF"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag '$env:SOURCE_REF' does not exist in the checked-out repository."
+          }
+
+          $tagCommit = (git rev-list -n 1 $env:SOURCE_REF).Trim()
+          $headCommit = (git rev-parse HEAD).Trim()
+          if ($tagCommit -ne $headCommit) {
+            throw "Checked-out commit '$headCommit' does not match release tag '$env:SOURCE_REF' commit '$tagCommit'."
+          }
+
       - name: Validate release credentials
         shell: bash
         env:
@@ -56,21 +94,6 @@ jobs:
               exit 78
             fi
           done
-
-      - name: Validate release version
-        shell: pwsh
-        env:
-          RELEASE_VERSION: ${{ inputs.release_version }}
-        run: |
-          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-preview\.\d+)?$') {
-            throw "Unsupported release version '$env:RELEASE_VERSION'."
-          }
-
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.source_ref }}
-          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
