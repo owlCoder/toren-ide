@@ -54,7 +54,7 @@ A successful dry run uploads `Toren-IDE-release-promotion` containing the final 
 
 Run the same `Publish Release` workflow again with the same validated run IDs and `dry_run=false`.
 
-The workflow refuses to overwrite an existing GitHub release. Preview tags are published as prereleases; Stable tags are published as normal releases. Final release artifacts, checksums, and the promoted release manifest are attached together.
+The workflow refuses to overwrite an existing GitHub release. Preview tags are published as prereleases and are never promoted to GitHub's Latest release. Stable tags are published as normal releases with `--latest`, making GitHub's standard `releases/latest` endpoint the account-free Stable channel pointer. Final release artifacts, checksums, and the promoted release manifest are attached together.
 
 If any distributed bytes must change after publication, create a new version and tag. Do not replace already-published artifacts in place.
 
