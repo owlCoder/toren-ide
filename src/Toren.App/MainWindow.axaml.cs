@@ -11,6 +11,8 @@ using AvaloniaEdit.Editing;
 using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
 using Toren.App.Diagnostics.ViewModels;
+using Toren.App.Settings.Contracts;
+using Toren.App.Settings.Models;
 using Toren.App.ViewModels;
 using Toren.App.Views.Problems;
 using Toren.App.Views.Theme;
@@ -34,6 +36,7 @@ internal sealed partial class MainWindow : Window
         };
 
     private readonly MainWindowViewModel _viewModel;
+    private readonly IApplicationSettingsStore _applicationSettingsStore;
     private readonly RegistryOptions _registryOptions;
     private readonly TextMateInstallation _textMateInstallation;
     private readonly ThemeToggleIcon _themeToggleIcon;
@@ -42,11 +45,15 @@ internal sealed partial class MainWindow : Window
     private bool _sessionPersistedForClose;
     private bool _isDarkTheme = true;
 
-    public MainWindow(MainWindowViewModel viewModel)
+    public MainWindow(
+        MainWindowViewModel viewModel,
+        IApplicationSettingsStore applicationSettingsStore)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentNullException.ThrowIfNull(applicationSettingsStore);
 
         _viewModel = viewModel;
+        _applicationSettingsStore = applicationSettingsStore;
         DataContext = viewModel;
 
         InitializeComponent();
@@ -109,6 +116,16 @@ internal sealed partial class MainWindow : Window
 
     private async void OnOpened(object? sender, EventArgs eventArgs)
     {
+        var settings = await _applicationSettingsStore.LoadAsync().ConfigureAwait(true);
+        if (settings.IsSuccess)
+        {
+            ApplyTheme(settings.Value!.Theme == ApplicationThemePreference.Dark);
+        }
+        else
+        {
+            _viewModel.SetStatus(settings.Error.Message);
+        }
+
         await _viewModel.InitializeAsync().ConfigureAwait(true);
     }
 
@@ -259,9 +276,17 @@ internal sealed partial class MainWindow : Window
             isDark ? "Switch to light theme" : "Switch to dark theme");
     }
 
-    private void ToggleTheme_OnClick(object? sender, RoutedEventArgs eventArgs)
+    private async void ToggleTheme_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
         ApplyTheme(!_isDarkTheme);
+        var saved = await _applicationSettingsStore.SaveAsync(
+            new ApplicationSettings(
+                _isDarkTheme ? ApplicationThemePreference.Dark : ApplicationThemePreference.Light))
+            .ConfigureAwait(true);
+        if (saved.IsFailure)
+        {
+            _viewModel.SetStatus(saved.Error.Message);
+        }
     }
 
     private async void SaveActiveDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
