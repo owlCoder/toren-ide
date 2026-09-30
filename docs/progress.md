@@ -14,6 +14,7 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 - **Done** — activity rail disabled/planned states render without native-theme visual artifacts;
 - **Done** — final code-side shell polish removes stale milestone copy, keeps the activity rail keyboard reachable, uses stable named anchors for runtime-wired shell controllers, modernizes Avalonia placeholder APIs, and aligns Debug/Settings automation labels with current functionality;
 - **Implemented; locally validated** — responsive shell/tool-panel review adds working bounded splitters, scrolling tool headers, wrapping action rows, aligned settings fields, readable panel labels and constrained search popovers; generated XAML initialization fixes null named controls in editor overlays, and the status-bar theme toggle stays synchronized with Settings. Headless dark/light rendering and macOS source-build interaction checks are documented in [`design/ui-review.md`](design/ui-review.md); promoted release-artifact validation remains open;
+- **Implemented; locally validated** — dark theme refinement follows the VS Code 2026 surface hierarchy, unifies Fluent control/popup states with shell tokens, and keeps TextMate editor surfaces and current-line highlighting consistent after theme changes; two document-editor theme cases extend the visual regression coverage;
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;
@@ -82,6 +83,14 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 | Database explorer | Post-1.0 | PostgreSQL/SQL Server/SQLite browsing and SQL editor |
 | General extension marketplace | Post-1.0 | Architecture may be extensible, marketplace is not MVP scope |
 | Mandatory account/cloud | Post-1.0 | Explicit non-goal; Toren remains account-free/local-first |
+
+## Local UI and diagnostic follow-up — 2026-10-01
+
+- Dark surfaces follow the VS Code 2026 palette, including editor selection/current-line colors and Fluent control states.
+- Sidebar tools replace Explorer; Settings and Packages use separate owned windows. The bottom panel is limited to Problems, Output, ASP.NET, Doctor and Terminal.
+- The command bar exposes Open, solution Build/Rebuild/Clean, Run and Stop, with execution progress in the footer. Terminal activation auto-starts a session and Kill terminates its process tree.
+- Problem clicks navigate across files. Evaluated compiler inputs and source generators remove false project-context diagnostics; the local ParcelBox reproduction returned zero after the correction.
+- Release builds and unit/UI checks validate these source changes locally. The signed promotion and exact-artifact cross-platform release gates below remain open.
 
 ## Delivery slices
 

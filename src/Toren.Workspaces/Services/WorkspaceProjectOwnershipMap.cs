@@ -21,6 +21,10 @@ public sealed class WorkspaceProjectOwnershipMap
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         var fullPath = Path.GetFullPath(filePath);
+        var explicitOwner = _projects.Select(project => project.Project).FirstOrDefault(project =>
+            project.Metadata.SourcePaths.Any(source => string.Equals(Path.GetFullPath(source), fullPath,
+                OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)));
+        if (explicitOwner is not null) return explicitOwner;
         return _projects
             .Where(project => IsWithinDirectory(fullPath, project.Directory))
             .OrderByDescending(project => project.Directory.Length)

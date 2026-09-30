@@ -1,0 +1,7 @@
+<UserControl x:Class="Toren.App.Views.ToolTabHeader" x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel Orientation="Horizontal" Spacing="6">
+    <Path x:Name="Icon" Classes="shell-icon" Width="14" Height="14" />
+    <TextBlock x:Name="Label" VerticalAlignment="Center" />
+  </StackPanel>
+</UserControl>

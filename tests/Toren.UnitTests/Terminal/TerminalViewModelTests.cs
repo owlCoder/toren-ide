@@ -38,6 +38,48 @@ public sealed class TerminalViewModelTests
         });
     }
 
+    [Test]
+    public async Task ConcurrentStartsLaunchOnlyOneProcess()
+    {
+        var runner = new DelayedInteractiveProcessRunner();
+        await using var viewModel = new TerminalViewModel(runner, new StubNativeShellProvider());
+        var first = viewModel.StartAsync();
+        Assert.That(viewModel.IsStarting, Is.True);
+        await viewModel.StartAsync();
+        Assert.That(runner.Starts, Is.EqualTo(1));
+        runner.Complete(new StubInteractiveProcessSession());
+        await first;
+        Assert.That(viewModel.IsRunning, Is.True);
+        Assert.That(viewModel.IsStarting, Is.False);
+    }
+
+    [Test]
+    public async Task ClosingWhileStartingDisposesTheLateProcess()
+    {
+        var runner = new DelayedInteractiveProcessRunner();
+        var viewModel = new TerminalViewModel(runner, new StubNativeShellProvider());
+        var starting = viewModel.StartAsync();
+        await viewModel.DisposeAsync();
+        var session = new StubInteractiveProcessSession();
+        runner.Complete(session);
+        await starting;
+        Assert.That(session.Disposed, Is.True);
+        Assert.That(viewModel.IsRunning, Is.False);
+    }
+
+    private sealed class DelayedInteractiveProcessRunner : IInteractiveProcessRunner
+    {
+        private readonly TaskCompletionSource<Result<IInteractiveProcessSession>> _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int Starts { get; private set; }
+        public Task<Result<IInteractiveProcessSession>> StartAsync(ProcessRequest request, Action<ProcessOutputLine> onOutput,
+            CancellationToken cancellationToken = default)
+        {
+            Starts++;
+            return _started.Task;
+        }
+        public void Complete(IInteractiveProcessSession session) => _started.SetResult(Result.Success(session));
+    }
+
     private sealed class StubNativeShellProvider : INativeShellProvider
     {
         public List<string> WorkingDirectories { get; } = [];
@@ -81,6 +123,8 @@ public sealed class TerminalViewModelTests
 
         public bool Terminated { get; private set; }
 
+        public bool Disposed { get; private set; }
+
         public Task<Result<bool>> WriteLineAsync(
             string text,
             CancellationToken cancellationToken = default)
@@ -100,6 +144,7 @@ public sealed class TerminalViewModelTests
 
         public ValueTask DisposeAsync()
         {
+            Disposed = true;
             _completion.TrySetResult(Result.Success(new ProcessResult(0, string.Empty, string.Empty)));
             return ValueTask.CompletedTask;
         }

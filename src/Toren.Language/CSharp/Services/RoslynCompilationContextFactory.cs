@@ -25,9 +25,26 @@ internal static class RoslynCompilationContextFactory
             return null;
         }
 
+        var languageVersion = LanguageVersionFacts.TryParse(context.LanguageVersion ?? "default", out var parsed)
+            ? parsed : LanguageVersion.Default;
+        var parseOptions = new CSharpParseOptions(languageVersion, preprocessorSymbols: context.DefineConstants);
+        var nullable = context.Nullable?.ToLowerInvariant() switch
+        {
+            "enable" => NullableContextOptions.Enable,
+            "annotations" => NullableContextOptions.Annotations,
+            "warnings" => NullableContextOptions.Warnings,
+            _ => NullableContextOptions.Disable,
+        };
+        var outputKind = context.OutputType?.ToLowerInvariant() switch
+        {
+            "exe" => OutputKind.ConsoleApplication,
+            "winexe" => OutputKind.WindowsApplication,
+            _ => OutputKind.DynamicallyLinkedLibrary,
+        };
         var syntaxTrees = context.Documents
             .Select(document => CSharpSyntaxTree.ParseText(
                 document.Text,
+                options: parseOptions,
                 path: document.Path,
                 cancellationToken: cancellationToken))
             .ToArray();
@@ -42,7 +59,18 @@ internal static class RoslynCompilationContextFactory
             "Toren.SemanticAnalysis",
             syntaxTrees,
             RoslynMetadataReferenceProvider.GetReferences(context.MetadataReferencePaths),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(outputKind, allowUnsafe: context.AllowUnsafe, nullableContextOptions: nullable));
+        var generators = RoslynAnalyzerLoader.LoadGenerators(context.AnalyzerPaths);
+        if (!generators.IsDefaultOrEmpty)
+        {
+            var additionalTexts = context.AdditionalFilePaths.Where(File.Exists)
+                .Select(static path => (AdditionalText)new ProjectAdditionalText(path)).ToArray();
+            GeneratorDriver driver = CSharpGeneratorDriver.Create(generators, additionalTexts, parseOptions,
+                new ProjectAnalyzerConfigOptionsProvider(context.AnalyzerConfigPaths));
+            driver.RunGeneratorsAndUpdateCompilation(compilation, out var generatedCompilation, out _, cancellationToken);
+            compilation = (CSharpCompilation)generatedCompilation;
+        }
+
         return new RoslynCompilationContext(
             compilation,
             activeTree,

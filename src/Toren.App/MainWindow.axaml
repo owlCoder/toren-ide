@@ -28,7 +28,7 @@
     <!-- Window chrome and global actions -->
     <Border Grid.Row="0" Grid.ColumnSpan="3" Height="{StaticResource TorenTitleBarHeight}"
             Classes="shell-surface title-bar" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto">
         <Border Grid.Column="0" Padding="12,0,10,0" Background="Transparent"
                 PointerPressed="TitleBar_OnPointerPressed">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -43,8 +43,40 @@
                        FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
         </Border>
-        <Button Grid.Column="1" Classes="toolbar-button open-menu-button"
-                Margin="8,0,0,0" VerticalAlignment="Center"
+        <Border Grid.Column="1" Margin="8,0" Background="Transparent"
+                PointerPressed="TitleBar_OnPointerPressed">
+          <TextBlock Classes="subtle chrome-label" Text="{Binding WorkspaceTitle}"
+                     FontSize="11" TextTrimming="CharacterEllipsis"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="2" Orientation="Horizontal">
+          <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
+                  AutomationProperties.Name="Minimize window">
+            <Grid Width="16" Height="16">
+              <Border Width="12" Height="1.5" CornerRadius="0.75"
+                      Background="{DynamicResource TorenTextMutedBrush}"
+                      HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" />
+            </Grid>
+          </Button>
+          <Button Classes="window-control" Click="ToggleMaximizeWindow_OnClick" ToolTip.Tip="Maximize or restore"
+                  AutomationProperties.Name="Maximize or restore window">
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconWindowMaximize}" Width="16" Height="16" />
+          </Button>
+          <Button Classes="window-control close" Click="CloseWindow_OnClick" ToolTip.Tip="Close"
+                  AutomationProperties.Name="Close window">
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="16" Height="16" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- IDE command bar: editor actions plus runtime-wired build/run controls. -->
+    <Border Grid.Row="1" Grid.ColumnSpan="3" Height="42" Classes="command-bar"
+            BorderThickness="0,0,0,1">
+      <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*" ColumnSpacing="16">
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <Button Classes="toolbar-button open-menu-button" x:Name="OpenWorkspaceButton"
+                Margin="0,0,4,0" VerticalAlignment="Center"
                 ToolTip.Tip="Open a folder, solution, or project"
                 AutomationProperties.Name="Open workspace menu">
           <Button.Flyout>
@@ -67,38 +99,7 @@
             <Path Classes="shell-icon menu-chevron" Data="{StaticResource TorenIconChevronDown}" />
           </StackPanel>
         </Button>
-        <Border Grid.Column="2" Margin="8,0" Background="Transparent"
-                PointerPressed="TitleBar_OnPointerPressed">
-          <TextBlock Classes="subtle chrome-label" Text="{Binding WorkspaceTitle}"
-                     FontSize="11" TextTrimming="CharacterEllipsis"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </Border>
-        <StackPanel Grid.Column="3" Orientation="Horizontal">
-          <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
-                  AutomationProperties.Name="Minimize window">
-            <Grid Width="16" Height="16">
-              <Border Width="12" Height="1.5" CornerRadius="0.75"
-                      Background="{DynamicResource TorenTextMutedBrush}"
-                      HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2" />
-            </Grid>
-          </Button>
-          <Button Classes="window-control" Click="ToggleMaximizeWindow_OnClick" ToolTip.Tip="Maximize or restore"
-                  AutomationProperties.Name="Maximize or restore window">
-            <Path Classes="shell-icon" Data="{StaticResource TorenIconWindowMaximize}" Width="16" Height="16" />
-          </Button>
-          <Button Classes="window-control close" Click="CloseWindow_OnClick" ToolTip.Tip="Close"
-                  AutomationProperties.Name="Close window">
-            <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="16" Height="16" />
-          </Button>
-        </StackPanel>
-      </Grid>
-    </Border>
 
-    <!-- IDE command bar: editor actions plus runtime-wired build/run controls. -->
-    <Border Grid.Row="1" Grid.ColumnSpan="3" Height="36" Classes="command-bar"
-            BorderThickness="0,0,0,1">
-      <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*" ColumnSpacing="16">
-        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <Button Classes="command-button" Click="SaveActiveDocument_OnClick"
                   IsEnabled="{Binding Documents.HasActiveDocument}"
                   ToolTip.Tip="Save active document (Ctrl/Cmd+S)"
@@ -123,6 +124,13 @@
           </Button>
           <Border Width="1" Height="18" Margin="5,0"
                   Background="{DynamicResource TorenBorderBrush}" />
+          <Button x:Name="BuildSolutionButton" Classes="toolbar-button" Content="Build"
+                  ToolTip.Tip="Build Solution (Ctrl/Cmd+Shift+B)" AutomationProperties.Name="Build Solution" IsEnabled="False" />
+          <Button x:Name="RebuildSolutionButton" Classes="toolbar-button" Content="Rebuild"
+                  ToolTip.Tip="Rebuild Solution" AutomationProperties.Name="Rebuild Solution" IsEnabled="False" />
+          <Button x:Name="CleanSolutionButton" Classes="toolbar-button" Content="Clean"
+                  ToolTip.Tip="Clean Solution" AutomationProperties.Name="Clean Solution" IsEnabled="False" />
+          <Border Width="1" Height="18" Margin="5,0" Background="{DynamicResource TorenBorderBrush}" />
           <ComboBox x:Name="BuildConfigurationSelector" Classes="command-select" Width="96"
                     SelectedIndex="0" IsEnabled="False"
                     ToolTip.Tip="Build configuration" ToolTip.ShowOnDisabled="True"
@@ -130,7 +138,7 @@
             <ComboBoxItem Content="Debug" />
             <ComboBoxItem Content="Release" />
           </ComboBox>
-          <ComboBox x:Name="StartupProjectSelector" Classes="command-select" Width="190"
+          <ComboBox x:Name="StartupProjectSelector" Classes="command-select" Width="160" PlaceholderText="Startup project"
                     SelectedIndex="-1" IsEnabled="False"
                     ToolTip.Tip="Startup project" ToolTip.ShowOnDisabled="True"
                     AutomationProperties.Name="Startup project" />
@@ -141,10 +149,14 @@
                   Fill="{DynamicResource TorenSuccessBrush}"
                   Data="M8,5V19L19,12L8,5Z" />
           </Button>
+          <Button x:Name="CancelExecutionButton" Classes="command-button" IsEnabled="False"
+                  ToolTip.Tip="Stop current command (Shift+F5)" AutomationProperties.Name="Stop current command">
+            <Path Width="13" Height="13" Fill="{DynamicResource TorenErrorBrush}" Data="M4,4H20V20H4Z" />
+          </Button>
         </StackPanel>
         <TextBlock x:Name="ExecutionStatusText" Grid.Column="1" HorizontalAlignment="Right" Classes="subtle"
                    Text="Open a workspace to build or run" TextTrimming="CharacterEllipsis" MaxWidth="520"
-                   FontSize="10.5" VerticalAlignment="Center" />
+                   FontSize="11" VerticalAlignment="Center" />
       </Grid>
     </Border>
 
@@ -152,7 +164,7 @@
     <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
             Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
             BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
         <Button x:Name="ExplorerActivityButton" Grid.Row="0" Classes="activity-button active"
                 ToolTip.Tip="Explorer" AutomationProperties.Name="Explorer">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconExplorer}" />
@@ -172,7 +184,19 @@
                 ToolTip.Tip="Debug" AutomationProperties.Name="Debug">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconDebug}" />
         </Button>
-        <Button x:Name="SettingsActivityButton" Grid.Row="5" Classes="activity-button"
+        <Button x:Name="HttpActivityButton" Grid.Row="4" Classes="activity-button" IsEnabled="False"
+                ToolTip.Tip="HTTP Client" AutomationProperties.Name="HTTP Client">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconHttp}" />
+        </Button>
+        <Button x:Name="DataActivityButton" Grid.Row="5" Classes="activity-button" IsEnabled="False"
+                ToolTip.Tip="Data and Docker" AutomationProperties.Name="Data and Docker">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconData}" />
+        </Button>
+        <Button x:Name="PackagesActivityButton" Grid.Row="6" Classes="activity-button" IsEnabled="False"
+                ToolTip.Tip="Packages" AutomationProperties.Name="Packages">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconProject}" />
+        </Button>
+        <Button x:Name="SettingsActivityButton" Grid.Row="8" Classes="activity-button"
                 IsEnabled="False" ToolTip.ShowOnDisabled="True"
                 ToolTip.Tip="Settings" AutomationProperties.Name="Settings">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconSettings}" />
@@ -479,13 +503,17 @@
     <Border Grid.Row="4" Grid.ColumnSpan="3" Height="{StaticResource TorenStatusBarHeight}"
             Background="{DynamicResource TorenSurfaceRaisedBrush}"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="12,0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+      <Grid Margin="12,0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" VerticalAlignment="Center">
           <Ellipse Width="6" Height="6" Fill="{DynamicResource TorenSuccessBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="11"
                      TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusText}" />
         </Grid>
-        <Button Grid.Column="1" x:Name="ThemeToggleButton" Classes="theme-toggle"
+        <ProgressBar x:Name="ExecutionProgressBar" Grid.Column="1" Width="140" MinWidth="0" Height="3" MinHeight="0"
+                     Foreground="{DynamicResource TorenAccentBrush}"
+                     VerticalAlignment="Center" IsIndeterminate="True" IsVisible="False"
+                     AutomationProperties.Name="Command progress" />
+        <Button Grid.Column="2" x:Name="ThemeToggleButton" Classes="theme-toggle"
                 Click="ToggleTheme_OnClick" ToolTip.Tip="Switch theme"
                 AutomationProperties.Name="Toggle light and dark theme">
           <Grid Width="14" Height="14">
@@ -497,7 +525,7 @@
                   Data="M12.1,2C7.07,2 3,6.07 3,11.1C3,16.13 7.07,20.2 12.1,20.2C16.04,20.2 19.4,17.7 20.67,14.2C19.33,15.04 17.75,15.53 16.05,15.53C11.74,15.53 8.25,12.04 8.25,7.73C8.25,5.62 9.09,3.71 10.45,2.3C11,2.1 11.54,2 12.1,2Z" />
           </Grid>
         </Button>
-        <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+        <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>

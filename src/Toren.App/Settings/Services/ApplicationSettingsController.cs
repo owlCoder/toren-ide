@@ -8,6 +8,7 @@ using AvaloniaEdit;
 using Toren.App.Settings.Contracts;
 using Toren.App.Settings.Models;
 using Toren.App.Settings.ViewModels;
+using Toren.App.Shell;
 using Toren.App.Views.Settings;
 
 namespace Toren.App.Settings.Services;
@@ -20,8 +21,7 @@ internal sealed class ApplicationSettingsController
     private readonly TextEditor _editor;
     private readonly Action<ApplicationThemePreference> _applyTheme;
     private readonly Func<Task> _saveActiveDocument;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _settingsTab;
+    private readonly ToolDialogHost _dialog;
     private readonly ApplicationSettingsPanel _settingsPanel;
     private readonly Button? _settingsButton;
     private CancellationTokenSource? _saveCancellation;
@@ -34,8 +34,7 @@ internal sealed class ApplicationSettingsController
         ApplicationSettingsViewModel viewModel,
         TextEditor editor,
         Action<ApplicationThemePreference> applyTheme,
-        Func<Task> saveActiveDocument,
-        TabControl toolTabs)
+        Func<Task> saveActiveDocument)
     {
         _window = window;
         _store = store;
@@ -43,15 +42,8 @@ internal sealed class ApplicationSettingsController
         _editor = editor;
         _applyTheme = applyTheme;
         _saveActiveDocument = saveActiveDocument;
-        _toolTabs = toolTabs;
         _settingsPanel = new ApplicationSettingsPanel { DataContext = viewModel };
-        _settingsTab = new TabItem
-        {
-            Header = "Settings",
-            Content = _settingsPanel,
-        };
-        AutomationProperties.SetName(_settingsTab, "Settings tool tab");
-        _toolTabs.Items.Add(_settingsTab);
+        _dialog = new ToolDialogHost(window, "Settings", _settingsPanel, 760, 640);
 
         _settingsButton = window.FindControl<Button>("SettingsActivityButton");
         if (_settingsButton is not null)
@@ -87,18 +79,7 @@ internal sealed class ApplicationSettingsController
         ArgumentNullException.ThrowIfNull(applyTheme);
         ArgumentNullException.ThrowIfNull(saveActiveDocument);
 
-        var toolTabs = window.FindControl<TabControl>("ToolTabs");
-        if (toolTabs is not null)
-        {
-            _ = new ApplicationSettingsController(
-                window,
-                store,
-                viewModel,
-                editor,
-                applyTheme,
-                saveActiveDocument,
-                toolTabs);
-        }
+        _ = new ApplicationSettingsController(window, store, viewModel, editor, applyTheme, saveActiveDocument);
     }
 
     private async void Window_OnOpened(object? sender, EventArgs eventArgs)
@@ -237,7 +218,7 @@ internal sealed class ApplicationSettingsController
 
     private void OpenSettings()
     {
-        _toolTabs.SelectedItem = _settingsTab;
+        _dialog.Open();
         Dispatcher.UIThread.Post(_settingsPanel.FocusSearch, DispatcherPriority.Input);
     }
 
@@ -267,7 +248,5 @@ internal sealed class ApplicationSettingsController
         {
             _settingsButton.Click -= SettingsButton_OnClick;
         }
-
-        _toolTabs.Items.Remove(_settingsTab);
     }
 }

@@ -5,8 +5,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:datavm="clr-namespace:Toren.App.DataTools.ViewModels"
              xmlns:ef="clr-namespace:Toren.DotNet.EntityFramework.Models;assembly=Toren.DotNet">
-  <Grid ColumnDefinitions="*,*">
-    <Border Grid.Column="0" Padding="10,8"
+  <TabControl Classes="tool-tabs">
+    <TabItem Header="EF Core">
+    <Border Padding="10,8"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="7">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -19,13 +20,13 @@
                   Click="RefreshEf_OnClick" IsEnabled="{Binding CanUseEf}" />
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
           <TextBox Grid.Column="0" Text="{Binding NewMigrationName, Mode=TwoWay}"
                    PlaceholderText="Migration name" />
-          <TextBox Grid.Column="1" Text="{Binding MigrationOutputDirectory, Mode=TwoWay}"
+          <TextBox Grid.Row="1" Text="{Binding MigrationOutputDirectory, Mode=TwoWay}"
                    PlaceholderText="Output folder" AutomationProperties.Name="Migration output directory"
                    ToolTip.Tip="Optional migration output directory" />
-          <Button Grid.Column="2" Classes="toolbar-button" Content="Add"
+          <Button Grid.Row="2" HorizontalAlignment="Right" Classes="toolbar-button" Content="Add"
                   Click="AddMigration_OnClick" IsEnabled="{Binding CanAddMigration}" />
         </Grid>
 
@@ -47,17 +48,19 @@
                 HorizontalAlignment="Right" Click="RemoveMigration_OnClick"
                 IsEnabled="{Binding CanUseEf}" />
 
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+        <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="6">
           <TextBox Grid.Column="0" Text="{Binding DatabaseTarget, Mode=TwoWay}"
                    PlaceholderText="Target migration" AutomationProperties.Name="Database target migration"
                    ToolTip.Tip="Leave empty to update to the latest migration" />
-          <Button Grid.Column="1" Classes="toolbar-button" Content="Update Database"
+          <Button Grid.Row="1" HorizontalAlignment="Right" Classes="toolbar-button" Content="Update Database"
                   Click="UpdateDatabase_OnClick" IsEnabled="{Binding CanUseEf}" />
         </Grid>
       </Grid>
     </Border>
 
-    <Grid Grid.Column="1" Margin="10,8" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="7">
+    </TabItem>
+    <TabItem Header="Docker">
+    <Grid Margin="10,8" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="7">
       <StackPanel Grid.Row="0" Spacing="3">
         <TextBlock Text="Docker Compose" FontSize="11" FontWeight="SemiBold" />
         <TextBlock Classes="muted" Text="{Binding DockerStatusText}" FontSize="11"
@@ -89,5 +92,6 @@
                FontFamily="Cascadia Mono, Menlo, Consolas, monospace"
                FontSize="11" />
     </Grid>
-  </Grid>
+    </TabItem>
+  </TabControl>
 </UserControl>

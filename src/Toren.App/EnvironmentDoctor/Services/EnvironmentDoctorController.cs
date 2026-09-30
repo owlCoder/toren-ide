@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Toren.App.EnvironmentDoctor.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.EnvironmentDoctor;
+using Toren.App.Views;
 
 namespace Toren.App.EnvironmentDoctor.Services;
 
@@ -29,7 +30,7 @@ internal sealed class EnvironmentDoctorController
         _toolTabs = toolTabs;
         _doctorTab = new TabItem
         {
-            Header = "Doctor",
+            Header = new ToolTabHeader(window, "Doctor", "TorenIconDoctor"),
             Content = new EnvironmentDoctorPanel { DataContext = viewModel },
         };
         _toolTabs.Items.Add(_doctorTab);

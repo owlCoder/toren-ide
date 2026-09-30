@@ -8,6 +8,7 @@ using NUnit.Framework;
 using Toren.App.Settings.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Settings;
+using Toren.App.Views;
 
 namespace Toren.UnitTests.Ui;
 
@@ -20,9 +21,16 @@ public sealed class ThemeSynchronizationTests
         Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
         var profile = Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", $"theme-{Guid.NewGuid():N}");
         var shell = Toren.App.App.CreateMainWindow(profile);
+        ToolDialog? dialog = null;
+        using var opened = Window.WindowOpenedEvent.AddClassHandler<Window>((window, _) =>
+        {
+            if (window is ToolDialog tool && window.Title == "Settings") dialog = tool;
+        });
+        shell.FindControl<Button>("SettingsActivityButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         try
         {
-            var settings = (ApplicationSettingsViewModel)shell.GetLogicalDescendants()
+            Assert.That(dialog, Is.Not.Null);
+            var settings = (ApplicationSettingsViewModel)dialog!.GetLogicalDescendants()
                 .OfType<ApplicationSettingsPanel>().Single().DataContext!;
             var toggle = shell.FindControl<Button>("ThemeToggleButton")!;
             toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -38,6 +46,7 @@ public sealed class ThemeSynchronizationTests
         }
         finally
         {
+            dialog?.Close();
             ((MainWindowViewModel)shell.DataContext!).Dispose();
         }
     }

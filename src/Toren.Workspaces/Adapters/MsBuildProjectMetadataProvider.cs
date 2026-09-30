@@ -11,7 +11,7 @@ namespace Toren.Workspaces.Adapters;
 public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner) : IProjectMetadataProvider
 {
     private const string EvaluatedProperties =
-        "TargetFramework,TargetFrameworks,OutputType,AssemblyName,RootNamespace,IsTestProject,ManagePackageVersionsCentrally,DirectoryBuildPropsPath,DirectoryBuildTargetsPath,DirectoryPackagesPropsPath";
+        "TargetFramework,TargetFrameworks,OutputType,AssemblyName,RootNamespace,IsTestProject,ManagePackageVersionsCentrally,DirectoryBuildPropsPath,DirectoryBuildTargetsPath,DirectoryPackagesPropsPath,Nullable,LangVersion,DefineConstants,AllowUnsafeBlocks,GeneratedMSBuildEditorConfigFile,UsingMicrosoftNETSdkRazor";
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
@@ -36,7 +36,7 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
                 "-nologo",
                 "-verbosity:quiet",
                 $"-getProperty:{EvaluatedProperties}",
-                "-getItem:Analyzer"),
+                "-getItem:Analyzer,Compile,Using,RazorComponent,RazorGenerate"),
             cancellationToken).ConfigureAwait(false);
 
         if (!execution.IsSuccess)
@@ -61,7 +61,32 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
                     ProjectMetadataErrors.EvaluationFailed("MSBuild output did not contain evaluated properties."));
             }
 
-            return Result.Success(CreateMetadata(document.RootElement, properties, projectPath));
+            // Resolve compiler inputs without compiling the project. This includes SDK/package
+            // generators, Razor inputs and framework preprocessor symbols.
+            var arguments = new List<string>
+            {
+                "msbuild", projectPath, "-nologo", "-verbosity:quiet",
+                "-target:PrepareForBuild,GenerateGlobalUsings,ResolveReferences,GenerateMSBuildEditorConfigFile",
+                "-property:BuildProjectReferences=false",
+                $"-getProperty:{EvaluatedProperties}", "-getItem:Analyzer,Compile,Using,AdditionalFiles,EditorConfigFiles",
+            };
+            var metadata = CreateMetadata(document.RootElement, properties, projectPath);
+            if (GetProperty(properties, "TargetFramework") is null && metadata.TargetFrameworks.Count > 0)
+            {
+                arguments.Add($"-property:TargetFramework={metadata.TargetFrameworks[0]}");
+            }
+
+            var generated = await _processRunner.RunAsync(ProcessRequest.Create("dotnet", arguments.ToArray()),
+                cancellationToken).ConfigureAwait(false);
+            if (!generated.IsSuccess || !generated.Value.Succeeded)
+            {
+                // Keep the workspace browsable before restore; reference resolution separately
+                // reports unavailable compiler inputs to the diagnostics pipeline.
+                return Result.Success(metadata);
+            }
+
+            using var inputs = JsonDocument.Parse(generated.Value.StandardOutput);
+            return Result.Success(CreateMetadata(inputs.RootElement, inputs.RootElement.GetProperty("Properties"), projectPath));
         }
         catch (JsonException exception)
         {
@@ -99,15 +124,27 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
             GetProperty(properties, "DirectoryBuildTargetsPath"),
             GetProperty(properties, "DirectoryPackagesPropsPath"))
         {
-            AnalyzerPaths = GetAnalyzerPaths(root, projectPath),
+            AnalyzerPaths = GetItemPaths(root, projectPath, "Analyzer"),
+            SourcePaths = GetItemPaths(root, projectPath, "Compile"),
+            GlobalUsings = GetGlobalUsings(root),
+            DefineConstants = (GetProperty(properties, "DefineConstants") ?? string.Empty)
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            Nullable = GetProperty(properties, "Nullable"),
+            LanguageVersion = GetProperty(properties, "LangVersion"),
+            AllowUnsafe = GetBooleanProperty(properties, "AllowUnsafeBlocks"),
+            AdditionalFilePaths = GetItemPaths(root, projectPath, "AdditionalFiles"),
+            AnalyzerConfigPaths = GetItemPaths(root, projectPath, "EditorConfigFiles")
+                .Concat(GetProperty(properties, "GeneratedMSBuildEditorConfigFile") is { } config
+                    ? [NormalizeItemPath(config, Path.GetDirectoryName(Path.GetFullPath(projectPath))!)] : [])
+                .Distinct(PathComparer).ToArray(),
         };
     }
 
-    private static string[] GetAnalyzerPaths(JsonElement root, string projectPath)
+    private static string[] GetItemPaths(JsonElement root, string projectPath, string itemName)
     {
         if (!root.TryGetProperty("Items", out var items)
             || items.ValueKind != JsonValueKind.Object
-            || !items.TryGetProperty("Analyzer", out var analyzers)
+            || !items.TryGetProperty(itemName, out var analyzers)
             || analyzers.ValueKind != JsonValueKind.Array)
         {
             return [];
@@ -124,6 +161,25 @@ public sealed class MsBuildProjectMetadataProvider(IProcessRunner processRunner)
             .Distinct(PathComparer)
             .OrderBy(static path => path, PathComparer)
             .ToArray();
+    }
+
+    private static string[] GetGlobalUsings(JsonElement root)
+    {
+        if (!root.TryGetProperty("Items", out var items)
+            || !items.TryGetProperty("Using", out var usings)
+            || usings.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return usings.EnumerateArray().Select(item =>
+        {
+            var name = GetProperty(item, "Identity");
+            var alias = GetProperty(item, "Alias");
+            var prefix = GetBooleanProperty(item, "Static") ? "static " : string.Empty;
+            return string.IsNullOrWhiteSpace(name) ? null
+                : $"global using {prefix}{(alias is null ? string.Empty : alias + " = ")}{name};";
+        }).Where(static text => text is not null).Select(static text => text!).ToArray();
     }
 
     private static string NormalizeItemPath(string path, string projectDirectory) =>

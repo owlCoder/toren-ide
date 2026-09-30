@@ -4,37 +4,92 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="TorenBackgroundBrush">#1E1E1E</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenSurfaceBrush">#252526</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#2D2D30</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#333337</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#263B49</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenChromeBrush">#181A1F</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenBorderBrush">#3A3D41</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenBorderStrongBrush">#565B61</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenTextBrush">#DCDCDC</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenTextMutedBrush">#B5B5B5</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenTextSubtleBrush">#858585</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenAccentBrush">#4FC1FF</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenAccentHoverBrush">#75CFFF</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenAccentMutedBrush">#123D52</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenSuccessBrush">#6A9955</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenWarningBrush">#DCDCAA</SolidColorBrush>
+          <!-- Surface hierarchy follows VS Code's 2026 dark palette; see ui-review.md. -->
+          <SolidColorBrush x:Key="TorenBackgroundBrush">#121314</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceBrush">#191A1B</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#202122</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#242526</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#263B43</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenChromeBrush">#191A1B</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderBrush">#2A2B2C</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenBorderStrongBrush">#333536</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextBrush">#BFBFBF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextMutedBrush">#96999C</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenTextSubtleBrush">#858889</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentBrush">#48A0C7</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentHoverBrush">#62B3D6</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenAccentMutedBrush">#1E3A47</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenSuccessBrush">#73C991</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenWarningBrush">#E5BA7D</SolidColorBrush>
           <SolidColorBrush x:Key="TorenErrorBrush">#F48771</SolidColorBrush>
           <SolidColorBrush x:Key="TorenDangerHoverBrush">#C42B1C</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconFolderBrush">#D7BA7D</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#E5C07B</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconSolutionBrush">#C586C0</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconProjectBrush">#4FC1FF</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconTestBrush">#6A9955</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderBrush">#C8AD78</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#D9B875</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconSolutionBrush">#B19BC7</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconProjectBrush">#75B5CE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconTestBrush">#83B392</SolidColorBrush>
           <SolidColorBrush x:Key="TorenIconReferenceBrush">#4EC9B0</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconCodeBrush">#9CDCFE</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconDataBrush">#DCDCAA</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconCodeBrush">#9BBECD</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDataBrush">#D4BA91</SolidColorBrush>
           <SolidColorBrush x:Key="TorenIconMarkupBrush">#CE9178</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconDocumentBrush">#9CDCFE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconDocumentBrush">#9BBECD</SolidColorBrush>
           <SolidColorBrush x:Key="TorenIconConfigBrush">#AAB2BF</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconContainerBrush">#4FC1FF</SolidColorBrush>
-          <SolidColorBrush x:Key="TorenIconImageBrush">#C586C0</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconContainerBrush">#75B5CE</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenIconImageBrush">#B19BC7</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenEditorForegroundBrush">#BBBEBF</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenEditorSelectionBrush">#24556C</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenEditorLineHighlightBrush">#1C1E20</SolidColorBrush>
+          <SolidColorBrush x:Key="TorenEditorLineNumberBrush">#858889</SolidColorBrush>
+
+          <!-- Theme-native control states use the same surfaces as the shell. -->
+          <StaticResource x:Key="ButtonBackground" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="TorenSurfaceHoverBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="TorenSurfaceSelectedBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="TextControlBackground" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TorenTextSubtleBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TorenTextSubtleBrush" />
+          <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="TorenSurfaceHoverBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="TorenSurfaceSelectedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundBorderBrushFocused" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundBorderBrushUnfocused" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TorenTextSubtleBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxPlaceHolderForeground" ResourceKey="TorenTextSubtleBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="TorenBackgroundBrush">#FFFFFF</SolidColorBrush>

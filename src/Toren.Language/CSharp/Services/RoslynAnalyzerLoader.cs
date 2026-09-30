@@ -53,6 +53,25 @@ internal static class RoslynAnalyzerLoader
             .ToImmutableArray();
     }
 
+    public static ImmutableArray<ISourceGenerator> LoadGenerators(IReadOnlyList<string> paths)
+    {
+        var loader = new AnalyzerAssemblyLoader();
+        var generators = ImmutableArray.CreateBuilder<ISourceGenerator>();
+        foreach (var path in paths.Where(File.Exists).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                generators.AddRange(new AnalyzerFileReference(Path.GetFullPath(path), loader).GetGenerators(LanguageNames.CSharp));
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (BadImageFormatException) { }
+        }
+
+        // Incremental generators all use the same wrapper type; preserve every generator.
+        return generators.ToImmutable();
+    }
+
     private sealed class AnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
     {
         public void AddDependencyLocation(string fullPath)

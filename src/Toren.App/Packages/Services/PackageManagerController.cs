@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Controls;
-using Avalonia.LogicalTree;
 using Toren.App.Packages.ViewModels;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.Packages;
 using Toren.Workspaces.Contracts;
@@ -17,8 +17,8 @@ internal sealed class PackageManagerController
     private readonly IWorkspaceProjectGraphService _projectGraphService;
     private readonly PackageManagerViewModel _viewModel;
     private readonly Action<string> _setStatus;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _packagesTab;
+    private readonly ToolDialogHost _dialog;
+    private readonly Button _packagesButton;
     private CancellationTokenSource? _loadCancellation;
     private bool _detached;
 
@@ -28,8 +28,7 @@ internal sealed class PackageManagerController
         IWorkspaceClassifier workspaceClassifier,
         IWorkspaceProjectGraphService projectGraphService,
         PackageManagerViewModel viewModel,
-        Action<string> setStatus,
-        TabControl toolTabs)
+        Action<string> setStatus)
     {
         _window = window;
         _shell = shell;
@@ -37,13 +36,10 @@ internal sealed class PackageManagerController
         _projectGraphService = projectGraphService;
         _viewModel = viewModel;
         _setStatus = setStatus;
-        _toolTabs = toolTabs;
-        _packagesTab = new TabItem
-        {
-            Header = "Packages",
-            Content = new PackageManagerPanel { DataContext = viewModel },
-        };
-        _toolTabs.Items.Add(_packagesTab);
+        _dialog = new ToolDialogHost(window, "Packages", new PackageManagerPanel { DataContext = viewModel }, 960, 680);
+        _packagesButton = window.FindControl<Button>("PackagesActivityButton")!;
+        _packagesButton.IsEnabled = true;
+        _packagesButton.Click += PackagesButton_OnClick;
 
         _shell.PropertyChanged += Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged += Explorer_OnPropertyChanged;
@@ -66,23 +62,10 @@ internal sealed class PackageManagerController
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(setStatus);
 
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
-        if (toolTabs is null)
-        {
-            return;
-        }
-
-        _ = new PackageManagerController(
-            window,
-            shell,
-            workspaceClassifier,
-            projectGraphService,
-            viewModel,
-            setStatus,
-            toolTabs);
+        _ = new PackageManagerController(window, shell, workspaceClassifier, projectGraphService, viewModel, setStatus);
     }
+
+    private void PackagesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) => _dialog.Open();
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
@@ -187,6 +170,6 @@ internal sealed class PackageManagerController
         _shell.PropertyChanged -= Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
         _window.Closed -= Window_OnClosed;
-        _toolTabs.Items.Remove(_packagesTab);
+        _packagesButton.Click -= PackagesButton_OnClick;
     }
 }

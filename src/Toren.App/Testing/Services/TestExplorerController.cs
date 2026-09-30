@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using AvaloniaEdit;
+using Toren.App.Shell;
 using Toren.App.Testing.Contracts;
 using Toren.App.Testing.ViewModels;
 using Toren.App.ViewModels;
@@ -20,14 +21,12 @@ internal sealed class TestExplorerController
     private readonly TestExplorerViewModel _viewModel;
     private readonly Action<string> _setStatus;
     private readonly TextEditor _editor;
-    private readonly Button _explorerButton;
     private readonly Button _testsButton;
-    private readonly Border _explorerPanel;
-    private readonly Control? _explorerContent;
+    private readonly SidebarController _sidebar;
     private readonly TestExplorerPanel _testPanel;
     private readonly Button? _refreshButton;
     private CancellationTokenSource? _refreshCancellation;
-    private bool _testsVisible;
+    private bool TestsVisible => ReferenceEquals(_sidebar.ActiveContent, _testPanel);
     private bool _detached;
 
     private TestExplorerController(
@@ -37,9 +36,7 @@ internal sealed class TestExplorerController
         IWorkspaceTestDiscoveryService testDiscoveryService,
         TestExplorerViewModel viewModel,
         Action<string> setStatus,
-        Button explorerButton,
-        Button testsButton,
-        Border explorerPanel)
+        Button testsButton)
     {
         _window = window;
         _shell = shell;
@@ -47,10 +44,8 @@ internal sealed class TestExplorerController
         _testDiscoveryService = testDiscoveryService;
         _viewModel = viewModel;
         _setStatus = setStatus;
-        _explorerButton = explorerButton;
         _testsButton = testsButton;
-        _explorerPanel = explorerPanel;
-        _explorerContent = explorerPanel.Child;
+        _sidebar = SidebarController.For(window);
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
         _testPanel = new TestExplorerPanel
@@ -62,7 +57,7 @@ internal sealed class TestExplorerController
 
         _testsButton.IsEnabled = true;
         ToolTip.SetTip(_testsButton, "Tests");
-        _explorerButton.Click += ExplorerButton_OnClick;
+        _sidebar.Register(window, "TestsActivityButton", _testPanel, CancelRefresh);
         _testsButton.Click += TestsButton_OnClick;
         if (_refreshButton is not null)
         {
@@ -83,10 +78,8 @@ internal sealed class TestExplorerController
         Action<string> setStatus)
     {
         ArgumentNullException.ThrowIfNull(window);
-        var explorerButton = window.FindControl<Button>("ExplorerActivityButton");
         var testsButton = window.FindControl<Button>("TestsActivityButton");
-        var explorerPanel = window.FindControl<Border>("ExplorerPanel");
-        if (explorerButton is null || testsButton is null || explorerPanel is null)
+        if (testsButton is null)
         {
             return;
         }
@@ -98,26 +91,11 @@ internal sealed class TestExplorerController
             testDiscoveryService,
             viewModel,
             setStatus,
-            explorerButton,
-            testsButton,
-            explorerPanel);
-    }
-
-    private void ExplorerButton_OnClick(object? sender, RoutedEventArgs eventArgs)
-    {
-        ShowExplorer();
+            testsButton);
     }
 
     private async void TestsButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        _testsVisible = true;
-        _explorerButton.Classes.Remove("active");
-        if (!_testsButton.Classes.Contains("active"))
-        {
-            _testsButton.Classes.Add("active");
-        }
-
-        _explorerPanel.Child = _testPanel;
         await RefreshAsync().ConfigureAwait(true);
     }
 
@@ -128,7 +106,7 @@ internal sealed class TestExplorerController
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        if (eventArgs.PropertyName == nameof(MainWindowViewModel.WorkspacePath) && _testsVisible)
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.WorkspacePath) && TestsVisible)
         {
             _ = RefreshAsync();
         }
@@ -146,7 +124,7 @@ internal sealed class TestExplorerController
             CancelRefresh();
             _viewModel.Reset();
         }
-        else if (_testsVisible)
+        else if (TestsVisible)
         {
             _ = RefreshAsync();
         }
@@ -249,24 +227,6 @@ internal sealed class TestExplorerController
             : null;
     }
 
-    private void ShowExplorer()
-    {
-        if (!_testsVisible)
-        {
-            return;
-        }
-
-        _testsVisible = false;
-        _testsButton.Classes.Remove("active");
-        if (!_explorerButton.Classes.Contains("active"))
-        {
-            _explorerButton.Classes.Add("active");
-        }
-
-        _explorerPanel.Child = _explorerContent;
-        CancelRefresh();
-    }
-
     private void CancelRefresh()
     {
         _refreshCancellation?.Cancel();
@@ -288,7 +248,6 @@ internal sealed class TestExplorerController
         _detached = true;
         CancelRefresh();
         _testPanel.NavigateOutputAsync = null;
-        _explorerButton.Click -= ExplorerButton_OnClick;
         _testsButton.Click -= TestsButton_OnClick;
         if (_refreshButton is not null)
         {

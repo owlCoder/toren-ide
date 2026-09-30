@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Toren.Language.CSharp.Contracts;
@@ -66,10 +67,13 @@ public sealed class RoslynCSharpDiagnosticService : ICSharpDiagnosticService, IC
 
         var compilerDiagnostics = compilationContext.Compilation.GetDiagnostics(cancellationToken);
         var analyzers = RoslynAnalyzerLoader.Load(context.AnalyzerPaths);
+        var options = new AnalyzerOptions(context.AdditionalFilePaths.Where(File.Exists)
+            .Select(static path => (AdditionalText)new ProjectAdditionalText(path)).ToImmutableArray(),
+            new ProjectAnalyzerConfigOptionsProvider(context.AnalyzerConfigPaths));
         var analyzerDiagnostics = analyzers.IsDefaultOrEmpty
             ? []
             : await compilationContext.Compilation
-                .WithAnalyzers(analyzers)
+                .WithAnalyzers(analyzers, options)
                 .GetAnalyzerDiagnosticsAsync(cancellationToken)
                 .ConfigureAwait(false);
 

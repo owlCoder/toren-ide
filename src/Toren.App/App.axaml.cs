@@ -88,10 +88,13 @@ public sealed partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    internal static MainWindow CreateMainWindow(string? applicationDataDirectory = null)
+    internal static MainWindow CreateMainWindow(
+        string? applicationDataDirectory = null,
+        IInteractiveProcessRunner? terminalRunner = null,
+        IDotNetCommandService? commandService = null)
     {
         var processRunner = new SystemProcessRunner();
-        IInteractiveProcessRunner interactiveProcessRunner = new SystemInteractiveProcessRunner();
+        IInteractiveProcessRunner interactiveProcessRunner = terminalRunner ?? new SystemInteractiveProcessRunner();
         INativeShellProvider nativeShellProvider = new SystemNativeShellProvider();
         Toren.Git.Contracts.IGitRepositoryService gitRepositoryService =
             new Toren.Git.Services.GitRepositoryService(processRunner);
@@ -100,7 +103,7 @@ public sealed partial class App : Application
         IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
         IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
         IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
-        IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
+        IDotNetCommandService dotNetCommandService = commandService ?? new DotNetCommandService(processRunner);
         IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
         IDotNetPackageService dotNetPackageService = new DotNetPackageService(processRunner);
         IDotNetUserSecretsService dotNetUserSecretsService = new DotNetUserSecretsService(processRunner);

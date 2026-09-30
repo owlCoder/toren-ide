@@ -36,7 +36,9 @@
         </StackPanel>
         <Button Grid.Column="2" Classes="toolbar-button" Content="Start"
                 IsEnabled="{Binding SelectedSession.CanStart}" Click="Start_OnClick" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Stop"
+        <Button Grid.Column="3" Classes="toolbar-button" Content="Kill"
+                ToolTip.Tip="Kill the terminal process and its children"
+                AutomationProperties.Name="Kill terminal process"
                 IsEnabled="{Binding SelectedSession.CanStop}" Click="Stop_OnClick" />
         <Button Grid.Column="4" Classes="toolbar-button" Content="Clear"
                 IsEnabled="{Binding SelectedSession.HasOutput}" Click="Clear_OnClick" />

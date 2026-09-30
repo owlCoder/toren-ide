@@ -13,7 +13,7 @@ internal sealed partial class ProblemsPanel : UserControl
 
     public event Action<ProblemItemViewModel>? ProblemActivated;
 
-    private void ProblemsList_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    private void ProblemsList_OnTapped(object? sender, TappedEventArgs eventArgs)
     {
         if (ProblemsList.SelectedItem is ProblemItemViewModel problem)
         {
@@ -21,4 +21,13 @@ internal sealed partial class ProblemsPanel : UserControl
             eventArgs.Handled = true;
         }
     }
+    private void ProblemsList_OnKeyDown(object? sender, KeyEventArgs args)
+    {
+        if (args.Key == Key.Enter && ProblemsList.SelectedItem is ProblemItemViewModel problem)
+        {
+            ProblemActivated?.Invoke(problem);
+            args.Handled = true;
+        }
+    }
+
 }

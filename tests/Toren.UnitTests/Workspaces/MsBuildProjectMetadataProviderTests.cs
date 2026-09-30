@@ -38,6 +38,26 @@ public sealed class MsBuildProjectMetadataProviderTests
     }
 
     [Test]
+    public async Task ReadsCompilerInputsIncludingGlobalUsingsAndCompilationOptions()
+    {
+        var runner = new FakeProcessRunner("""
+            {"Properties":{"TargetFramework":"net10.0","OutputType":"Exe","Nullable":"enable","LangVersion":"14.0","DefineConstants":"DEBUG;NET10_0","AllowUnsafeBlocks":"true"},
+             "Items":{"Compile":[{"FullPath":"/repo/Program.cs"}],"Using":[{"Identity":"System"},{"Identity":"System.Math","Static":"true"},{"Identity":"System.String","Alias":"Text"}]}}
+            """);
+        var result = await new MsBuildProjectMetadataProvider(runner).GetMetadataAsync("/repo/App.csproj");
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Value!.SourcePaths, Is.EqualTo(new[] { Path.GetFullPath("/repo/Program.cs") }));
+            Assert.That(string.Join("|", result.Value.GlobalUsings), Is.EqualTo("global using System;|global using static System.Math;|global using Text = System.String;"));
+            Assert.That(result.Value.Nullable, Is.EqualTo("enable"));
+            Assert.That(result.Value.LanguageVersion, Is.EqualTo("14.0"));
+            Assert.That(string.Join("|", result.Value.DefineConstants), Is.EqualTo("DEBUG|NET10_0"));
+            Assert.That(result.Value.AllowUnsafe, Is.True);
+        });
+    }
+
+    [Test]
     public async Task UsesSingleTargetFrameworkWhenMultiTargetPropertyIsEmpty()
     {
         var runner = new FakeProcessRunner(

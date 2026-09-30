@@ -37,6 +37,15 @@ public sealed class WorkspaceProjectOwnershipMapTests
         }
     }
 
+    [Test]
+    public void EvaluatedCompileItemsOwnLinkedFilesOutsideTheProjectDirectory()
+    {
+        var linkedFile = Path.GetFullPath("/repo/Shared/Linked.cs");
+        var project = CreateProject(Path.GetFullPath("/repo/App/App.csproj"), "App");
+        project = project with { Metadata = project.Metadata with { SourcePaths = [linkedFile] } };
+        Assert.That(new WorkspaceProjectOwnershipMap([project]).FindOwningProject(linkedFile), Is.SameAs(project));
+    }
+
     private static WorkspaceProject CreateProject(string path, string displayName) =>
         new(
             path,

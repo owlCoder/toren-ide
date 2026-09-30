@@ -13,7 +13,7 @@
           <TextBlock Text="SOURCE CONTROL" FontSize="11" FontWeight="SemiBold" />
           <TextBlock Text="{Binding BranchText}" FontSize="11" TextTrimming="CharacterEllipsis" />
           <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11"
-                     TextTrimming="CharacterEllipsis" />
+                     TextWrapping="Wrap" ToolTip.Tip="{Binding StatusText}" />
         </StackPanel>
         <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
                 Click="Refresh_OnClick" IsEnabled="{Binding !IsBusy}" />
@@ -23,7 +23,7 @@
     <Border Grid.Row="1" Padding="8,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <WrapPanel Classes="tool-actions">
-        <ComboBox Width="170" ItemsSource="{Binding Branches}"
+        <ComboBox Width="170" PlaceholderText="Local branch" ItemsSource="{Binding Branches}"
                   SelectedIndex="{Binding SelectedBranchIndex, Mode=TwoWay}"
                   ToolTip.Tip="Local branch">
           <ComboBox.ItemTemplate>
@@ -60,23 +60,26 @@
 
     <Border Grid.Row="2" Padding="8,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+      <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
         <TextBox Grid.Column="0" Text="{Binding CommitMessage, Mode=TwoWay}"
                  PlaceholderText="Commit message" FontSize="11" />
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Stage"
+        <WrapPanel Grid.Row="1" Classes="tool-actions">
+        <Button Classes="toolbar-button" Content="Stage"
                 Click="Stage_OnClick" IsEnabled="{Binding CanStageSelected}"
                 ToolTip.Tip="Stage selected change; conflicted files are marked resolved after you edit them" />
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Unstage"
+        <Button Classes="toolbar-button" Content="Unstage"
                 Click="Unstage_OnClick" IsEnabled="{Binding CanUnstageSelected}"
                 ToolTip.Tip="Unstage selected change" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Commit"
+        <Button Classes="toolbar-button" Content="Commit"
                 Click="Commit_OnClick" IsEnabled="{Binding CanCommit}"
                 ToolTip.Tip="Commit staged changes" />
+        </WrapPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="3" ColumnDefinitions="300,*">
-      <Border Grid.Column="0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
+    <TabControl Grid.Row="3" Classes="tool-tabs">
+      <TabItem Header="Changes">
+      <Border>
         <ListBox ItemsSource="{Binding Changes}"
                  SelectedIndex="{Binding SelectedChangeIndex, Mode=TwoWay}"
                  SelectionChanged="Changes_OnSelectionChanged">
@@ -94,12 +97,15 @@
         </ListBox>
       </Border>
 
-      <TextBox Grid.Column="1" Text="{Binding DiffText}" IsReadOnly="True"
+      </TabItem>
+      <TabItem Header="Diff">
+      <TextBox Text="{Binding DiffText}" IsReadOnly="True"
                AcceptsReturn="True" TextWrapping="NoWrap"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                ScrollViewer.VerticalScrollBarVisibility="Auto"
                BorderThickness="0" Padding="10"
                FontSize="11" FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
-    </Grid>
+      </TabItem>
+    </TabControl>
   </Grid>
 </UserControl>

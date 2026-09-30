@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Toren.App.Terminal.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Terminal;
+using Toren.App.Views;
 
 namespace Toren.App.Terminal.Services;
 
@@ -28,11 +29,13 @@ internal sealed class TerminalController : IAsyncDisposable
         _toolTabs = toolTabs;
         _terminalTab = new TabItem
         {
-            Header = "Terminal",
+            Header = new ToolTabHeader(window, "Terminal", "TorenIconTerminal"),
             Content = new TerminalPanel { DataContext = _viewModel },
         };
         _toolTabs.Items.Add(_terminalTab);
 
+        _toolTabs.SelectionChanged += ToolTabs_OnSelectionChanged;
+        _viewModel.PropertyChanged += Host_OnPropertyChanged;
         _shell.PropertyChanged += Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged += Explorer_OnPropertyChanged;
         _window.Closed += Window_OnClosed;
@@ -67,12 +70,35 @@ internal sealed class TerminalController : IAsyncDisposable
         }
 
         _detached = true;
+        _toolTabs.SelectionChanged -= ToolTabs_OnSelectionChanged;
+        _viewModel.PropertyChanged -= Host_OnPropertyChanged;
         _shell.PropertyChanged -= Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
         _window.Closed -= Window_OnClosed;
         _toolTabs.Items.Remove(_terminalTab);
         await _viewModel.DisposeAsync().ConfigureAwait(true);
     }
+
+    private async void ToolTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs args)
+    {
+        if (ReferenceEquals(args.Source, _toolTabs) && ReferenceEquals(_toolTabs.SelectedItem, _terminalTab))
+        {
+            await StartSelectedSessionAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void Host_OnPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(TerminalHostViewModel.SelectedSession)
+            && ReferenceEquals(_toolTabs.SelectedItem, _terminalTab))
+        {
+            await StartSelectedSessionAsync().ConfigureAwait(true);
+        }
+    }
+
+    private Task StartSelectedSessionAsync() => _viewModel.SelectedSession is { CanStart: true } session
+        ? session.StartAsync()
+        : Task.CompletedTask;
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {

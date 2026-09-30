@@ -26,6 +26,9 @@ internal sealed class WorkspaceExecutionController
     private ComboBox? _configurationSelector;
     private ComboBox? _runTargetSelector;
     private Button? _runButton;
+    private Button? _cancelButton;
+    private ProgressBar? _progress;
+    private readonly Dictionary<Button, DotNetCommandKind> _buildButtons = new();
     private TextBlock? _commandStatus;
     private bool _updatingCommandBar;
     private bool _detached;
@@ -117,6 +120,27 @@ internal sealed class WorkspaceExecutionController
             AutomationProperties.SetName(_runButton, "Run selected startup project");
         }
 
+        foreach (var (name, kind) in new[]
+                 {
+                     ("BuildSolutionButton", DotNetCommandKind.Build),
+                     ("RebuildSolutionButton", DotNetCommandKind.Rebuild),
+                     ("CleanSolutionButton", DotNetCommandKind.Clean),
+                 })
+        {
+            if (_window.FindControl<Button>(name) is { } button)
+            {
+                _buildButtons.Add(button, kind);
+                button.Click += BuildButton_OnClick;
+            }
+        }
+
+        _cancelButton = _window.FindControl<Button>("CancelExecutionButton");
+        if (_cancelButton is not null)
+        {
+            _cancelButton.Click += CancelButton_OnClick;
+        }
+
+        _progress = _window.FindControl<ProgressBar>("ExecutionProgressBar");
         UpdateCommandBarState();
     }
 
@@ -146,6 +170,7 @@ internal sealed class WorkspaceExecutionController
         if (eventArgs.PropertyName is nameof(WorkspaceExecutionViewModel.ConfigurationIndex)
             or nameof(WorkspaceExecutionViewModel.SelectedRunTargetIndex)
             or nameof(WorkspaceExecutionViewModel.IsRunning)
+            or nameof(WorkspaceExecutionViewModel.CurrentCommandKind)
             or nameof(WorkspaceExecutionViewModel.StatusText)
             or nameof(WorkspaceExecutionViewModel.CanExecute)
             or nameof(WorkspaceExecutionViewModel.CanRun))
@@ -177,6 +202,21 @@ internal sealed class WorkspaceExecutionController
             if (_runButton is not null)
             {
                 _runButton.IsEnabled = _execution.CanRun;
+            }
+
+            foreach (var button in _buildButtons.Keys)
+            {
+                button.IsEnabled = _execution.CanExecute;
+            }
+
+            if (_cancelButton is not null)
+            {
+                _cancelButton.IsEnabled = _execution.CanCancel;
+            }
+
+            if (_progress is not null)
+            {
+                _progress.IsVisible = _execution.IsRunning && _execution.CurrentCommandKind is not (null or DotNetCommandKind.Run);
             }
 
             if (_commandStatus is not null)
@@ -217,6 +257,17 @@ internal sealed class WorkspaceExecutionController
             await _execution.ExecuteAsync(DotNetCommandKind.Run).ConfigureAwait(true);
         }
     }
+
+    private async void BuildButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args)
+    {
+        if (sender is Button button && _execution.CanExecute)
+        {
+            _window.FindControl<TabControl>("ToolTabs")!.SelectedIndex = 1;
+            await _execution.ExecuteAsync(_buildButtons[button]).ConfigureAwait(true);
+        }
+    }
+
+    private void CancelButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) => _execution.Cancel();
 
     private void SynchronizeWorkspace()
     {
@@ -420,6 +471,16 @@ internal sealed class WorkspaceExecutionController
         if (_runButton is not null)
         {
             _runButton.Click -= RunButton_OnClick;
+        }
+
+        foreach (var button in _buildButtons.Keys)
+        {
+            button.Click -= BuildButton_OnClick;
+        }
+
+        if (_cancelButton is not null)
+        {
+            _cancelButton.Click -= CancelButton_OnClick;
         }
 
         _shell.PropertyChanged -= Shell_OnPropertyChanged;

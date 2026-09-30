@@ -13,6 +13,14 @@ using Toren.App.Editor.Views;
 using Toren.App.Search.Models;
 using Toren.App.Search.Views;
 using Toren.App.Views.Testing;
+using Toren.App.Shell;
+using Toren.App.Views;
+using Toren.App.Debugging.ViewModels;
+using Toren.App.SourceControl.ViewModels;
+using Toren.App.Http.ViewModels;
+using Toren.Debugging.Models;
+using Toren.Git.Models;
+using Toren.DotNet.Http.Models;
 using Toren.App.ViewModels;
 using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Models;
@@ -35,7 +43,7 @@ public sealed class ShellLayoutTests
     {
         var application = (Toren.App.App)Application.Current!;
         var profile = Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", $"ui-{Guid.NewGuid():N}");
-        var shell = Toren.App.App.CreateMainWindow(profile);
+        var shell = Toren.App.App.CreateMainWindow(profile, new UiInteractiveProcessRunner());
         application.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
         var model = (MainWindowViewModel)shell.DataContext!;
         model.SdkSummary = ".NET SDK: 10.0.100";
@@ -54,7 +62,8 @@ public sealed class ShellLayoutTests
         {
             var tabs = ((Control)content!).GetLogicalDescendants().OfType<TabControl>().Single(control => control.Name == "ToolTabs");
             Assert.That(tabs, Is.Not.Null);
-            Assert.That(tabs.Items.OfType<TabItem>().Count(item => Equals(item.Header, "Terminal")), Is.EqualTo(1));
+            Assert.That(tabs.Items.Count, Is.EqualTo(5));
+            Assert.That(tabs.Items.OfType<TabItem>().Count(item => item.Content is Toren.App.Views.Terminal.TerminalPanel), Is.EqualTo(1));
             Capture(host, width, height, light, $"sidebar{sidebarWidth}-welcome");
 
             foreach (var tab in tabs.Items.OfType<TabItem>())
@@ -95,21 +104,33 @@ public sealed class ShellLayoutTests
             Capture(host, width, height, light, $"sidebar{sidebarWidth}-diagnostics");
 
             var root = (Control)content!;
-            root.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TestsActivityButton")
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            host.UpdateLayout();
-            var testPanel = root.GetLogicalDescendants().OfType<TestExplorerPanel>().Single();
-            AssertContained(testPanel, host);
-            foreach (var button in testPanel.GetVisualDescendants().OfType<Button>()
-                         .Where(button => button.IsEffectivelyVisible && button.Bounds.Width > 0 && !IsScrollable(button, testPanel)))
+            var sidebar = SidebarController.For(shell);
+            foreach (var name in new[] { "Tests", "SourceControl", "Debug", "Http", "Data", "Explorer" })
             {
-                AssertContained(button, testPanel);
-            }
+                root.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == $"{name}ActivityButton")
+                    .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                host.UpdateLayout();
+                var panel = sidebar.ActiveContent!;
+                PopulateSidebar(panel);
+                host.UpdateLayout();
+                AssertContained(panel, host);
+                Assert.That(root.GetLogicalDescendants().OfType<Button>().Count(button => button.Classes.Contains("active")), Is.EqualTo(1));
+                foreach (var nestedTabs in panel.GetLogicalDescendants().OfType<TabControl>().ToArray())
+                {
+                    foreach (var nestedTab in nestedTabs.Items.OfType<TabItem>())
+                    {
+                        nestedTabs.SelectedItem = nestedTab;
+                        host.UpdateLayout();
+                        Assert.That(nestedTabs.SelectedContent, Is.Not.Null);
+                        Assert.That(((Control)nestedTabs.SelectedContent!).Bounds.Height, Is.GreaterThan(100));
+                        VerifyPanelControls(panel);
+                        Capture(host, width, height, light, $"sidebar{sidebarWidth}-{panel.GetType().Name}-{nestedTab.Header}");
+                    }
+                }
 
-            Capture(host, width, height, light, $"sidebar{sidebarWidth}-TestExplorerPanel");
-            root.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ExplorerActivityButton")
-                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            host.UpdateLayout();
+                VerifyPanelControls(panel);
+                Capture(host, width, height, light, $"sidebar{sidebarWidth}-{panel.GetType().Name}");
+            }
 
             // Search popovers must fit the remaining editor region even when the sidebar is wide.
             var quickOpen = root.GetLogicalDescendants().OfType<WorkspaceQuickOpenOverlay>().Single();
@@ -146,6 +167,43 @@ public sealed class ShellLayoutTests
         Assert.That(results.Bounds.Height, Is.GreaterThan(60));
         Capture(host, width, height, light, $"sidebar{sidebarWidth}-{overlay.GetType().Name}");
         overlay.IsVisible = false;
+    }
+
+    private static void PopulateSidebar(Control panel)
+    {
+        if (panel.DataContext is DebugSessionViewModel debug)
+        {
+            debug.StackFrames.Add(new DebugStackFrame(1, "ParcelBox.Service.LoadWorkspaceAsync", "/work/src/Service.cs", 42, 9));
+            debug.Locals.Add(new DebugLocalItemViewModel("Locals", "workspace", "{ DisplayName = \"ParcelBox\", Projects = 8 }", "WorkspaceDescriptor", 0));
+            debug.Watches.Add(new DebugWatchItemViewModel("workspace.Projects.Count") { Value = "8", Type = "int" });
+            debug.Breakpoints.Add(new DebugBreakpointItemViewModel("/work/src/Very.Long.Source.File.Name.cs", 42, "workspace != null", true, "Breakpoint verified"));
+            debug.ConsoleLines.Add(new DebugConsoleLineViewModel("[debug] Workspace loaded successfully."));
+        }
+        else if (panel.DataContext is SourceControlViewModel git)
+        {
+            git.StatusText = "1 change on fix/ui-polish";
+            git.Branches.Add(new GitBranchInfo("fix/ui-polish", true, null));
+            git.SelectedBranchIndex = 0;
+            git.Changes.Add(new SourceControlChangeViewModel(new GitChange("src/Very.Long.Directory.Name/WorkspaceStatus.cs", null, '.', 'M')));
+            git.DiffText = "@@ -17,1 +17,1 @@\n- DisplayName = \"Toren\";\n+ DisplayName = workspace.Name;";
+        }
+        else if (panel.DataContext is HttpClientViewModel http)
+        {
+            http.SetDocument("/work/requests.http", "### Health check with a long descriptive name\nGET https://localhost:7254/api/health\n");
+            http.SetEnvironments([new HttpEnvironment("Development", new Dictionary<string, string>())]);
+            http.ResponseStatus = "200 OK · 42 ms";
+            http.ResponseHeaders = "content-type: application/json\ncache-control: no-cache";
+            http.ResponseBody = "{\n  \"status\": \"healthy\"\n}";
+        }
+    }
+
+    private static void VerifyPanelControls(Control panel)
+    {
+        foreach (var button in panel.GetVisualDescendants().OfType<Button>()
+                     .Where(button => button.IsEffectivelyVisible && button.Bounds.Width > 0 && !IsScrollable(button, panel)))
+        {
+            AssertContained(button, panel);
+        }
     }
 
     private static bool IsScrollable(Control control, Control panel) => control.GetVisualAncestors()

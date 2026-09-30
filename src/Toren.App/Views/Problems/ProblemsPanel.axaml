@@ -99,7 +99,8 @@
                Classes="problems-list"
                ItemsSource="{Binding Problems.Items}"
                IsVisible="{Binding Problems.HasItems}"
-               DoubleTapped="ProblemsList_OnDoubleTapped"
+               Tapped="ProblemsList_OnTapped"
+               KeyDown="ProblemsList_OnKeyDown"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="diagvm:ProblemItemViewModel">
@@ -117,9 +118,10 @@
                          FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                          Foreground="{DynamicResource TorenTextMutedBrush}"
                          VerticalAlignment="Center" />
-              <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="11.5"
+              <TextBlock Grid.Column="2" Text="{Binding Message}" ToolTip.Tip="{Binding Message}" FontSize="11.5"
                          TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
               <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding FileName}"
+                         MaxWidth="160" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FilePath}"
                          FontSize="11" VerticalAlignment="Center" />
               <TextBlock Grid.Column="4" Classes="subtle" Text="{Binding Location}"
                          FontSize="11" VerticalAlignment="Center" />

@@ -12,7 +12,17 @@
   </NativeMenu.Menu>
 
   <Application.Styles>
-    <FluentTheme />
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#297AA0"
+                               BaseHigh="#BFBFBF" BaseMedium="#8C8C8C"
+                               BaseMediumHigh="#A5A8AB" BaseMediumLow="#707477"
+                               ChromeAltLow="#191A1B" ChromeLow="#121314"
+                               ChromeMedium="#2A2B2C" ChromeMediumLow="#141516"
+                               ChromeHigh="#202122" RegionColor="#191A1B"
+                               ErrorText="#F48771" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
     <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     <StyleInclude Source="avares://Toren.App/Styles/TorenStyles.axaml" />
     <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />

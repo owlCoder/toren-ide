@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Controls;
-using Avalonia.LogicalTree;
 using Toren.App.Http.ViewModels;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.Http;
 using Toren.DotNet.Http.Adapters;
@@ -15,8 +15,7 @@ internal sealed class HttpClientController
     private readonly MainWindowViewModel _shell;
     private readonly HttpClientViewModel _viewModel;
     private readonly IHttpEnvironmentProvider _environmentProvider;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _httpTab;
+    private readonly SidebarController _sidebar;
     private OpenDocumentViewModel? _activeDocument;
     private CancellationTokenSource? _environmentCancellation;
     private bool _detached;
@@ -25,20 +24,14 @@ internal sealed class HttpClientController
         Window window,
         MainWindowViewModel shell,
         HttpClientViewModel viewModel,
-        IHttpEnvironmentProvider? environmentProvider,
-        TabControl toolTabs)
+        IHttpEnvironmentProvider? environmentProvider)
     {
         _window = window;
         _shell = shell;
         _viewModel = viewModel;
         _environmentProvider = environmentProvider ?? new FileHttpEnvironmentProvider();
-        _toolTabs = toolTabs;
-        _httpTab = new TabItem
-        {
-            Header = "HTTP",
-            Content = new HttpClientPanel { DataContext = viewModel },
-        };
-        _toolTabs.Items.Add(_httpTab);
+        _sidebar = SidebarController.For(window);
+        _sidebar.Register(window, "HttpActivityButton", new HttpClientPanel { DataContext = viewModel });
 
         _shell.Documents.PropertyChanged += Documents_OnPropertyChanged;
         _window.Closed += Window_OnClosed;
@@ -55,15 +48,7 @@ internal sealed class HttpClientController
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
-        if (toolTabs is null)
-        {
-            return;
-        }
-
-        _ = new HttpClientController(window, shell, viewModel, environmentProvider, toolTabs);
+        _ = new HttpClientController(window, shell, viewModel, environmentProvider);
     }
 
     private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
@@ -181,6 +166,6 @@ internal sealed class HttpClientController
 
         _shell.Documents.PropertyChanged -= Documents_OnPropertyChanged;
         _window.Closed -= Window_OnClosed;
-        _toolTabs.Items.Remove(_httpTab);
+
     }
 }

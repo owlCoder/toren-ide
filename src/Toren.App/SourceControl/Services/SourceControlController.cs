@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Toren.App.Shell;
 using Toren.App.SourceControl.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.SourceControl;
@@ -15,8 +16,7 @@ internal sealed class SourceControlController
     private readonly SourceControlViewModel _viewModel;
     private readonly Action<string> _setStatus;
     private readonly Button _sourceControlButton;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _sourceControlTab;
+    private readonly SidebarController _sidebar;
     private bool _detached;
 
     private SourceControlController(
@@ -24,21 +24,15 @@ internal sealed class SourceControlController
         MainWindowViewModel shell,
         SourceControlViewModel viewModel,
         Action<string> setStatus,
-        Button sourceControlButton,
-        TabControl toolTabs)
+        Button sourceControlButton)
     {
         _window = window;
         _shell = shell;
         _viewModel = viewModel;
         _setStatus = setStatus;
         _sourceControlButton = sourceControlButton;
-        _toolTabs = toolTabs;
-        _sourceControlTab = new TabItem
-        {
-            Header = "Source Control",
-            Content = new SourceControlPanel { DataContext = viewModel },
-        };
-        _toolTabs.Items.Add(_sourceControlTab);
+        _sidebar = SidebarController.For(window);
+        _sidebar.Register(window, "SourceControlActivityButton", new SourceControlPanel { DataContext = viewModel });
 
         _sourceControlButton.IsEnabled = true;
         ToolTip.SetTip(_sourceControlButton, "Source Control");
@@ -62,8 +56,7 @@ internal sealed class SourceControlController
         ArgumentNullException.ThrowIfNull(setStatus);
 
         var sourceControlButton = window.FindControl<Button>("SourceControlActivityButton");
-        var toolTabs = window.FindControl<TabControl>("ToolTabs");
-        if (sourceControlButton is null || toolTabs is null)
+        if (sourceControlButton is null)
         {
             return;
         }
@@ -73,13 +66,12 @@ internal sealed class SourceControlController
             shell,
             viewModel,
             setStatus,
-            sourceControlButton,
-            toolTabs);
+            sourceControlButton);
     }
 
     private async void SourceControlButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        _toolTabs.SelectedItem = _sourceControlTab;
+        _sidebar.Show("SourceControlActivityButton");
         await RefreshAsync().ConfigureAwait(true);
     }
 
@@ -137,6 +129,6 @@ internal sealed class SourceControlController
         _shell.PropertyChanged -= Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
         _window.Closed -= Window_OnClosed;
-        _toolTabs.Items.Remove(_sourceControlTab);
+
     }
 }

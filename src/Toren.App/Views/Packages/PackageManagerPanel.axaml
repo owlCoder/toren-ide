@@ -10,7 +10,7 @@
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,220,*,Auto" ColumnSpacing="8">
         <TextBlock Grid.Column="0" Text="Project" FontSize="11" VerticalAlignment="Center" />
-        <ComboBox Grid.Column="1" ItemsSource="{Binding Projects}"
+        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Select project" ItemsSource="{Binding Projects}"
                   SelectedIndex="{Binding SelectedProjectIndex, Mode=TwoWay}"
                   SelectionChanged="Project_OnSelectionChanged">
           <ComboBox.ItemTemplate>

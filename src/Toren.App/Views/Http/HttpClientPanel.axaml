@@ -8,42 +8,44 @@
   <Grid RowDefinitions="Auto,*,Auto">
     <Border Grid.Row="0" Padding="9,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,150,Auto,Auto" ColumnSpacing="8">
-        <TextBlock Grid.Column="0" Text="Request" FontSize="11" VerticalAlignment="Center" />
-        <ComboBox Grid.Column="1" ItemsSource="{Binding Requests}"
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="7">
+        <TextBlock Grid.Row="0" Text="HTTP CLIENT" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+        <ComboBox Grid.Row="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Requests}" PlaceholderText="Open a .http file"
                   SelectedIndex="{Binding SelectedRequestIndex, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="http:HttpRequestDefinition">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
                 <TextBlock Grid.Column="0" Text="{Binding Method}" FontSize="11" FontWeight="SemiBold" />
-                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                  <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" />
-                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding RequestTarget}" FontSize="11"
+                <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="2">
+                  <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                  <TextBlock Grid.Row="1" Classes="muted" Text="{Binding RequestTarget}" FontSize="11"
                              TextTrimming="CharacterEllipsis" />
                 </Grid>
               </Grid>
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <TextBlock Grid.Column="2" Text="Environment" FontSize="11" VerticalAlignment="Center" />
-        <ComboBox Grid.Column="3" ItemsSource="{Binding Environments}"
+        <ComboBox Grid.Row="2" HorizontalAlignment="Stretch" ItemsSource="{Binding Environments}"
                   SelectedIndex="{Binding SelectedEnvironmentIndex, Mode=TwoWay}"
                   PlaceholderText="No environment">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="http:HttpEnvironment">
-              <TextBlock Text="{Binding Name}" FontSize="11" />
+              <TextBlock Text="{Binding Name}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <Button Grid.Column="4" Classes="toolbar-button" Content="Send"
+        <WrapPanel Grid.Row="3" Classes="tool-actions">
+        <Button Classes="toolbar-button" Content="Send"
                 Click="Send_OnClick" IsEnabled="{Binding CanSend}" />
-        <Button Grid.Column="5" Classes="toolbar-button" Content="Cancel"
+        <Button Classes="toolbar-button" Content="Cancel"
                 Click="Cancel_OnClick" IsEnabled="{Binding CanCancel}" />
+        </WrapPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="220,*">
-      <Border Grid.Column="0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
+    <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
+      <TabItem Header="History">
+      <Border>
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <TextBlock Grid.Column="0" Text="History" FontSize="11" FontWeight="SemiBold" />
@@ -66,14 +68,16 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+      </TabItem>
+      <TabItem Header="Response">
+      <Grid RowDefinitions="Auto,Auto,*">
         <Border Grid.Row="0" Padding="9,7"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-          <TextBlock Text="{Binding ResponseStatus}" FontSize="11" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding ResponseStatus}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" />
         </Border>
         <TextBox Grid.Row="1" Margin="8,7,8,0" MinHeight="54" MaxHeight="110"
                  Text="{Binding ResponseHeaders}" IsReadOnly="True" AcceptsReturn="True"
-                 TextWrapping="NoWrap" FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                 TextWrapping="Wrap" FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                  PlaceholderText="Response headers" />
         <TextBox Grid.Row="2" Margin="8" Text="{Binding ResponseBody}" IsReadOnly="True"
                  AcceptsReturn="True" TextWrapping="NoWrap"
@@ -81,7 +85,8 @@
                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                  FontFamily="Cascadia Code, Menlo, Consolas, monospace" PlaceholderText="Response body" />
       </Grid>
-    </Grid>
+      </TabItem>
+    </TabControl>
 
     <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="11"
                Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />

@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using Toren.App.Debugging.ViewModels;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.Debugging;
 using Toren.Debugging.Models;
@@ -19,8 +20,7 @@ internal sealed class DebugSessionController
     private readonly Action<string> _setStatus;
     private readonly TextEditor _editor;
     private readonly Button _debugButton;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _debugTab;
+    private readonly SidebarController _sidebar;
     private readonly DebugPanel _panel;
     private CancellationTokenSource? _monitorCancellation;
     private bool _monitorRunning;
@@ -32,8 +32,7 @@ internal sealed class DebugSessionController
         DebugSessionCoordinator coordinator,
         DebugSessionViewModel viewModel,
         Action<string> setStatus,
-        Button debugButton,
-        TabControl toolTabs)
+        Button debugButton)
     {
         _window = window;
         _shell = shell;
@@ -41,7 +40,7 @@ internal sealed class DebugSessionController
         _viewModel = viewModel;
         _setStatus = setStatus;
         _debugButton = debugButton;
-        _toolTabs = toolTabs;
+        _sidebar = SidebarController.For(window);
         _editor = window.FindControl<TextEditor>("DocumentEditor")
             ?? throw new InvalidOperationException("The document editor could not be located.");
         _panel = new DebugPanel
@@ -51,12 +50,7 @@ internal sealed class DebugSessionController
             AddBreakpointAtCaretAsync = AddBreakpointAtCaretAsync,
             RunToCursorAtCaretAsync = RunToCursorAtCaretAsync,
         };
-        _debugTab = new TabItem
-        {
-            Header = "Debug",
-            Content = _panel,
-        };
-        _toolTabs.Items.Add(_debugTab);
+        _sidebar.Register(window, "DebugActivityButton", _panel);
 
         _debugButton.IsEnabled = true;
         ToolTip.SetTip(_debugButton, "Debug");
@@ -81,8 +75,7 @@ internal sealed class DebugSessionController
         ArgumentNullException.ThrowIfNull(setStatus);
 
         var debugButton = window.FindControl<Button>("DebugActivityButton");
-        var toolTabs = window.FindControl<TabControl>("ToolTabs");
-        if (debugButton is null || toolTabs is null)
+        if (debugButton is null)
         {
             return;
         }
@@ -93,13 +86,12 @@ internal sealed class DebugSessionController
             coordinator,
             viewModel,
             setStatus,
-            debugButton,
-            toolTabs);
+            debugButton);
     }
 
     private void DebugButton_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        _toolTabs.SelectedItem = _debugTab;
+        _sidebar.Show("DebugActivityButton");
         _setStatus(_viewModel.StatusText);
     }
 
@@ -185,7 +177,7 @@ internal sealed class DebugSessionController
                     break;
                 }
 
-                _toolTabs.SelectedItem = _debugTab;
+                _sidebar.Show("DebugActivityButton");
                 _setStatus(_viewModel.StatusText);
                 while (!cancellation.IsCancellationRequested
                        && _coordinator.IsAttached
@@ -314,6 +306,6 @@ internal sealed class DebugSessionController
         _panel.NavigateFrameAsync = null;
         _panel.AddBreakpointAtCaretAsync = null;
         _panel.RunToCursorAtCaretAsync = null;
-        _toolTabs.Items.Remove(_debugTab);
+
     }
 }

@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Toren.App.AspNetCore.ViewModels;
 using Toren.App.Execution.ViewModels;
 using Toren.App.Views.AspNetCore;
+using Toren.App.Views;
 
 namespace Toren.App.AspNetCore.Services;
 
@@ -29,7 +30,7 @@ internal sealed class AspNetCoreToolsController
         _toolTabs = toolTabs;
         _aspNetTab = new TabItem
         {
-            Header = "ASP.NET",
+            Header = new ToolTabHeader(window, "ASP.NET", "TorenIconMarkupFile"),
             Content = new AspNetCoreToolsPanel { DataContext = viewModel },
         };
         _toolTabs.Items.Add(_aspNetTab);

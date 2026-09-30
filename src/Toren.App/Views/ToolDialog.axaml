@@ -1,0 +1,20 @@
+<Window x:Class="Toren.App.Views.ToolDialog" x:ClassModifier="internal"
+        xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowDecorations="None" ShowInTaskbar="False" CanResize="True"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource TorenSurfaceBrush}">
+  <Grid RowDefinitions="46,*">
+    <Border Classes="title-bar" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto">
+        <Border Padding="16,0" Background="Transparent" PointerPressed="TitleBar_OnPointerPressed">
+          <TextBlock x:Name="DialogTitle" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </Border>
+        <Button Grid.Column="1" Classes="window-control close" Width="44" Height="46"
+                Click="Close_OnClick" ToolTip.Tip="Close" AutomationProperties.Name="Close dialog">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="14" Height="14" />
+        </Button>
+      </Grid>
+    </Border>
+    <ContentControl x:Name="DialogContent" Grid.Row="1" HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch" />
+  </Grid>
+</Window>

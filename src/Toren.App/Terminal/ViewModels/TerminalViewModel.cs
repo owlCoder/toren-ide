@@ -35,9 +35,13 @@ public sealed partial class TerminalViewModel(
     [NotifyPropertyChangedFor(nameof(CanSubmit))]
     private bool _isRunning;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStart))]
+    private bool _isStarting;
+
     public ObservableCollection<TerminalLineViewModel> Lines { get; } = new();
 
-    public bool CanStart => !IsRunning;
+    public bool CanStart => !IsRunning && !IsStarting;
 
     public bool CanStop => IsRunning;
 
@@ -61,34 +65,47 @@ public sealed partial class TerminalViewModel(
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_disposed || IsRunning)
+        if (_disposed || !CanStart)
         {
             return;
         }
 
-        var workingDirectory = Directory.Exists(WorkingDirectory)
-            ? WorkingDirectory
-            : Directory.GetCurrentDirectory();
-        var request = _shellProvider.CreateShellRequest(workingDirectory);
-        var synchronizationContext = SynchronizationContext.Current;
-        var started = await _processRunner
-            .StartAsync(
-                request,
-                line => ReportOutput(line, synchronizationContext),
-                cancellationToken)
-            .ConfigureAwait(true);
-        if (started.IsFailure)
+        IsStarting = true;
+        try
         {
-            StatusText = started.Error.Message;
-            return;
-        }
+            var workingDirectory = Directory.Exists(WorkingDirectory)
+                ? WorkingDirectory
+                : Directory.GetCurrentDirectory();
+            var request = _shellProvider.CreateShellRequest(workingDirectory);
+            var synchronizationContext = SynchronizationContext.Current;
+            var started = await _processRunner
+                .StartAsync(
+                    request,
+                    line => ReportOutput(line, synchronizationContext),
+                    cancellationToken)
+                .ConfigureAwait(true);
+            if (started.IsFailure)
+            {
+                StatusText = started.Error.Message;
+                return;
+            }
 
-        var session = started.Value!;
-        _session = session;
-        IsRunning = true;
-        StatusText = $"Terminal running in {workingDirectory}.";
-        AddLine($"[{Path.GetFileName(request.FileName)}] {workingDirectory}");
-        _ = ObserveCompletionAsync(session);
+            var session = started.Value!;
+            if (_disposed)
+            {
+                await session.DisposeAsync().ConfigureAwait(true);
+                return;
+            }
+            _session = session;
+            IsRunning = true;
+            StatusText = $"Terminal running in {workingDirectory}.";
+            AddLine($"[{Path.GetFileName(request.FileName)}] {workingDirectory}");
+            _ = ObserveCompletionAsync(session);
+        }
+        finally
+        {
+            IsStarting = false;
+        }
     }
 
     public async Task SubmitAsync(CancellationToken cancellationToken = default)

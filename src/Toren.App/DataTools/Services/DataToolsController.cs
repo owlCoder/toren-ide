@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using Avalonia.Controls;
-using Avalonia.LogicalTree;
 using Toren.App.DataTools.ViewModels;
 using Toren.App.Execution.ViewModels;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.DataTools;
 
@@ -14,8 +14,7 @@ internal sealed class DataToolsController
     private readonly MainWindowViewModel _shell;
     private readonly WorkspaceExecutionViewModel _execution;
     private readonly DataToolsViewModel _viewModel;
-    private readonly TabControl _toolTabs;
-    private readonly TabItem _dataTab;
+    private readonly SidebarController _sidebar;
     private CancellationTokenSource? _refreshCancellation;
     private bool _detached;
 
@@ -23,20 +22,14 @@ internal sealed class DataToolsController
         Window window,
         MainWindowViewModel shell,
         WorkspaceExecutionViewModel execution,
-        DataToolsViewModel viewModel,
-        TabControl toolTabs)
+        DataToolsViewModel viewModel)
     {
         _window = window;
         _shell = shell;
         _execution = execution;
         _viewModel = viewModel;
-        _toolTabs = toolTabs;
-        _dataTab = new TabItem
-        {
-            Header = "Data",
-            Content = new DataToolsPanel { DataContext = viewModel },
-        };
-        _toolTabs.Items.Add(_dataTab);
+        _sidebar = SidebarController.For(window);
+        _sidebar.Register(window, "DataActivityButton", new DataToolsPanel { DataContext = viewModel });
 
         _shell.PropertyChanged += Shell_OnPropertyChanged;
         _shell.Explorer.PropertyChanged += Explorer_OnPropertyChanged;
@@ -57,13 +50,7 @@ internal sealed class DataToolsController
         ArgumentNullException.ThrowIfNull(execution);
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
-        if (toolTabs is not null)
-        {
-            _ = new DataToolsController(window, shell, execution, viewModel, toolTabs);
-        }
+        _ = new DataToolsController(window, shell, execution, viewModel);
     }
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
@@ -152,6 +139,6 @@ internal sealed class DataToolsController
         _shell.Explorer.PropertyChanged -= Explorer_OnPropertyChanged;
         _execution.PropertyChanged -= Execution_OnPropertyChanged;
         _window.Closed -= Window_OnClosed;
-        _toolTabs.Items.Remove(_dataTab);
+
     }
 }

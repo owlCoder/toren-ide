@@ -229,28 +229,51 @@ internal sealed partial class MainWindow : Window
 
     private void TextMateInstallation_OnAppliedTheme(object? sender, TextMateInstallation installation)
     {
-        ApplyTextMateBrush(
+        ApplyEditorThemeBrush(
             installation,
             "editor.background",
+            "TorenBackgroundBrush",
             brush =>
             {
                 DocumentEditor.Background = brush;
                 DocumentEditor.TextArea.Background = brush;
             });
-        ApplyTextMateBrush(installation, "editor.foreground", brush => DocumentEditor.Foreground = brush);
-        ApplyTextMateBrush(
+        ApplyEditorThemeBrush(installation, "editor.foreground", "TorenEditorForegroundBrush", brush => DocumentEditor.Foreground = brush);
+        ApplyEditorThemeBrush(
             installation,
             "editor.selectionBackground",
+            "TorenEditorSelectionBrush",
             brush => DocumentEditor.TextArea.SelectionBrush = brush);
-        ApplyTextMateBrush(
+        ApplyEditorThemeBrush(
             installation,
             "editor.lineHighlightBackground",
-            brush => DocumentEditor.TextArea.TextView.CurrentLineBackground = brush);
-        DocumentEditor.TextArea.TextView.CurrentLineBorder = null;
-        ApplyTextMateBrush(
+            "TorenEditorLineHighlightBrush",
+            brush =>
+            {
+                DocumentEditor.TextArea.TextView.CurrentLineBackground = brush;
+                // A null pen falls back to AvaloniaEdit's default green outline.
+                DocumentEditor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
+            });
+        ApplyEditorThemeBrush(
             installation,
             "editorLineNumber.foreground",
+            "TorenEditorLineNumberBrush",
             brush => DocumentEditor.LineNumbersForeground = brush);
+    }
+
+    private bool ApplyEditorThemeBrush(
+        TextMateInstallation installation,
+        string textMateKey,
+        string resourceKey,
+        Action<IBrush> apply)
+    {
+        if (_isDarkTheme && this.TryFindResource(resourceKey, ThemeVariant.Dark, out var resource) && resource is IBrush brush)
+        {
+            apply(brush);
+            return true;
+        }
+
+        return ApplyTextMateBrush(installation, textMateKey, apply);
     }
 
     private static bool ApplyTextMateBrush(
@@ -280,6 +303,7 @@ internal sealed partial class MainWindow : Window
 
         _textMateInstallation.SetTheme(
             _registryOptions.LoadTheme(isDark ? ThemeName.DarkPlus : ThemeName.LightPlus));
+        TextMateInstallation_OnAppliedTheme(this, _textMateInstallation);
         _themeToggleIcon.SetDarkMode(isDark);
         ToolTip.SetTip(
             ThemeToggleButton,
@@ -465,20 +489,29 @@ internal sealed partial class MainWindow : Window
         }
     }
 
-    private void NavigateToProblem(ProblemItemViewModel problem)
+    private async void NavigateToProblem(ProblemItemViewModel problem)
     {
-        if (_viewModel.Documents.ActiveDocument is not { } activeDocument
-            || !problem.FilePath.Equals(activeDocument.Path, StringComparison.Ordinal))
+        if (!problem.CanNavigate)
         {
+            _viewModel.SetStatus(problem.Message);
             return;
         }
 
+        var opened = await _viewModel.Documents.OpenAsync(problem.FilePath).ConfigureAwait(true);
+        if (!opened.IsSuccess)
+        {
+            _viewModel.SetStatus(opened.Error.Message);
+            return;
+        }
+
+        await _viewModel.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
         var line = Math.Clamp(problem.StartLine, 1, DocumentEditor.Document.LineCount);
         var documentLine = DocumentEditor.Document.GetLineByNumber(line);
         var column = Math.Clamp(problem.StartColumn, 1, documentLine.Length + 1);
         DocumentEditor.CaretOffset = documentLine.Offset + column - 1;
         DocumentEditor.ScrollTo(line, column);
         DocumentEditor.Focus();
+        _viewModel.SetStatus($"Opened {opened.Value.Title}:{line}");
     }
 
     private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs eventArgs)
