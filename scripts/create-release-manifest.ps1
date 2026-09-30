@@ -68,14 +68,17 @@ $artifacts = foreach ($directory in $artifactDirectories) {
         throw "Checksum verification failed for '$($package.Name)'."
     }
 
-    $requiresSigning = $runtimeIdentifier.StartsWith('osx-', [StringComparison]::Ordinal)
+    $requiresPlatformSigning =
+        $runtimeIdentifier.StartsWith('osx-', [StringComparison]::Ordinal) -or
+        $runtimeIdentifier.StartsWith('win-', [StringComparison]::Ordinal)
 
     [ordered]@{
         runtimeIdentifier = $runtimeIdentifier
         fileName = $package.Name
         sha256 = $actualHash
-        requiresSigning = $requiresSigning
-        distributionReady = -not $requiresSigning
+        packageValidated = $true
+        requiresPlatformSigning = $requiresPlatformSigning
+        distributionReady = $false
     }
 }
 
