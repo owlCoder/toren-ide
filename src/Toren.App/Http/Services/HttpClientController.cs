@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Toren.App.Http.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Http;
+using Toren.DotNet.Http.Adapters;
 using Toren.DotNet.Http.Contracts;
 
 namespace Toren.App.Http.Services;
@@ -13,7 +14,7 @@ internal sealed class HttpClientController
     private readonly Window _window;
     private readonly MainWindowViewModel _shell;
     private readonly HttpClientViewModel _viewModel;
-    private readonly IHttpEnvironmentProvider? _environmentProvider;
+    private readonly IHttpEnvironmentProvider _environmentProvider;
     private readonly TabControl _toolTabs;
     private readonly TabItem _httpTab;
     private OpenDocumentViewModel? _activeDocument;
@@ -30,7 +31,7 @@ internal sealed class HttpClientController
         _window = window;
         _shell = shell;
         _viewModel = viewModel;
-        _environmentProvider = environmentProvider;
+        _environmentProvider = environmentProvider ?? new FileHttpEnvironmentProvider();
         _toolTabs = toolTabs;
         _httpTab = new TabItem
         {
@@ -97,8 +98,7 @@ internal sealed class HttpClientController
         }
 
         SynchronizeDocumentContent();
-        if (_environmentProvider is not null
-            && _activeDocument is not null
+        if (_activeDocument is not null
             && Path.GetExtension(_activeDocument.Path).Equals(".http", StringComparison.OrdinalIgnoreCase))
         {
             var cancellation = new CancellationTokenSource();
@@ -126,7 +126,7 @@ internal sealed class HttpClientController
     {
         try
         {
-            var result = await _environmentProvider!
+            var result = await _environmentProvider
                 .GetEnvironmentsAsync(documentPath, cancellation.Token)
                 .ConfigureAwait(true);
             if (_detached || cancellation.IsCancellationRequested || !ReferenceEquals(_environmentCancellation, cancellation))
