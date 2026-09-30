@@ -98,4 +98,4 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedHeadSha) -and $run.head_sha -ne $
     throw "Workflow run '$RunId' head SHA '$($run.head_sha)' does not match '$ExpectedHeadSha'."
 }
 
-Write-Host "Validated GitHub Actions provenance for run $RunId: $ExpectedWorkflowName at $ExpectedWorkflowPath ($($run.event), $($run.conclusion))."
+Write-Host "Validated GitHub Actions provenance for run ${RunId}: $ExpectedWorkflowName at $ExpectedWorkflowPath ($($run.event), $($run.conclusion))."
