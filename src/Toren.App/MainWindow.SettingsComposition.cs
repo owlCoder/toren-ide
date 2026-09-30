@@ -1,4 +1,7 @@
 using Toren.App.Settings.Adapters;
+using Toren.App.Settings.Models;
+using Toren.App.Settings.Services;
+using Toren.App.Settings.ViewModels;
 using Toren.App.ViewModels;
 
 namespace Toren.App;
@@ -8,7 +11,16 @@ internal sealed partial class MainWindow
     public MainWindow(MainWindowViewModel viewModel)
         : this(viewModel, CreateApplicationSettingsStore())
     {
+        ApplicationSettingsController.Attach(
+            this,
+            _applicationSettingsStore,
+            new ApplicationSettingsViewModel(),
+            DocumentEditor,
+            ApplyThemePreference);
     }
+
+    private void ApplyThemePreference(ApplicationThemePreference theme) =>
+        ApplyTheme(theme == ApplicationThemePreference.Dark);
 
     private static FileApplicationSettingsStore CreateApplicationSettingsStore()
     {

@@ -1,0 +1,57 @@
+<UserControl x:Class="Toren.App.Views.Settings.ApplicationSettingsPanel"
+             x:ClassModifier="internal"
+             x:DataType="settingsvm:ApplicationSettingsViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settingsvm="clr-namespace:Toren.App.Settings.ViewModels">
+  <Grid RowDefinitions="Auto,*" RowSpacing="10" Margin="12,10">
+    <StackPanel Grid.Row="0" Spacing="6">
+      <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" />
+      <TextBox Text="{Binding SearchText, Mode=TwoWay}" Watermark="Search settings" />
+      <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Spacing="10">
+        <Border IsVisible="{Binding ShowAppearanceSection}" Padding="10"
+                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="7">
+            <StackPanel Grid.Row="0" Spacing="2">
+              <TextBlock Text="Appearance" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="9.5" />
+            </StackPanel>
+            <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
+              <TextBlock Text="Color theme" VerticalAlignment="Center" FontSize="10" />
+              <ComboBox Grid.Column="1" SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+                <ComboBoxItem Content="Dark" />
+                <ComboBoxItem Content="Light" />
+              </ComboBox>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <Border IsVisible="{Binding ShowEditorSection}" Padding="10"
+                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+            <StackPanel Grid.Row="0" Spacing="2">
+              <TextBlock Text="Editor" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="Changes apply to the active editor immediately." FontSize="9.5" />
+            </StackPanel>
+            <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
+              <TextBlock Text="Font size" VerticalAlignment="Center" FontSize="10" />
+              <Slider Grid.Column="1" Minimum="8" Maximum="40" TickFrequency="1"
+                      Value="{Binding EditorFontSize, Mode=TwoWay}" />
+            </Grid>
+            <CheckBox Grid.Row="2" Content="Show line numbers"
+                      IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
+            <CheckBox Grid.Row="3" Content="Word wrap"
+                      IsChecked="{Binding WordWrap, Mode=TwoWay}" />
+          </Grid>
+        </Border>
+
+        <TextBlock IsVisible="{Binding !HasSearchResults}" Classes="muted"
+                   Text="No settings match your search." FontSize="10" />
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

@@ -9,6 +9,9 @@ namespace Toren.App.Settings.Adapters;
 
 public sealed class FileApplicationSettingsStore(string filePath) : IApplicationSettingsStore
 {
+    private const double MinimumEditorFontSize = 8d;
+    private const double MaximumEditorFontSize = 40d;
+
     private readonly string _filePath = !string.IsNullOrWhiteSpace(filePath)
         ? filePath
         : throw new ArgumentException("Application settings path is required.", nameof(filePath));
@@ -28,12 +31,17 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             if (stored is null
                 || stored.Version != 1
-                || !TryParseTheme(stored.Theme, out var theme))
+                || !TryParseTheme(stored.Theme, out var theme)
+                || !IsValidEditorFontSize(stored.EditorFontSize))
             {
                 return Result.Failure<ApplicationSettings>(ApplicationSettingsErrors.InvalidFormat());
             }
 
-            return Result.Success(new ApplicationSettings(theme));
+            return Result.Success(new ApplicationSettings(
+                theme,
+                stored.EditorFontSize ?? ApplicationSettings.DefaultEditorFontSize,
+                stored.ShowLineNumbers ?? ApplicationSettings.DefaultShowLineNumbers,
+                stored.WordWrap ?? ApplicationSettings.DefaultWordWrap));
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or SecurityException or JsonException)
@@ -51,6 +59,18 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        var current = await LoadAsync(cancellationToken).ConfigureAwait(false);
+        var baseline = current.IsSuccess ? current.Value! : ApplicationSettings.Default;
+        var merged = new ApplicationSettings(
+            settings.Theme,
+            settings.EditorFontSize ?? baseline.EffectiveEditorFontSize,
+            settings.ShowLineNumbers ?? baseline.EffectiveShowLineNumbers,
+            settings.WordWrap ?? baseline.EffectiveWordWrap);
+        if (!IsValidEditorFontSize(merged.EditorFontSize))
+        {
+            return Result.Failure<ApplicationSettings>(ApplicationSettingsErrors.InvalidFormat());
+        }
+
         var directory = Path.GetDirectoryName(_filePath)
             ?? throw new InvalidOperationException("Application settings file has no directory.");
         var temporaryPath = $"{_filePath}.{Guid.NewGuid():N}.tmp";
@@ -64,12 +84,15 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
                     stream,
                     new StoredApplicationSettings(
                         Version: 1,
-                        Theme: settings.Theme == ApplicationThemePreference.Light ? "light" : "dark"),
+                        Theme: merged.Theme == ApplicationThemePreference.Light ? "light" : "dark",
+                        EditorFontSize: merged.EffectiveEditorFontSize,
+                        ShowLineNumbers: merged.EffectiveShowLineNumbers,
+                        WordWrap: merged.EffectiveWordWrap),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
             File.Move(temporaryPath, _filePath, overwrite: true);
-            return Result.Success(settings);
+            return Result.Success(merged);
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or SecurityException)
@@ -93,6 +116,9 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
         }
     }
 
+    private static bool IsValidEditorFontSize(double? value) =>
+        value is null or >= MinimumEditorFontSize and <= MaximumEditorFontSize;
+
     private static bool TryParseTheme(string? value, out ApplicationThemePreference theme)
     {
         if (string.Equals(value, "dark", StringComparison.OrdinalIgnoreCase))
@@ -111,5 +137,10 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
         return false;
     }
 
-    private sealed record StoredApplicationSettings(int Version, string Theme);
+    private sealed record StoredApplicationSettings(
+        int Version,
+        string Theme,
+        double? EditorFontSize = null,
+        bool? ShowLineNumbers = null,
+        bool? WordWrap = null);
 }
