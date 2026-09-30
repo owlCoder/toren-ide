@@ -119,6 +119,7 @@ jobs:
             -ExpectedVersion $env:RELEASE_VERSION `
             -ExpectedChannel $env:RELEASE_CHANNEL `
             -ExpectedSourceCommit $env:RELEASE_COMMIT `
+            -ReleaseGatesConfirmed $true `
             -OutputDirectory artifacts/final
 
       - name: Upload promoted release artifacts

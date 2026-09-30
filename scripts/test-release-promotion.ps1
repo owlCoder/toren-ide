@@ -56,6 +56,24 @@ function New-SignedMacFixture {
     return $package
 }
 
+function Invoke-Promotion {
+    param(
+        [Parameter(Mandatory)][bool] $ReleaseGatesConfirmed,
+        [Parameter(Mandatory)][string] $Destination
+    )
+
+    & (Join-Path $PSScriptRoot 'promote-release-manifest.ps1') `
+        -CandidateManifestPath $candidateManifestPath `
+        -PackageArtifactsRoot $packageRoot `
+        -SignedMacX64Root $signedX64Root `
+        -SignedMacArm64Root $signedArm64Root `
+        -ExpectedVersion $version `
+        -ExpectedChannel $channel `
+        -ExpectedSourceCommit $sourceCommit `
+        -ReleaseGatesConfirmed $ReleaseGatesConfirmed `
+        -OutputDirectory $Destination
+}
+
 try {
     New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
 
@@ -106,20 +124,33 @@ try {
         -RuntimeIdentifier 'osx-arm64' `
         -Content 'signed-macos-arm64'
 
-    & (Join-Path $PSScriptRoot 'promote-release-manifest.ps1') `
-        -CandidateManifestPath $candidateManifestPath `
-        -PackageArtifactsRoot $packageRoot `
-        -SignedMacX64Root $signedX64Root `
-        -SignedMacArm64Root $signedArm64Root `
-        -ExpectedVersion $version `
-        -ExpectedChannel $channel `
-        -ExpectedSourceCommit $sourceCommit `
-        -OutputDirectory $outputRoot
+    $confirmationRejected = $false
+    try {
+        Invoke-Promotion `
+            -ReleaseGatesConfirmed $false `
+            -Destination (Join-Path $root 'unconfirmed-output')
+    }
+    catch {
+        if ($_.Exception.Message -eq 'Release gates were not explicitly confirmed.') {
+            $confirmationRejected = $true
+        }
+        else {
+            throw
+        }
+    }
+    if (-not $confirmationRejected) {
+        throw 'Promotion helper accepted distribution-ready output without release-gate confirmation.'
+    }
+
+    Invoke-Promotion -ReleaseGatesConfirmed $true -Destination $outputRoot
 
     $releaseManifestPath = Join-Path $outputRoot 'Toren-IDE-release-manifest.json'
     $release = Get-Content -LiteralPath $releaseManifestPath -Raw | ConvertFrom-Json
     if ($release.version -ne $version -or $release.channel -ne $channel -or $release.sourceCommit -ne $sourceCommit) {
         throw 'Promoted release identity does not match the expected fixture identity.'
+    }
+    if ($release.releaseGatesConfirmed -ne $true) {
+        throw 'Promoted release manifest does not record explicit release-gate confirmation.'
     }
 
     $artifacts = @($release.artifacts)
@@ -141,18 +172,11 @@ try {
     $badAttestation | ConvertTo-Json -Depth 4 |
         Set-Content -LiteralPath $badAttestationPath -Encoding utf8NoBOM
 
-    $negativeOutput = Join-Path $root 'negative-output'
     $rejected = $false
     try {
-        & (Join-Path $PSScriptRoot 'promote-release-manifest.ps1') `
-            -CandidateManifestPath $candidateManifestPath `
-            -PackageArtifactsRoot $packageRoot `
-            -SignedMacX64Root $signedX64Root `
-            -SignedMacArm64Root $signedArm64Root `
-            -ExpectedVersion $version `
-            -ExpectedChannel $channel `
-            -ExpectedSourceCommit $sourceCommit `
-            -OutputDirectory $negativeOutput
+        Invoke-Promotion `
+            -ReleaseGatesConfirmed $true `
+            -Destination (Join-Path $root 'negative-output')
     }
     catch {
         if ($_.Exception.Message -like "*source commit*does not match*") {

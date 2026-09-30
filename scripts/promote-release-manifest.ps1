@@ -23,11 +23,18 @@ param(
     [string] $ExpectedSourceCommit,
 
     [Parameter(Mandatory)]
+    [bool] $ReleaseGatesConfirmed,
+
+    [Parameter(Mandatory)]
     [string] $OutputDirectory
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if (-not $ReleaseGatesConfirmed) {
+    throw 'Release gates were not explicitly confirmed.'
+}
 
 function Get-VerifiedHash {
     param(
@@ -172,6 +179,7 @@ $releaseManifest = [ordered]@{
     version = $ExpectedVersion
     channel = $ExpectedChannel
     sourceCommit = $ExpectedSourceCommit
+    releaseGatesConfirmed = $true
     promotedAtUtc = [DateTime]::UtcNow.ToString('O')
     artifacts = $artifacts
 }
