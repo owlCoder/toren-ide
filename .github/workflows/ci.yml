@@ -67,3 +67,7 @@ jobs:
       - name: Release promotion contract
         shell: pwsh
         run: ./scripts/test-release-promotion.ps1
+
+      - name: Release validation record contract
+        shell: pwsh
+        run: ./scripts/test-release-validation-record.ps1
