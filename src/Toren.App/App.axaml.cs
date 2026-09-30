@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Toren.App.AspNetCore.Services;
+using Toren.App.AspNetCore.ViewModels;
 using Toren.App.Debugging.Services;
 using Toren.App.Debugging.ViewModels;
 using Toren.App.Diagnostics.Contracts;
@@ -28,6 +30,8 @@ using Toren.Core.Navigation.Contracts;
 using Toren.Debugging.Adapters;
 using Toren.Debugging.Contracts;
 using Toren.Debugging.Services;
+using Toren.DotNet.AspNetCore.Contracts;
+using Toren.DotNet.AspNetCore.Services;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
@@ -39,6 +43,8 @@ using Toren.DotNet.Packages.Contracts;
 using Toren.DotNet.Packages.Services;
 using Toren.DotNet.Testing.Contracts;
 using Toren.DotNet.Testing.Services;
+using Toren.DotNet.UserSecrets.Contracts;
+using Toren.DotNet.UserSecrets.Services;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 using Toren.Language.CSharp.Services;
@@ -78,6 +84,10 @@ public sealed partial class App : Application
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IDotNetPackageService dotNetPackageService = new DotNetPackageService(processRunner);
+            IDotNetUserSecretsService dotNetUserSecretsService = new DotNetUserSecretsService(processRunner);
+            IHttpsDevelopmentCertificateService httpsDevelopmentCertificateService =
+                new HttpsDevelopmentCertificateService(processRunner);
+            IAspNetApiShortcutResolver aspNetApiShortcutResolver = new AspNetApiShortcutResolver();
             IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
             IDotNetTestRunService dotNetTestRunService = new DotNetTestRunService(processRunner);
             IDebugSessionService debugSessionService = new DapDebugSessionService(
@@ -251,12 +261,21 @@ public sealed partial class App : Application
                 workspaceExecutionTargetService,
                 dotNetLaunchProfileProvider,
                 workspaceExecution);
+            var aspNetCoreToolsController = AspNetCoreToolsController.Attach(
+                mainWindow,
+                workspaceExecution,
+                new AspNetCoreToolsViewModel(
+                    dotNetUserSecretsService,
+                    httpsDevelopmentCertificateService,
+                    aspNetApiShortcutResolver,
+                    externalUriLauncher));
             WorkspaceRunBrowserController.Attach(
                 mainWindow,
                 workspaceExecution,
                 new AspNetLaunchUriResolver(),
                 externalUriLauncher,
-                viewModel.SetStatus);
+                viewModel.SetStatus,
+                uri => aspNetCoreToolsController?.SetApplicationUri(uri));
             WorkspaceExecutionDiagnosticsController.Attach(
                 mainWindow,
                 workspaceExecution,
