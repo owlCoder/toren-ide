@@ -10,6 +10,8 @@ using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Services;
 using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
+using Toren.App.Http.Services;
+using Toren.App.Http.ViewModels;
 using Toren.App.Packages.Services;
 using Toren.App.Packages.ViewModels;
 using Toren.App.Search.Contracts;
@@ -31,6 +33,8 @@ using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Services;
+using Toren.DotNet.Http.Parsers;
+using Toren.DotNet.Http.Services;
 using Toren.DotNet.Packages.Contracts;
 using Toren.DotNet.Packages.Services;
 using Toren.DotNet.Testing.Contracts;
@@ -52,6 +56,7 @@ public sealed partial class App : Application
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
+    private static readonly System.Net.Http.HttpClient SharedHttpClient = new();
 
     public override void Initialize()
     {
@@ -286,6 +291,15 @@ public sealed partial class App : Application
                 projectGraphService,
                 new PackageManagerViewModel(dotNetPackageService),
                 viewModel.SetStatus);
+            HttpClientController.Attach(
+                mainWindow,
+                viewModel,
+                new HttpClientViewModel(
+                    new HttpRequestDocumentParser(),
+                    new HttpRequestVariableResolver(),
+                    new HttpRequestRunner(SharedHttpClient),
+                    new HttpResponseFormatter(),
+                    new HttpRequestHistory()));
             ProblemsScopeController.Attach(
                 mainWindow,
                 viewModel,
