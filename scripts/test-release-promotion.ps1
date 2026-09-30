@@ -56,6 +56,13 @@ function New-SignedMacFixture {
     return $package
 }
 
+function Write-CandidateManifest {
+    param([Parameter(Mandatory)] $Manifest)
+
+    $Manifest | ConvertTo-Json -Depth 6 |
+        Set-Content -LiteralPath $candidateManifestPath -Encoding utf8NoBOM
+}
+
 function Invoke-Promotion {
     param(
         [Parameter(Mandatory)][bool] $ReleaseGatesConfirmed,
@@ -85,6 +92,14 @@ try {
         -Directory (Join-Path $packageRoot 'Toren-IDE-win-x64') `
         -FileName 'Toren-IDE-win-x64.zip' `
         -Content 'windows-package'
+    $macX64Candidate = New-TestPackage `
+        -Directory (Join-Path $packageRoot 'Toren-IDE-osx-x64') `
+        -FileName 'Toren-IDE-osx-x64.zip' `
+        -Content 'unsigned-macos-x64'
+    $macArm64Candidate = New-TestPackage `
+        -Directory (Join-Path $packageRoot 'Toren-IDE-osx-arm64') `
+        -FileName 'Toren-IDE-osx-arm64.zip' `
+        -Content 'unsigned-macos-arm64'
 
     $candidate = [ordered]@{
         schemaVersion = 1
@@ -109,11 +124,26 @@ try {
                 packageValidated = $true
                 requiresPlatformSigning = $true
                 distributionReady = $false
+            },
+            [ordered]@{
+                runtimeIdentifier = 'osx-x64'
+                fileName = 'Toren-IDE-osx-x64.zip'
+                sha256 = $macX64Candidate.hash
+                packageValidated = $true
+                requiresPlatformSigning = $true
+                distributionReady = $false
+            },
+            [ordered]@{
+                runtimeIdentifier = 'osx-arm64'
+                fileName = 'Toren-IDE-osx-arm64.zip'
+                sha256 = $macArm64Candidate.hash
+                packageValidated = $true
+                requiresPlatformSigning = $true
+                distributionReady = $false
             }
         )
     }
-    $candidate | ConvertTo-Json -Depth 6 |
-        Set-Content -LiteralPath $candidateManifestPath -Encoding utf8NoBOM
+    Write-CandidateManifest -Manifest $candidate
 
     $null = New-SignedMacFixture `
         -Directory $signedX64Root `
@@ -141,6 +171,28 @@ try {
     if (-not $confirmationRejected) {
         throw 'Promotion helper accepted distribution-ready output without release-gate confirmation.'
     }
+
+    $candidate.artifacts[0].distributionReady = $true
+    Write-CandidateManifest -Manifest $candidate
+    $prematurePromotionRejected = $false
+    try {
+        Invoke-Promotion `
+            -ReleaseGatesConfirmed $true `
+            -Destination (Join-Path $root 'premature-output')
+    }
+    catch {
+        if ($_.Exception.Message -like "*must not be marked distribution-ready before promotion*") {
+            $prematurePromotionRejected = $true
+        }
+        else {
+            throw
+        }
+    }
+    if (-not $prematurePromotionRejected) {
+        throw 'Promotion helper accepted a candidate artifact already marked distribution-ready.'
+    }
+    $candidate.artifacts[0].distributionReady = $false
+    Write-CandidateManifest -Manifest $candidate
 
     Invoke-Promotion -ReleaseGatesConfirmed $true -Destination $outputRoot
 
