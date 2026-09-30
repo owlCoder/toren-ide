@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using Toren.App.Debugging.ViewModels;
@@ -81,17 +80,8 @@ internal sealed class DebugSessionController
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(setStatus);
 
-        var activityRail = window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control => control.Classes.Contains("activity-rail"));
-        var debugButton = activityRail?.GetLogicalDescendants()
-            .OfType<Button>()
-            .FirstOrDefault(control =>
-                control.Classes.Contains("activity-button")
-                && Grid.GetRow(control) == 3);
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
+        var debugButton = window.FindControl<Button>("DebugActivityButton");
+        var toolTabs = window.FindControl<TabControl>("ToolTabs");
         if (debugButton is null || toolTabs is null)
         {
             return;

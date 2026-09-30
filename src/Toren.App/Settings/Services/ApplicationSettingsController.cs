@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using Toren.App.Settings.Contracts;
@@ -53,12 +52,7 @@ internal sealed class ApplicationSettingsController
         AutomationProperties.SetName(_settingsTab, "Settings tool tab");
         _toolTabs.Items.Add(_settingsTab);
 
-        var activityRail = window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control => control.Classes.Contains("activity-rail"));
-        _settingsButton = activityRail?.GetLogicalDescendants()
-            .OfType<Button>()
-            .FirstOrDefault(button => Grid.GetRow(button) == 5);
+        _settingsButton = window.FindControl<Button>("SettingsActivityButton");
         if (_settingsButton is not null)
         {
             _settingsButton.IsEnabled = true;
@@ -91,9 +85,7 @@ internal sealed class ApplicationSettingsController
         ArgumentNullException.ThrowIfNull(applyTheme);
         ArgumentNullException.ThrowIfNull(saveActiveDocument);
 
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
+        var toolTabs = window.FindControl<TabControl>("ToolTabs");
         if (toolTabs is not null)
         {
             _ = new ApplicationSettingsController(

@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Toren.App.SourceControl.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.SourceControl;
@@ -62,17 +61,8 @@ internal sealed class SourceControlController
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(setStatus);
 
-        var activityRail = window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control => control.Classes.Contains("activity-rail"));
-        var sourceControlButton = activityRail?.GetLogicalDescendants()
-            .OfType<Button>()
-            .FirstOrDefault(control =>
-                control.Classes.Contains("activity-button")
-                && Grid.GetRow(control) == 1);
-        var toolTabs = window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
+        var sourceControlButton = window.FindControl<Button>("SourceControlActivityButton");
+        var toolTabs = window.FindControl<TabControl>("ToolTabs");
         if (sourceControlButton is null || toolTabs is null)
         {
             return;

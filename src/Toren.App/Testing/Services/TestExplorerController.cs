@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using AvaloniaEdit;
 using Toren.App.Testing.Contracts;
 using Toren.App.Testing.ViewModels;
@@ -84,21 +83,10 @@ internal sealed class TestExplorerController
         Action<string> setStatus)
     {
         ArgumentNullException.ThrowIfNull(window);
-        var activityRail = window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control => control.Classes.Contains("activity-rail"));
-        var activityButtons = activityRail?.GetLogicalDescendants()
-            .OfType<Button>()
-            .Where(control => control.Classes.Contains("activity-button"))
-            .ToArray();
-        var explorerPanel = window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control =>
-                control.Classes.Contains("shell-surface")
-                && Grid.GetColumn(control) == 1
-                && Grid.GetRow(control) == 2
-                && Grid.GetRowSpan(control) == 2);
-        if (activityButtons is not { Length: >= 3 } || explorerPanel is null)
+        var explorerButton = window.FindControl<Button>("ExplorerActivityButton");
+        var testsButton = window.FindControl<Button>("TestsActivityButton");
+        var explorerPanel = window.FindControl<Border>("ExplorerPanel");
+        if (explorerButton is null || testsButton is null || explorerPanel is null)
         {
             return;
         }
@@ -110,8 +98,8 @@ internal sealed class TestExplorerController
             testDiscoveryService,
             viewModel,
             setStatus,
-            activityButtons[0],
-            activityButtons[2],
+            explorerButton,
+            testsButton,
             explorerPanel);
     }
 
