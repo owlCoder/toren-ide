@@ -1,14 +1,14 @@
 # Publishing Preview and Stable releases
 
-Toren IDE separates package validation, platform signing, hands-on release validation, and public release publication. The final GitHub release is never created directly from an unsigned package workflow run or from unvalidated promoted bytes.
+Toren IDE separates package validation, platform signing, hands-on release validation, and public release publication. The final GitHub release is never created directly from an unsigned package workflow run or from release bytes that differ from the hands-on-validated dry-run artifact set.
 
 ## Workflows
 
 1. `Package` builds the four release-candidate RIDs, verifies each SHA-256 checksum, and emits `Toren-IDE-release-manifest.json` as candidate metadata.
 2. `Signed macOS Package` signs, notarizes, staples, and verifies one macOS RID. Its artifact also contains a signed-artifact attestation with the exact source commit, release version, RID, and SHA-256 hash.
-3. `Publish Release` promotes validated package inputs. It is manual-only and defaults to dry-run mode; the dry run emits the exact normalized artifact set intended for validation.
-4. `Release Validation` consumes one successful dry-run promotion artifact after hands-on platform testing and records the validating operator, release identity, required smoke/accessibility/performance confirmations, and exact promoted artifact hashes.
-5. `Publish Release` with `dry_run=false` requires a successful `Release Validation` run and re-verifies that the newly promoted bytes exactly match the validated dry-run bytes before creating the public GitHub release.
+3. `Publish Release` promotes validated package inputs. It is manual-only and defaults to dry-run mode; the dry run emits the exact normalized artifact set intended for validation and records its GitHub Actions run/attempt provenance in the promoted manifest.
+4. `Release Validation` consumes one successful dry-run promotion artifact after hands-on platform testing and records the validating operator, release identity, validation workflow provenance, required smoke/accessibility/performance confirmations, the promoted manifest hash, and SHA-256 hashes for the complete promotion asset set.
+5. `Publish Release` with `dry_run=false` requires a successful `Release Validation` record, resolves the exact dry-run promotion run from that record, downloads that already-tested `Toren-IDE-release-promotion` artifact, and re-verifies the complete asset set before creating the public GitHub release. Public publication does not re-promote package inputs.
 
 The release checklist in `checklist.md` remains authoritative for the human signing, smoke-test, accessibility, performance, and final release gates. The validation workflow records those completed gates; it does not automate or replace them.
 
@@ -21,7 +21,7 @@ Create the immutable release tag first:
 
 Run `Package` for the tagged source commit/version. Record its workflow run ID after all four RID jobs and the `release-candidate-manifest` job are green.
 
-Run `Signed macOS Package` twice for the same source ref and release version:
+Run `Signed macOS Package` twice for the same immutable release tag and release version:
 
 - once for `osx-x64`;
 - once for `osx-arm64`.
@@ -36,7 +36,7 @@ Start `Publish Release` with:
 - `package_run_id` — the successful `Package` run;
 - `macos_x64_run_id` — the successful signed Intel macOS run;
 - `macos_arm64_run_id` — the successful signed Apple Silicon macOS run;
-- `confirm_release_gates` — `true` only when the signing-related/operator prerequisites for assembling the candidate are satisfied;
+- `confirm_release_gates` — `true` only when the signing-related/operator prerequisites for assembling the candidate are satisfied; hands-on QA is recorded later by `Release Validation`;
 - `dry_run` — leave `true` for the first promotion attempt;
 - `validation_run_id` — leave empty during the dry run.
 
@@ -49,9 +49,10 @@ The workflow verifies that:
 - candidate Windows/Linux package bytes match their checksums and manifest hashes;
 - both signed macOS attestations match the supported schema/product plus exact release version, RID, source commit and ZIP hash;
 - the macOS attestations confirm Developer ID signing, notarization, and stapling;
-- the promotion output directory is empty before artifacts are assembled, preventing stale files from being included accidentally.
+- the promotion output directory is empty before artifacts are assembled, preventing stale files from being included accidentally;
+- the promoted manifest records the producing `Publish Release` run ID, run attempt, and `promotionDryRun=true` provenance.
 
-A successful dry run uploads `Toren-IDE-release-promotion` containing the exact normalized package names, fresh checksums, and promoted distribution manifest. This artifact — not the earlier unsigned candidate set — is what must receive the final hands-on release validation.
+A successful dry run uploads `Toren-IDE-release-promotion` containing exactly four normalized packages, four fresh SHA-256 files, and the promoted distribution manifest. This nine-file artifact — not the earlier unsigned candidate set — is what must receive the final hands-on release validation.
 
 ## Record hands-on release validation
 
@@ -65,22 +66,43 @@ After all required checks pass, start `Release Validation` with:
 - visual/accessibility confirmation set to `true`;
 - performance confirmation set to `true`.
 
-The workflow downloads the promoted artifact, re-verifies every package against its checksum and promoted manifest, and uploads `Toren-IDE-release-validation`. The record contains the exact version/channel/source commit, dry-run promotion ID, validating GitHub actor, validation timestamp, required check states, and exact package filenames/SHA-256 hashes.
+The workflow downloads the promoted artifact and refuses to create a record unless the manifest says it came from that exact dry-run workflow run, every package still matches its checksum and promoted manifest, and the promotion set contains exactly the expected nine files. It then uploads `Toren-IDE-release-validation`.
 
-If any required check is false, package bytes no longer match, the manifest identity is wrong, or macOS signing state is missing, the validation record is not produced.
+The validation record contains the exact version/channel/source commit, dry-run promotion run ID and attempt, Release Validation run ID and attempt, validating GitHub actor, validation timestamp, required check states, exact package filenames/SHA-256 hashes, the promoted manifest SHA-256, and SHA-256 hashes for every file in the promotion artifact.
+
+If any required check is false, package bytes no longer match, any checksum or manifest byte changes, the asset set gains/loses a file, the promotion provenance is wrong, the manifest identity is wrong, or macOS signing state is missing, the validation record is not produced or later validation fails.
 
 ## Publishing
 
-Run `Publish Release` again with the same release tag and package/signed-macOS run IDs, set `dry_run=false`, and provide `validation_run_id` from the successful `Release Validation` workflow.
+Run `Publish Release` again with:
 
-Before publication, the workflow promotes the inputs again into an empty destination, downloads the validation record, and rejects the release unless the new final package filename/hash set exactly matches the dry-run bytes that received hands-on validation. Any byte change therefore requires a new validation cycle.
+- the same `release_tag`;
+- `dry_run=false`;
+- `validation_run_id` from the successful `Release Validation` workflow;
+- `confirm_release_gates=true` after the final checklist gates are complete.
+
+`package_run_id`, `macos_x64_run_id`, and `macos_arm64_run_id` are not used for public publication. They are dry-run inputs only.
+
+Before publication, the workflow downloads the validation record, resolves its recorded dry-run `promotionRunId`, downloads that exact `Toren-IDE-release-promotion` artifact, and rejects the release unless:
+
+- the validation record belongs to the supplied Release Validation run ID;
+- the release version/channel/source commit match the immutable tag;
+- the promoted manifest bytes match the manifest hash captured during hands-on validation;
+- the promoted manifest identifies the same dry-run workflow run and attempt;
+- all four package filenames/hashes still match;
+- every file in the nine-file promotion set has the exact SHA-256 captured by Release Validation;
+- no promoted release file is missing or newly added.
+
+There is no second promotion step on the public-publication path. The files attached to the GitHub release are the same bytes that were downloaded from the hands-on-validated dry-run artifact.
 
 The workflow also refuses to overwrite an existing GitHub release. Preview tags are published as prereleases and are never promoted to GitHub's Latest release. Stable tags are published as normal releases with `--latest`, making GitHub's standard `releases/latest` endpoint the account-free Stable channel pointer. Final release artifacts, checksums, and the promoted release manifest are attached together.
 
-If any distributed bytes must change after publication, create a new version and tag. Do not replace already-published artifacts in place.
+If any distributed byte must change after validation, create a new dry-run promotion and repeat `Release Validation`. If distributed bytes must change after publication, create a new version and tag. Do not replace already-published artifacts in place.
 
 ## Security and integrity boundary
 
-`confirm_release_gates=true` remains an explicit operator assertion used by promotion, but public publication additionally requires a machine-readable Release Validation record bound to the exact dry-run artifact hashes. CI still cannot prove that a human actually inspected focus behavior, visual quality, launch behavior, or perceived performance; the record makes that operator assertion auditable and prevents publication of different bytes after validation.
+`confirm_release_gates=true` remains an explicit operator assertion used to authorize promotion/publication, but hands-on release acceptance is represented separately by the machine-readable Release Validation record. CI still cannot prove that a human actually inspected focus behavior, visual quality, launch behavior, or perceived performance; the record makes that operator assertion auditable.
 
-The promotion workflow minimizes accidental cross-release mixing by binding package metadata and signed macOS attestations to the same immutable source commit and release version, validating the complete four-RID candidate contract, and refusing stale promotion output. A candidate manifest alone never marks an artifact as distribution-ready, and a dry-run promotion alone is insufficient for public publication.
+The integrity boundary now covers the complete dry-run promotion asset set rather than only package payload hashes. Promotion provenance is recorded in the promoted manifest, Release Validation binds its own workflow provenance plus every promoted asset hash, and public publication downloads the exact recorded dry-run artifact instead of rebuilding equivalent output. Any package, checksum, manifest, file-set, release-identity, or workflow-provenance change invalidates the publication gate.
+
+The promotion workflow also minimizes accidental cross-release mixing by binding package metadata and signed macOS attestations to the same immutable source commit and release version, validating the complete four-RID candidate contract, and refusing stale promotion output. A candidate manifest alone never marks an artifact as distribution-ready, and a dry-run promotion alone is insufficient for public publication.

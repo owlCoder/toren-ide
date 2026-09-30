@@ -23,6 +23,15 @@ param(
     [string] $ExpectedSourceCommit,
 
     [Parameter(Mandatory)]
+    [string] $PromotionRunId,
+
+    [Parameter(Mandatory)]
+    [string] $PromotionRunAttempt,
+
+    [Parameter(Mandatory)]
+    [bool] $PromotionDryRun,
+
+    [Parameter(Mandatory)]
     [bool] $ReleaseGatesConfirmed,
 
     [Parameter(Mandatory)]
@@ -34,6 +43,12 @@ $ErrorActionPreference = 'Stop'
 
 if (-not $ReleaseGatesConfirmed) {
     throw 'Release gates were not explicitly confirmed.'
+}
+if ($PromotionRunId -notmatch '^\d+$') {
+    throw "Promotion run ID '$PromotionRunId' is not valid."
+}
+if ($PromotionRunAttempt -notmatch '^[1-9]\d*$') {
+    throw "Promotion run attempt '$PromotionRunAttempt' is not valid."
 }
 
 function Get-VerifiedHash {
@@ -233,6 +248,9 @@ $releaseManifest = [ordered]@{
     channel = $ExpectedChannel
     sourceCommit = $ExpectedSourceCommit
     releaseGatesConfirmed = $true
+    promotionRunId = $PromotionRunId
+    promotionRunAttempt = $PromotionRunAttempt
+    promotionDryRun = $PromotionDryRun
     promotedAtUtc = [DateTime]::UtcNow.ToString('O')
     artifacts = $artifacts
 }

@@ -8,6 +8,9 @@ $version = '1.2.3-preview.4'
 $channel = 'preview'
 $sourceCommit = '0123456789abcdef0123456789abcdef01234567'
 $promotionRunId = '123456789'
+$promotionRunAttempt = '2'
+$validationRunId = '223456789'
+$validationRunAttempt = '1'
 $root = Join-Path ([IO.Path]::GetTempPath()) "toren-release-validation-$([Guid]::NewGuid().ToString('N'))"
 $promotionRoot = Join-Path $root 'promotion'
 $recordPath = Join-Path $root 'Toren-IDE-release-validation.json'
@@ -50,11 +53,15 @@ try {
         channel = $channel
         sourceCommit = $sourceCommit
         releaseGatesConfirmed = $true
+        promotionRunId = $promotionRunId
+        promotionRunAttempt = $promotionRunAttempt
+        promotionDryRun = $true
         promotedAtUtc = [DateTime]::UtcNow.ToString('O')
         artifacts = $artifacts
     }
+    $manifestPath = Join-Path $promotionRoot 'Toren-IDE-release-manifest.json'
     $manifest | ConvertTo-Json -Depth 6 |
-        Set-Content -LiteralPath (Join-Path $promotionRoot 'Toren-IDE-release-manifest.json') -Encoding utf8NoBOM
+        Set-Content -LiteralPath $manifestPath -Encoding utf8NoBOM
 
     & (Join-Path $PSScriptRoot 'create-release-validation-record.ps1') `
         -PromotionRoot $promotionRoot `
@@ -62,6 +69,8 @@ try {
         -ExpectedChannel $channel `
         -ExpectedSourceCommit $sourceCommit `
         -PromotionRunId $promotionRunId `
+        -ValidationRunId $validationRunId `
+        -ValidationRunAttempt $validationRunAttempt `
         -ValidatedBy 'release-operator' `
         -WindowsSmokeConfirmed $true `
         -LinuxSmokeConfirmed $true `
@@ -75,7 +84,19 @@ try {
         -PromotionRoot $promotionRoot `
         -ExpectedVersion $version `
         -ExpectedChannel $channel `
-        -ExpectedSourceCommit $sourceCommit
+        -ExpectedSourceCommit $sourceCommit `
+        -ExpectedValidationRunId $validationRunId
+
+    $record = Get-Content -LiteralPath $recordPath -Raw | ConvertFrom-Json
+    if ($record.promotionRunId -ne $promotionRunId -or $record.promotionRunAttempt -ne $promotionRunAttempt) {
+        throw 'Release validation record did not preserve promotion workflow provenance.'
+    }
+    if ($record.validationRunId -ne $validationRunId -or $record.validationRunAttempt -ne $validationRunAttempt) {
+        throw 'Release validation record did not preserve validation workflow provenance.'
+    }
+    if (@($record.assets).Count -ne 9) {
+        throw "Release validation record must hash the complete nine-file promotion set, found $(@($record.assets).Count)."
+    }
 
     $incompleteRejected = $false
     try {
@@ -85,6 +106,8 @@ try {
             -ExpectedChannel $channel `
             -ExpectedSourceCommit $sourceCommit `
             -PromotionRunId $promotionRunId `
+            -ValidationRunId $validationRunId `
+            -ValidationRunAttempt $validationRunAttempt `
             -ValidatedBy 'release-operator' `
             -WindowsSmokeConfirmed $true `
             -LinuxSmokeConfirmed $true `
@@ -105,6 +128,57 @@ try {
         throw 'Release validation record accepted an incomplete manual gate set.'
     }
 
+    $manifestBytes = Get-Content -LiteralPath $manifestPath -Raw
+    Add-Content -LiteralPath $manifestPath -Value ' ' -Encoding utf8NoBOM
+    $manifestTamperRejected = $false
+    try {
+        & (Join-Path $PSScriptRoot 'validate-release-validation-record.ps1') `
+            -RecordPath $recordPath `
+            -PromotionRoot $promotionRoot `
+            -ExpectedVersion $version `
+            -ExpectedChannel $channel `
+            -ExpectedSourceCommit $sourceCommit `
+            -ExpectedValidationRunId $validationRunId
+    }
+    catch {
+        if ($_.Exception.Message -like '*manifest bytes changed after hands-on validation*') {
+            $manifestTamperRejected = $true
+        }
+        else {
+            throw
+        }
+    }
+    if (-not $manifestTamperRejected) {
+        throw 'Release validation record accepted a changed promoted manifest.'
+    }
+    [IO.File]::WriteAllText($manifestPath, $manifestBytes, [Text.UTF8Encoding]::new($false))
+
+    $checksumPath = Join-Path $promotionRoot 'Toren-IDE-win-x64.zip.sha256'
+    $checksumBytes = Get-Content -LiteralPath $checksumPath -Raw
+    [IO.File]::WriteAllText($checksumPath, "$checksumBytes `t", [Text.UTF8Encoding]::new($false))
+    $assetTamperRejected = $false
+    try {
+        & (Join-Path $PSScriptRoot 'validate-release-validation-record.ps1') `
+            -RecordPath $recordPath `
+            -PromotionRoot $promotionRoot `
+            -ExpectedVersion $version `
+            -ExpectedChannel $channel `
+            -ExpectedSourceCommit $sourceCommit `
+            -ExpectedValidationRunId $validationRunId
+    }
+    catch {
+        if ($_.Exception.Message -like '*asset bytes changed after validation*') {
+            $assetTamperRejected = $true
+        }
+        else {
+            throw
+        }
+    }
+    if (-not $assetTamperRejected) {
+        throw 'Release validation record accepted changed checksum asset bytes.'
+    }
+    [IO.File]::WriteAllText($checksumPath, $checksumBytes, [Text.UTF8Encoding]::new($false))
+
     $linuxPath = Join-Path $promotionRoot 'Toren-IDE-linux-x64.tar.gz'
     [IO.File]::AppendAllText($linuxPath, '-tampered', [Text.UTF8Encoding]::new($false))
     $tamperRejected = $false
@@ -114,7 +188,8 @@ try {
             -PromotionRoot $promotionRoot `
             -ExpectedVersion $version `
             -ExpectedChannel $channel `
-            -ExpectedSourceCommit $sourceCommit
+            -ExpectedSourceCommit $sourceCommit `
+            -ExpectedValidationRunId $validationRunId
     }
     catch {
         if ($_.Exception.Message -like "*package bytes changed after validation*") {

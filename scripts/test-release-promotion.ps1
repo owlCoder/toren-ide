@@ -7,6 +7,8 @@ $ErrorActionPreference = 'Stop'
 $version = '1.2.3-preview.4'
 $channel = 'preview'
 $sourceCommit = '0123456789abcdef0123456789abcdef01234567'
+$promotionRunId = '987654321'
+$promotionRunAttempt = '1'
 $root = Join-Path ([IO.Path]::GetTempPath()) "toren-release-promotion-$([Guid]::NewGuid().ToString('N'))"
 $packageRoot = Join-Path $root 'packages'
 $signedX64Root = Join-Path $root 'signed-osx-x64'
@@ -77,6 +79,9 @@ function Invoke-Promotion {
         -ExpectedVersion $version `
         -ExpectedChannel $channel `
         -ExpectedSourceCommit $sourceCommit `
+        -PromotionRunId $promotionRunId `
+        -PromotionRunAttempt $promotionRunAttempt `
+        -PromotionDryRun $true `
         -ReleaseGatesConfirmed $ReleaseGatesConfirmed `
         -OutputDirectory $Destination
 }
@@ -224,6 +229,9 @@ try {
     }
     if ($release.releaseGatesConfirmed -ne $true) {
         throw 'Promoted release manifest does not record explicit release-gate confirmation.'
+    }
+    if ($release.promotionRunId -ne $promotionRunId -or $release.promotionRunAttempt -ne $promotionRunAttempt -or $release.promotionDryRun -ne $true) {
+        throw 'Promoted release manifest does not preserve dry-run workflow provenance.'
     }
 
     $artifacts = @($release.artifacts)

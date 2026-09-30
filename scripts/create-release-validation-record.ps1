@@ -17,6 +17,12 @@ param(
     [string] $PromotionRunId,
 
     [Parameter(Mandatory)]
+    [string] $ValidationRunId,
+
+    [Parameter(Mandatory)]
+    [string] $ValidationRunAttempt,
+
+    [Parameter(Mandatory)]
     [string] $ValidatedBy,
 
     [Parameter(Mandatory)]
@@ -59,6 +65,12 @@ if ([string]::IsNullOrWhiteSpace($ValidatedBy)) {
 if ($PromotionRunId -notmatch '^\d+$') {
     throw "Promotion run ID '$PromotionRunId' is not valid."
 }
+if ($ValidationRunId -notmatch '^\d+$') {
+    throw "Validation run ID '$ValidationRunId' is not valid."
+}
+if ($ValidationRunAttempt -notmatch '^[1-9]\d*$') {
+    throw "Validation run attempt '$ValidationRunAttempt' is not valid."
+}
 if (-not (Test-Path -LiteralPath $PromotionRoot -PathType Container)) {
     throw "Promotion artifact root does not exist: $PromotionRoot"
 }
@@ -83,6 +95,15 @@ if ($manifest.sourceCommit -ne $ExpectedSourceCommit) {
 }
 if ($manifest.releaseGatesConfirmed -ne $true) {
     throw 'Promoted release manifest does not record release-gate confirmation.'
+}
+if ($manifest.promotionDryRun -ne $true) {
+    throw 'Release validation only accepts artifacts produced by a Publish Release dry run.'
+}
+if ($manifest.promotionRunId -ne $PromotionRunId) {
+    throw "Promoted release manifest run ID '$($manifest.promotionRunId)' does not match '$PromotionRunId'."
+}
+if ($manifest.promotionRunAttempt -notmatch '^[1-9]\d*$') {
+    throw "Promoted release manifest run attempt '$($manifest.promotionRunAttempt)' is invalid."
 }
 
 $expectedRids = @('linux-x64', 'win-x64', 'osx-x64', 'osx-arm64')
@@ -137,6 +158,37 @@ $validatedArtifacts = foreach ($runtimeIdentifier in $expectedRids) {
     }
 }
 
+$expectedAssetNames = @('Toren-IDE-release-manifest.json')
+foreach ($artifact in $validatedArtifacts) {
+    $expectedAssetNames += $artifact.fileName
+    $expectedAssetNames += "$($artifact.fileName).sha256"
+}
+$promotionFiles = @(Get-ChildItem -LiteralPath $PromotionRoot -File)
+if ($promotionFiles.Count -ne $expectedAssetNames.Count) {
+    throw "Promoted release asset set must contain exactly $($expectedAssetNames.Count) files, found $($promotionFiles.Count)."
+}
+foreach ($expectedAssetName in $expectedAssetNames) {
+    if (@($promotionFiles | Where-Object Name -eq $expectedAssetName).Count -ne 1) {
+        throw "Promoted release asset set is missing or duplicates '$expectedAssetName'."
+    }
+}
+foreach ($promotionFile in $promotionFiles) {
+    if ($promotionFile.Name -notin $expectedAssetNames) {
+        throw "Promoted release asset set contains unexpected file '$($promotionFile.Name)'."
+    }
+}
+
+$validatedAssets = @(
+    $promotionFiles |
+        Sort-Object Name |
+        ForEach-Object {
+            [ordered]@{
+                fileName = $_.Name
+                sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+        }
+)
+
 $manifestHash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $record = [ordered]@{
     schemaVersion = 1
@@ -145,11 +197,15 @@ $record = [ordered]@{
     channel = $ExpectedChannel
     sourceCommit = $ExpectedSourceCommit
     promotionRunId = $PromotionRunId
+    promotionRunAttempt = $manifest.promotionRunAttempt
     promotionManifestSha256 = $manifestHash
+    validationRunId = $ValidationRunId
+    validationRunAttempt = $ValidationRunAttempt
     validatedBy = $ValidatedBy
     validatedAtUtc = [DateTime]::UtcNow.ToString('O')
     checks = $checks
     artifacts = @($validatedArtifacts)
+    assets = @($validatedAssets)
 }
 
 $outputDirectory = Split-Path -Parent $OutputPath

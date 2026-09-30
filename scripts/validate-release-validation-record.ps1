@@ -14,7 +14,10 @@ param(
     [string] $ExpectedChannel,
 
     [Parameter(Mandatory)]
-    [string] $ExpectedSourceCommit
+    [string] $ExpectedSourceCommit,
+
+    [Parameter(Mandatory)]
+    [string] $ExpectedValidationRunId
 )
 
 Set-StrictMode -Version Latest
@@ -25,6 +28,9 @@ if (-not (Test-Path -LiteralPath $RecordPath -PathType Leaf)) {
 }
 if (-not (Test-Path -LiteralPath $PromotionRoot -PathType Container)) {
     throw "Promotion artifact root does not exist: $PromotionRoot"
+}
+if ($ExpectedValidationRunId -notmatch '^\d+$') {
+    throw "Expected validation run ID '$ExpectedValidationRunId' is invalid."
 }
 
 $record = Get-Content -LiteralPath $RecordPath -Raw | ConvertFrom-Json
@@ -42,6 +48,15 @@ if ($record.sourceCommit -ne $ExpectedSourceCommit) {
 }
 if ($record.promotionRunId -notmatch '^\d+$') {
     throw "Validation record promotion run ID '$($record.promotionRunId)' is invalid."
+}
+if ($record.promotionRunAttempt -notmatch '^[1-9]\d*$') {
+    throw "Validation record promotion run attempt '$($record.promotionRunAttempt)' is invalid."
+}
+if ($record.validationRunId -ne $ExpectedValidationRunId) {
+    throw "Validation record run ID '$($record.validationRunId)' does not match '$ExpectedValidationRunId'."
+}
+if ($record.validationRunAttempt -notmatch '^[1-9]\d*$') {
+    throw "Validation record run attempt '$($record.validationRunAttempt)' is invalid."
 }
 if ([string]::IsNullOrWhiteSpace($record.validatedBy)) {
     throw 'Validation record does not identify the validating operator.'
@@ -64,6 +79,11 @@ $manifestPath = Join-Path $PromotionRoot 'Toren-IDE-release-manifest.json'
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Promoted release manifest does not exist: $manifestPath"
 }
+$manifestHash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($record.promotionManifestSha256 -notmatch '^[0-9a-fA-F]{64}$' -or $record.promotionManifestSha256.ToLowerInvariant() -ne $manifestHash) {
+    throw 'Promoted release manifest bytes changed after hands-on validation.'
+}
+
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 if ($manifest.schemaVersion -ne 1 -or $manifest.product -ne 'Toren IDE') {
     throw 'Promoted release manifest does not use the supported Toren IDE schema.'
@@ -73,6 +93,15 @@ if ($manifest.version -ne $ExpectedVersion -or $manifest.channel -ne $ExpectedCh
 }
 if ($manifest.releaseGatesConfirmed -ne $true) {
     throw 'Promoted release manifest does not record release-gate confirmation.'
+}
+if ($manifest.promotionDryRun -ne $true) {
+    throw 'Validated promotion was not produced by a Publish Release dry run.'
+}
+if ($manifest.promotionRunId -ne $record.promotionRunId) {
+    throw 'Promoted release run ID does not match the validation record.'
+}
+if ($manifest.promotionRunAttempt -ne $record.promotionRunAttempt) {
+    throw 'Promoted release run attempt does not match the validation record.'
 }
 
 $expectedRids = @('linux-x64', 'win-x64', 'osx-x64', 'osx-arm64')
@@ -118,4 +147,32 @@ foreach ($runtimeIdentifier in $expectedRids) {
     }
 }
 
-Write-Host "Release validation record is valid for $ExpectedVersion ($ExpectedChannel) at $ExpectedSourceCommit."
+$recordAssets = @($record.assets)
+$promotionFiles = @(Get-ChildItem -LiteralPath $PromotionRoot -File)
+if ($recordAssets.Count -ne $promotionFiles.Count) {
+    throw 'Promoted release asset set changed after hands-on validation.'
+}
+foreach ($promotionFile in $promotionFiles) {
+    $assetEntries = @($recordAssets | Where-Object fileName -eq $promotionFile.Name)
+    if ($assetEntries.Count -ne 1) {
+        throw "Promoted release asset '$($promotionFile.Name)' is missing or duplicated in the validation record."
+    }
+    $assetEntry = $assetEntries[0]
+    if ($assetEntry.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Validation record asset '$($promotionFile.Name)' has an invalid SHA-256 hash."
+    }
+    $actualAssetHash = (Get-FileHash -LiteralPath $promotionFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualAssetHash -ne $assetEntry.sha256.ToLowerInvariant()) {
+        throw "Promoted release asset bytes changed after validation: $($promotionFile.Name)"
+    }
+}
+foreach ($assetEntry in $recordAssets) {
+    if ([string]::IsNullOrWhiteSpace($assetEntry.fileName) -or [IO.Path]::GetFileName($assetEntry.fileName) -ne $assetEntry.fileName) {
+        throw "Validation record contains an invalid release asset name '$($assetEntry.fileName)'."
+    }
+    if (@($promotionFiles | Where-Object Name -eq $assetEntry.fileName).Count -ne 1) {
+        throw "Validated release asset '$($assetEntry.fileName)' is missing from the promotion artifact."
+    }
+}
+
+Write-Host "Release validation record is valid for $ExpectedVersion ($ExpectedChannel) at $ExpectedSourceCommit and exact promotion run $($record.promotionRunId)."

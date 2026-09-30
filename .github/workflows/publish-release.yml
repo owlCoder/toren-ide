@@ -8,28 +8,28 @@ on:
         required: true
         type: string
       package_run_id:
-        description: Package workflow run ID containing candidate packages and manifest
-        required: true
+        description: Package run ID; required only for dry-run promotion
+        required: false
         type: string
       macos_x64_run_id:
-        description: Signed macOS Package workflow run ID for osx-x64
-        required: true
+        description: Signed macOS osx-x64 run ID; required only for dry-run promotion
+        required: false
         type: string
       macos_arm64_run_id:
-        description: Signed macOS Package workflow run ID for osx-arm64
-        required: true
+        description: Signed macOS osx-arm64 run ID; required only for dry-run promotion
+        required: false
         type: string
       validation_run_id:
         description: Release Validation workflow run ID; required when dry_run is false
         required: false
         type: string
       confirm_release_gates:
-        description: Confirm required platform signing and release smoke gates are complete
+        description: Confirm promotion/publication may proceed; hands-on QA is recorded by Release Validation
         required: true
         default: false
         type: boolean
       dry_run:
-        description: Validate and assemble final release artifacts without creating a GitHub release
+        description: Assemble the exact release artifact set for hands-on validation without publishing
         required: true
         default: true
         type: boolean
@@ -88,7 +88,29 @@ jobs:
           "RELEASE_CHANNEL=$channel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "RELEASE_COMMIT=$headCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Require dry-run source workflow IDs
+        if: ${{ inputs.dry_run }}
+        shell: bash
+        env:
+          PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
+          MACOS_X64_RUN_ID: ${{ inputs.macos_x64_run_id }}
+          MACOS_ARM64_RUN_ID: ${{ inputs.macos_arm64_run_id }}
+        run: |
+          set -euo pipefail
+          for pair in \
+            "package_run_id:$PACKAGE_RUN_ID" \
+            "macos_x64_run_id:$MACOS_X64_RUN_ID" \
+            "macos_arm64_run_id:$MACOS_ARM64_RUN_ID"; do
+            name="${pair%%:*}"
+            value="${pair#*:}"
+            if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+              echo "$name must be a GitHub Actions run ID for dry-run promotion." >&2
+              exit 78
+            fi
+          done
+
       - name: Download candidate packages and manifest
+        if: ${{ inputs.dry_run }}
         uses: actions/download-artifact@v5
         with:
           run-id: ${{ inputs.package_run_id }}
@@ -97,6 +119,7 @@ jobs:
           path: artifacts/package-run
 
       - name: Download signed macOS x64 package
+        if: ${{ inputs.dry_run }}
         uses: actions/download-artifact@v5
         with:
           run-id: ${{ inputs.macos_x64_run_id }}
@@ -105,6 +128,7 @@ jobs:
           path: artifacts/signed/osx-x64
 
       - name: Download signed macOS arm64 package
+        if: ${{ inputs.dry_run }}
         uses: actions/download-artifact@v5
         with:
           run-id: ${{ inputs.macos_arm64_run_id }}
@@ -112,7 +136,8 @@ jobs:
           name: Toren-IDE-osx-arm64-signed
           path: artifacts/signed/osx-arm64
 
-      - name: Promote and verify final artifacts
+      - name: Promote and verify dry-run artifacts
+        if: ${{ inputs.dry_run }}
         shell: pwsh
         run: |
           ./scripts/promote-release-manifest.ps1 `
@@ -123,8 +148,19 @@ jobs:
             -ExpectedVersion $env:RELEASE_VERSION `
             -ExpectedChannel $env:RELEASE_CHANNEL `
             -ExpectedSourceCommit $env:RELEASE_COMMIT `
+            -PromotionRunId $env:GITHUB_RUN_ID `
+            -PromotionRunAttempt $env:GITHUB_RUN_ATTEMPT `
+            -PromotionDryRun $true `
             -ReleaseGatesConfirmed $true `
             -OutputDirectory artifacts/final
+
+      - name: Upload exact dry-run promotion artifact
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toren-IDE-release-promotion
+          path: artifacts/final/*
+          if-no-files-found: error
 
       - name: Require release validation record before publication
         if: ${{ !inputs.dry_run }}
@@ -133,8 +169,8 @@ jobs:
           VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
         run: |
           set -euo pipefail
-          if [[ -z "$VALIDATION_RUN_ID" ]]; then
-            echo "A Release Validation workflow run ID is required for public publication." >&2
+          if [[ ! "$VALIDATION_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "A valid Release Validation workflow run ID is required for public publication." >&2
             exit 78
           fi
 
@@ -147,23 +183,45 @@ jobs:
           name: Toren-IDE-release-validation
           path: artifacts/validation
 
-      - name: Verify validated release candidate bytes
+      - name: Resolve validated dry-run promotion
+        if: ${{ !inputs.dry_run }}
+        id: validation
+        shell: pwsh
+        env:
+          EXPECTED_VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $record = Get-Content -LiteralPath artifacts/validation/Toren-IDE-release-validation.json -Raw | ConvertFrom-Json
+          if ($record.validationRunId -ne $env:EXPECTED_VALIDATION_RUN_ID) {
+            throw "Validation record run ID '$($record.validationRunId)' does not match '$env:EXPECTED_VALIDATION_RUN_ID'."
+          }
+          if ($record.promotionRunId -notmatch '^\d+$') {
+            throw "Validation record promotion run ID '$($record.promotionRunId)' is invalid."
+          }
+          "promotion_run_id=$($record.promotionRunId)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Download exact hands-on-validated promotion artifact
+        if: ${{ !inputs.dry_run }}
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ steps.validation.outputs.promotion_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: Toren-IDE-release-promotion
+          path: artifacts/final
+
+      - name: Verify exact validated release asset set
         if: ${{ !inputs.dry_run }}
         shell: pwsh
+        env:
+          EXPECTED_VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
         run: |
           ./scripts/validate-release-validation-record.ps1 `
             -RecordPath artifacts/validation/Toren-IDE-release-validation.json `
             -PromotionRoot artifacts/final `
             -ExpectedVersion $env:RELEASE_VERSION `
             -ExpectedChannel $env:RELEASE_CHANNEL `
-            -ExpectedSourceCommit $env:RELEASE_COMMIT
-
-      - name: Upload promoted release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Toren-IDE-release-promotion
-          path: artifacts/final/*
-          if-no-files-found: error
+            -ExpectedSourceCommit $env:RELEASE_COMMIT `
+            -ExpectedValidationRunId $env:EXPECTED_VALIDATION_RUN_ID
 
       - name: Ensure release does not already exist
         if: ${{ !inputs.dry_run }}

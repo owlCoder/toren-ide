@@ -35,6 +35,7 @@ Verify that every package checksum in the manifest matches the packaged artifact
 ### macOS
 
 - Run the signed macOS workflow for both `osx-arm64` and `osx-x64` when both architectures are being distributed.
+- Use the exact immutable `v<release_version>` tag as `source_ref`; the workflow must reject `main` or any other mutable/different ref.
 - Verify Developer ID signing and hardened runtime.
 - Submit for notarization and require an accepted result.
 - Staple the notarization ticket.
@@ -55,8 +56,9 @@ Verify that every package checksum in the manifest matches the packaged artifact
 Run `Publish Release` with `dry_run=true` using the exact Package run plus both signed macOS runs for the immutable release tag.
 
 - Confirm the workflow produces `Toren-IDE-release-promotion`.
-- Confirm the promoted set contains exactly four normalized package artifacts, their fresh SHA-256 files, and `Toren-IDE-release-manifest.json`.
+- Confirm the promoted set contains exactly four normalized package artifacts, four fresh SHA-256 files, and `Toren-IDE-release-manifest.json` — nine files total.
 - Confirm the promoted manifest is bound to the expected release version/channel/source commit.
+- Confirm the promoted manifest records the producing `Publish Release` workflow run ID/attempt and `promotionDryRun=true`.
 - Do not treat the dry-run artifact as publicly releasable until the hands-on gates below pass.
 
 The promotion script requires an empty output destination and rejects stale files, cross-release signed artifacts, incomplete/duplicate candidate RIDs, invalid candidate policy state, and checksum/hash mismatches.
@@ -108,13 +110,16 @@ Set all required confirmations to `true`:
 The workflow must upload `Toren-IDE-release-validation`. Review the record and confirm it identifies:
 
 - the expected version, channel and source commit;
-- the exact dry-run promotion workflow run ID;
+- the exact dry-run promotion workflow run ID and attempt;
+- the Release Validation workflow run ID and attempt;
 - the validating GitHub actor and timestamp;
 - every required check as true;
-- exactly one artifact for `linux-x64`, `win-x64`, `osx-x64`, and `osx-arm64`;
-- the exact filename and SHA-256 for every promoted artifact.
+- exactly one package artifact for `linux-x64`, `win-x64`, `osx-x64`, and `osx-arm64`;
+- the exact filename and SHA-256 for every promoted package;
+- the exact promoted manifest SHA-256;
+- exactly nine hashed promotion assets: four packages, four checksum files, and the promoted manifest.
 
-The validation workflow re-hashes every promoted package and checksum. Do not hand-edit or reuse a validation record for a different tag, commit, promotion run, or package byte set.
+The validation workflow re-hashes every promoted package/checksum/manifest byte and rejects an unexpected or missing promotion file. Do not hand-edit or reuse a validation record for a different tag, commit, promotion run, validation run, or asset byte set.
 
 ## 8. Prepare release notes and final metadata
 
@@ -126,15 +131,16 @@ The validation workflow re-hashes every promoted package and checksum. Do not ha
 
 ## 9. Publish and verify
 
-Run `Publish Release` again with `dry_run=false`, the same tag/package/signed-macOS run IDs, and the successful `validation_run_id`.
+Run `Publish Release` again with `dry_run=false`, the same immutable tag, and the successful `validation_run_id`. Package and signed-macOS run IDs are dry-run-only inputs and are not used for public publication.
 
-- Confirm the workflow re-promotes into an empty output directory.
 - Confirm the Release Validation record is downloaded and accepted.
-- Confirm publication is rejected if any final filename/hash differs from the validated dry-run artifact set.
+- Confirm the workflow resolves the exact dry-run `promotionRunId` from that record.
+- Confirm the workflow downloads the already-tested `Toren-IDE-release-promotion` artifact instead of re-promoting source artifacts.
+- Confirm publication is rejected if the promoted manifest changes, any package/checksum byte changes, or any file is added/removed from the validated nine-file asset set.
+- Confirm the validation record's own workflow run ID matches the supplied `validation_run_id`.
 - Create the GitHub release only from the immutable release tag.
 - Mark Preview releases as prereleases; Stable releases must not be marked as prereleases and should become GitHub Latest.
-- Attach only the final artifacts that match the validated release-candidate bytes.
-- Attach their checksums and release notes.
+- Attach only the exact files from the hands-on-validated dry-run promotion artifact.
 - Verify every published download can be retrieved and its checksum matches the published value.
 - Verify release metadata points to the tagged source commit.
 

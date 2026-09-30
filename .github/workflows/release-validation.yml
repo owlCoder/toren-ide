@@ -93,6 +93,8 @@ jobs:
         env:
           VALIDATED_BY: ${{ github.actor }}
           PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
+          VALIDATION_RUN_ID: ${{ github.run_id }}
+          VALIDATION_RUN_ATTEMPT: ${{ github.run_attempt }}
           WINDOWS_SMOKE: ${{ inputs.confirm_windows_smoke }}
           LINUX_SMOKE: ${{ inputs.confirm_linux_smoke }}
           MACOS_SMOKE: ${{ inputs.confirm_macos_smoke }}
@@ -105,6 +107,8 @@ jobs:
             -ExpectedChannel $env:RELEASE_CHANNEL `
             -ExpectedSourceCommit $env:RELEASE_COMMIT `
             -PromotionRunId $env:PROMOTION_RUN_ID `
+            -ValidationRunId $env:VALIDATION_RUN_ID `
+            -ValidationRunAttempt $env:VALIDATION_RUN_ATTEMPT `
             -ValidatedBy $env:VALIDATED_BY `
             -WindowsSmokeConfirmed ([bool]::Parse($env:WINDOWS_SMOKE)) `
             -LinuxSmokeConfirmed ([bool]::Parse($env:LINUX_SMOKE)) `
