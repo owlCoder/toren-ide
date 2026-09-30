@@ -63,3 +63,7 @@ jobs:
       - name: Microsoft Testing Platform compatibility
         working-directory: .github/test-fixtures/mstest-mtp
         run: dotnet test --project MtpFixture.csproj --configuration Release --no-ansi --no-progress
+
+      - name: Release promotion contract
+        shell: pwsh
+        run: ./scripts/test-release-promotion.ps1
