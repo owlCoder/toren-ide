@@ -67,6 +67,27 @@ public sealed partial class DocumentHostViewModel(ITextDocumentStore documentSto
             }
         }
 
+        foreach (var snapshot in session.RecoveryDocuments ?? [])
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var fullPath = Path.GetFullPath(snapshot.Path);
+            var document = OpenDocuments.FirstOrDefault(candidate =>
+                candidate.Path.Equals(fullPath, StringComparison.Ordinal));
+            if (document is null)
+            {
+                document = new OpenDocumentViewModel(
+                    new TextDocumentContent(fullPath, snapshot.Text, snapshot.Encoding));
+                document.IsDirty = true;
+                OpenDocuments.Add(document);
+                restoredCount++;
+            }
+            else
+            {
+                document.Text = snapshot.Text;
+                document.IsDirty = true;
+            }
+        }
+
         if (session.ActiveDocumentPath is not null)
         {
             var active = OpenDocuments.FirstOrDefault(document =>
@@ -83,7 +104,14 @@ public sealed partial class DocumentHostViewModel(ITextDocumentStore documentSto
     public DocumentSessionState CaptureSession() =>
         new(
             OpenDocuments.Select(document => document.Path).ToArray(),
-            ActiveDocument?.Path);
+            ActiveDocument?.Path,
+            OpenDocuments
+                .Where(document => document.IsDirty)
+                .Select(document => new DocumentRecoverySnapshot(
+                    document.Path,
+                    document.Text,
+                    document.Encoding))
+                .ToArray());
 
     public void Activate(OpenDocumentViewModel document)
     {

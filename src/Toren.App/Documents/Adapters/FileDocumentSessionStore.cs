@@ -10,6 +10,7 @@ namespace Toren.App.Documents.Adapters;
 public sealed class FileDocumentSessionStore(string filePath) : IDocumentSessionStore
 {
     private const int MaxOpenDocuments = 50;
+    private const int MaxRecoveryCharacters = 10_000_000;
     private readonly string _filePath = !string.IsNullOrWhiteSpace(filePath)
         ? filePath
         : throw new ArgumentException("Session path is required.", nameof(filePath));
@@ -37,16 +38,18 @@ public sealed class FileDocumentSessionStore(string filePath) : IDocumentSession
                 .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Take(MaxOpenDocuments)
                 .ToArray();
+            var recovery = stored.RecoveryDocuments ?? [];
             if (paths.Length != stored.OpenDocumentPaths.Length
                 || paths.Any(path => !Path.IsPathFullyQualified(path))
                 || (stored.ActiveDocumentPath is not null
                     && (!Path.IsPathFullyQualified(stored.ActiveDocumentPath)
-                        || !paths.Contains(stored.ActiveDocumentPath, StringComparer.Ordinal))))
+                        || !paths.Contains(stored.ActiveDocumentPath, StringComparer.Ordinal)))
+                || !IsValidRecovery(recovery, paths))
             {
                 return Result.Failure<DocumentSessionState>(DocumentSessionErrors.InvalidFormat());
             }
 
-            return Result.Success(new DocumentSessionState(paths, stored.ActiveDocumentPath));
+            return Result.Success(new DocumentSessionState(paths, stored.ActiveDocumentPath, recovery));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException or JsonException)
         {
@@ -77,7 +80,18 @@ public sealed class FileDocumentSessionStore(string filePath) : IDocumentSession
             activePath = null;
         }
 
-        var normalized = new DocumentSessionState(paths, activePath);
+        var recovery = (session.RecoveryDocuments ?? [])
+            .Where(snapshot => paths.Contains(Path.GetFullPath(snapshot.Path), StringComparer.Ordinal))
+            .Select(snapshot => snapshot with { Path = Path.GetFullPath(snapshot.Path) })
+            .DistinctBy(snapshot => snapshot.Path, StringComparer.Ordinal)
+            .Take(MaxOpenDocuments)
+            .ToArray();
+        if (!IsValidRecovery(recovery, paths))
+        {
+            return Result.Failure<DocumentSessionState>(DocumentSessionErrors.InvalidFormat());
+        }
+
+        var normalized = new DocumentSessionState(paths, activePath, recovery);
         var directory = Path.GetDirectoryName(_filePath)
             ?? throw new InvalidOperationException("Session file has no directory.");
         var temporaryPath = $"{_filePath}.{Guid.NewGuid():N}.tmp";
@@ -89,7 +103,7 @@ public sealed class FileDocumentSessionStore(string filePath) : IDocumentSession
             {
                 await JsonSerializer.SerializeAsync(
                     stream,
-                    new StoredDocumentSession(1, paths, activePath),
+                    new StoredDocumentSession(1, paths, activePath, recovery),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
@@ -116,8 +130,38 @@ public sealed class FileDocumentSessionStore(string filePath) : IDocumentSession
         }
     }
 
+    private static bool IsValidRecovery(
+        IReadOnlyList<DocumentRecoverySnapshot> recovery,
+        IReadOnlyList<string> paths)
+    {
+        var totalCharacters = 0L;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var snapshot in recovery)
+        {
+            if (snapshot is null
+                || string.IsNullOrWhiteSpace(snapshot.Path)
+                || !Path.IsPathFullyQualified(snapshot.Path)
+                || snapshot.Text is null
+                || !Enum.IsDefined(snapshot.Encoding)
+                || !paths.Contains(snapshot.Path, StringComparer.Ordinal)
+                || !seen.Add(snapshot.Path))
+            {
+                return false;
+            }
+
+            totalCharacters += snapshot.Text.Length;
+            if (totalCharacters > MaxRecoveryCharacters)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private sealed record StoredDocumentSession(
         int Version,
         string[] OpenDocumentPaths,
-        string? ActiveDocumentPath);
+        string? ActiveDocumentPath,
+        DocumentRecoverySnapshot[]? RecoveryDocuments = null);
 }
