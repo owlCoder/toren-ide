@@ -35,7 +35,7 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
             : Result.Success<IReadOnlyList<HttpRequestDefinition>>(requests);
     }
 
-    private static IReadOnlyList<List<string>> SplitSegments(string content)
+    private static List<List<string>> SplitSegments(string content)
     {
         var normalized = content
             .Replace("\r\n", "\n", StringComparison.Ordinal)
@@ -58,10 +58,10 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
         return segments;
     }
 
-    private static bool HasRequestContent(IEnumerable<string> lines) =>
+    private static bool HasRequestContent(List<string> lines) =>
         lines.Any(static line => !string.IsNullOrWhiteSpace(line) && !IsComment(line));
 
-    private static Result<HttpRequestDefinition> ParseSegment(IReadOnlyList<string> lines, int requestNumber)
+    private static Result<HttpRequestDefinition> ParseSegment(List<string> lines, int requestNumber)
     {
         var index = 0;
         string? name = null;
@@ -147,7 +147,7 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
         string? body = null;
         if (bodyStart >= 0 && bodyStart < lines.Count)
         {
-            var bodyText = string.Join(Environment.NewLine, lines.Skip(bodyStart)).TrimEnd();
+            var bodyText = string.Join(System.Environment.NewLine, lines.Skip(bodyStart)).TrimEnd();
             if (bodyText.Length > 0)
             {
                 body = bodyText;
