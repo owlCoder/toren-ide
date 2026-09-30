@@ -58,6 +58,7 @@ public sealed class HttpResponsePresentationTests
             Assert.That(history.Entries[0].Name, Is.EqualTo("third"));
             Assert.That(history.Entries[1].Name, Is.EqualTo("second"));
             Assert.That(history.Entries[0].StatusCode, Is.EqualTo(200));
+            Assert.That(history.Entries[0].RequestTarget, Is.EqualTo("https://example.test/third"));
         });
 
         history.Clear();
@@ -73,10 +74,10 @@ public sealed class HttpResponsePresentationTests
         return new HttpResponseSnapshot(200, "OK", headers, body, TimeSpan.FromMilliseconds(25));
     }
 
-    private static HttpRequestDefinition CreateRequest(string name, string uri) =>
+    private static HttpRequestDefinition CreateRequest(string name, string requestTarget) =>
         new(
             "GET",
-            new Uri(uri),
+            requestTarget,
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             Name: name);
 }
