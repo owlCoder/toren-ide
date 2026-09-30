@@ -105,7 +105,7 @@ if ($candidate.sourceCommit -ne $ExpectedSourceCommit) {
 
 $expectedCandidatePolicies = [ordered]@{
     'linux-x64' = $false
-    'win-x64' = $true
+    'win-x64' = $false
     'osx-x64' = $true
     'osx-arm64' = $true
 }

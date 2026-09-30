@@ -28,7 +28,7 @@ Run the `Package` workflow for the release ref/version and confirm all candidate
 
 The workflow also produces `Toren-IDE-release-manifest.json`. Treat this file as **candidate metadata**, not as a public update feed. It records the release version/channel, source commit, runtime identifiers, package filenames, and verified SHA-256 hashes. Candidate entries remain `distributionReady=false` until promotion has completed the required provenance/signing checks.
 
-Verify that every package checksum in the manifest matches the packaged artifact. A checksum mismatch, duplicate/missing RID, invalid signing policy, or pre-promoted `distributionReady=true` entry is a release blocker.
+Verify that every package checksum in the manifest matches the packaged artifact. The MVP signing policy is explicit: `requiresPlatformSigning=true` for both macOS RIDs and `false` for Windows/Linux. A checksum mismatch, duplicate/missing RID, invalid signing policy, or pre-promoted `distributionReady=true` entry is a release blocker.
 
 ## 4. Produce signed platform artifacts
 
@@ -44,7 +44,7 @@ Verify that every package checksum in the manifest matches the packaged artifact
 
 ### Windows
 
-- Apply the release-channel signing policy before public distribution when Windows signing is required.
+- Windows Authenticode/code signing is not an MVP 1.0 release gate; `win-x64` must remain `requiresPlatformSigning=false` unless the release policy, signing workflow, attestation and promotion validation are changed together.
 - Verify the final ZIP contains the expected self-contained executable and dependencies.
 
 ### Linux

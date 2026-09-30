@@ -68,9 +68,10 @@ $artifacts = foreach ($directory in $artifactDirectories) {
         throw "Checksum verification failed for '$($package.Name)'."
     }
 
+    # MVP 1.0 requires Developer ID signing/notarization for public macOS
+    # distribution. Windows Authenticode signing is not an MVP release gate.
     $requiresPlatformSigning =
-        $runtimeIdentifier.StartsWith('osx-', [StringComparison]::Ordinal) -or
-        $runtimeIdentifier.StartsWith('win-', [StringComparison]::Ordinal)
+        $runtimeIdentifier.StartsWith('osx-', [StringComparison]::Ordinal)
 
     [ordered]@{
         runtimeIdentifier = $runtimeIdentifier

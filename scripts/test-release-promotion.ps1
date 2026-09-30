@@ -106,6 +106,30 @@ try {
         -FileName 'Toren-IDE-osx-arm64.zip' `
         -Content 'unsigned-macos-arm64'
 
+    $generatedManifestPath = Join-Path $root 'generated-candidate.json'
+    $previousGithubSha = $env:GITHUB_SHA
+    try {
+        $env:GITHUB_SHA = $sourceCommit
+        & (Join-Path $PSScriptRoot 'create-release-manifest.ps1') `
+            -ArtifactsRoot $packageRoot `
+            -Version $version `
+            -Channel $channel `
+            -OutputPath $generatedManifestPath
+    }
+    finally {
+        $env:GITHUB_SHA = $previousGithubSha
+    }
+
+    $generatedCandidate = Get-Content -LiteralPath $generatedManifestPath -Raw | ConvertFrom-Json
+    $generatedWindows = @($generatedCandidate.artifacts | Where-Object runtimeIdentifier -eq 'win-x64')
+    if ($generatedWindows.Count -ne 1 -or $generatedWindows[0].requiresPlatformSigning -ne $false) {
+        throw 'Candidate manifest creator must not require Windows platform signing for MVP 1.0.'
+    }
+    $generatedMac = @($generatedCandidate.artifacts | Where-Object runtimeIdentifier -like 'osx-*')
+    if ($generatedMac.Count -ne 2 -or @($generatedMac | Where-Object requiresPlatformSigning -ne $true).Count -ne 0) {
+        throw 'Candidate manifest creator must require platform signing for both macOS RIDs.'
+    }
+
     $candidate = [ordered]@{
         schemaVersion = 1
         product = 'Toren IDE'
@@ -127,7 +151,7 @@ try {
                 fileName = 'Toren-IDE-win-x64.zip'
                 sha256 = $windows.hash
                 packageValidated = $true
-                requiresPlatformSigning = $true
+                requiresPlatformSigning = $false
                 distributionReady = $false
             },
             [ordered]@{
