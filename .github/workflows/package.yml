@@ -2,10 +2,26 @@ name: Package
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Optional version for the release-candidate manifest
+        required: false
+        type: string
+      release_channel:
+        description: Release channel used with release_version
+        required: false
+        default: preview
+        type: choice
+        options:
+          - preview
+          - stable
   push:
     branches: [main]
+    tags:
+      - 'v*'
     paths:
       - .github/workflows/package.yml
+      - scripts/create-release-manifest.ps1
 
 permissions:
   contents: read
@@ -142,4 +158,67 @@ jobs:
         with:
           name: Toren-IDE-${{ matrix.rid }}
           path: artifacts/package/*
+          if-no-files-found: error
+
+  release-manifest:
+    name: release-candidate-manifest
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: Toren-IDE-*
+          path: artifacts/download
+
+      - name: Resolve release identity
+        shell: pwsh
+        run: |
+          $refType = '${{ github.ref_type }}'
+          $refName = '${{ github.ref_name }}'
+          $inputVersion = '${{ inputs.release_version }}'
+          $inputChannel = '${{ inputs.release_channel }}'
+
+          if ($refType -eq 'tag') {
+            if ($refName -match '^v(?<version>\d+\.\d+\.\d+)$') {
+              $version = $Matches['version']
+              $channel = 'stable'
+            }
+            elseif ($refName -match '^v(?<version>\d+\.\d+\.\d+-preview\.\d+)$') {
+              $version = $Matches['version']
+              $channel = 'preview'
+            }
+            else {
+              throw "Unsupported release tag '$refName'."
+            }
+          }
+          elseif (-not [string]::IsNullOrWhiteSpace($inputVersion)) {
+            $version = $inputVersion
+            $channel = if ([string]::IsNullOrWhiteSpace($inputChannel)) { 'preview' } else { $inputChannel }
+          }
+          else {
+            $version = "0.0.0-preview.${{ github.run_number }}"
+            $channel = 'preview'
+          }
+
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$channel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create and verify release-candidate manifest
+        shell: pwsh
+        run: |
+          ./scripts/create-release-manifest.ps1 `
+            -ArtifactsRoot artifacts/download `
+            -Version $env:RELEASE_VERSION `
+            -Channel $env:RELEASE_CHANNEL `
+            -OutputPath artifacts/release/Toren-IDE-release-manifest.json
+
+      - name: Upload release-candidate manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toren-IDE-release-manifest
+          path: artifacts/release/Toren-IDE-release-manifest.json
           if-no-files-found: error
