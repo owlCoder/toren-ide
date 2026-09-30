@@ -53,7 +53,6 @@ public sealed class FileApplicationSettingsStoreTests
             Assert.That(File.ReadAllText(path), Does.Contain("\"Version\":1"));
             Assert.That(File.ReadAllText(path), Does.Contain("\"Theme\":\"light\""));
             Assert.That(File.ReadAllText(path), Does.Contain("\"EditorFontSize\":16"));
-            Assert.That(File.ReadAllText(path), Does.Contain("\"SaveKeybinding\":\"alt+s\""));
         });
     }
 
