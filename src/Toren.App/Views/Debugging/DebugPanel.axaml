@@ -24,11 +24,13 @@
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,120,Auto,*" ColumnSpacing="6">
         <TextBlock Grid.Column="0" Text="Process ID" VerticalAlignment="Center" FontSize="10.5" />
-        <TextBox Grid.Column="1" Watermark="PID"
+        <TextBox Grid.Column="1" PlaceholderText="PID"
                  Text="{Binding AttachProcessId, Mode=TwoWay}"
-                 KeyDown="AttachProcessId_OnKeyDown" />
+                 KeyDown="AttachProcessId_OnKeyDown"
+                 AutomationProperties.Name="Process ID to attach" />
         <Button Grid.Column="2" Classes="toolbar-button" Content="Attach"
-                Click="AttachProcess_OnClick" IsEnabled="{Binding CanAttach}" />
+                Click="AttachProcess_OnClick" IsEnabled="{Binding CanAttach}"
+                AutomationProperties.Name="Attach debugger to process" />
         <TextBlock Grid.Column="3" Classes="muted" FontSize="9.5"
                    Text="Attach to an already running .NET process."
                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -106,10 +108,11 @@
       <TabItem Header="Watch">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="10,8" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <TextBox Grid.Column="0" Watermark="Expression"
-                     Text="{Binding WatchExpression, Mode=TwoWay}" KeyDown="WatchExpression_OnKeyDown" />
+            <TextBox Grid.Column="0" PlaceholderText="Expression"
+                     Text="{Binding WatchExpression, Mode=TwoWay}" KeyDown="WatchExpression_OnKeyDown"
+                     AutomationProperties.Name="Watch expression" />
             <Button Grid.Column="1" Classes="toolbar-button" Content="Add"
-                    Click="AddWatch_OnClick" />
+                    Click="AddWatch_OnClick" AutomationProperties.Name="Add watch expression" />
           </Grid>
           <ListBox Grid.Row="1" ItemsSource="{Binding Watches}">
             <ListBox.ItemTemplate>
@@ -138,10 +141,11 @@
       <TabItem Header="Breakpoints">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="10,8" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <TextBox Grid.Column="0" Watermark="Optional condition"
-                     Text="{Binding BreakpointCondition, Mode=TwoWay}" />
+            <TextBox Grid.Column="0" PlaceholderText="Optional condition"
+                     Text="{Binding BreakpointCondition, Mode=TwoWay}"
+                     AutomationProperties.Name="Breakpoint condition" />
             <Button Grid.Column="1" Classes="toolbar-button" Content="Add at Caret"
-                    Click="AddBreakpoint_OnClick" />
+                    Click="AddBreakpoint_OnClick" AutomationProperties.Name="Add breakpoint at caret" />
           </Grid>
           <ListBox Grid.Row="1" ItemsSource="{Binding Breakpoints}">
             <ListBox.ItemTemplate>
@@ -177,12 +181,15 @@
             </ListBox.ItemTemplate>
           </ListBox>
           <Grid Grid.Row="1" Margin="10,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBox Grid.Column="0" Watermark="Evaluate expression"
-                     Text="{Binding ConsoleExpression, Mode=TwoWay}" KeyDown="ConsoleExpression_OnKeyDown" />
+            <TextBox Grid.Column="0" PlaceholderText="Evaluate expression"
+                     Text="{Binding ConsoleExpression, Mode=TwoWay}" KeyDown="ConsoleExpression_OnKeyDown"
+                     AutomationProperties.Name="Debug console expression" />
             <Button Grid.Column="1" Classes="toolbar-button" Content="Evaluate"
-                    Click="EvaluateConsole_OnClick" IsEnabled="{Binding CanEvaluate}" />
+                    Click="EvaluateConsole_OnClick" IsEnabled="{Binding CanEvaluate}"
+                    AutomationProperties.Name="Evaluate debug expression" />
             <Button Grid.Column="2" Classes="toolbar-button" Content="Clear"
-                    Click="ClearConsole_OnClick" IsEnabled="{Binding HasConsoleLines}" />
+                    Click="ClearConsole_OnClick" IsEnabled="{Binding HasConsoleLines}"
+                    AutomationProperties.Name="Clear debug console" />
           </Grid>
         </Grid>
       </TabItem>
