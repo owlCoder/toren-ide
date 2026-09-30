@@ -1,0 +1,163 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable release tag to publish (vX.Y.Z or vX.Y.Z-preview.N)
+        required: true
+        type: string
+      package_run_id:
+        description: Package workflow run ID containing candidate packages and manifest
+        required: true
+        type: string
+      macos_x64_run_id:
+        description: Signed macOS Package workflow run ID for osx-x64
+        required: true
+        type: string
+      macos_arm64_run_id:
+        description: Signed macOS Package workflow run ID for osx-arm64
+        required: true
+        type: string
+      confirm_release_gates:
+        description: Confirm required platform signing and release smoke gates are complete
+        required: true
+        default: false
+        type: boolean
+      dry_run:
+        description: Validate and assemble final release artifacts without creating a GitHub release
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  promote:
+    name: promote-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require explicit release-gate confirmation
+        shell: bash
+        env:
+          CONFIRMED: ${{ inputs.confirm_release_gates }}
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMED" != "true" ]]; then
+            echo "Release gates were not explicitly confirmed." >&2
+            exit 78
+          fi
+
+      - name: Checkout release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Resolve and validate release identity
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -match '^v(?<version>\d+\.\d+\.\d+)$') {
+            $version = $Matches['version']
+            $channel = 'stable'
+          }
+          elseif ($env:RELEASE_TAG -match '^v(?<version>\d+\.\d+\.\d+-preview\.\d+)$') {
+            $version = $Matches['version']
+            $channel = 'preview'
+          }
+          else {
+            throw "Unsupported release tag '$env:RELEASE_TAG'."
+          }
+
+          $tagCommit = (git rev-list -n 1 $env:RELEASE_TAG).Trim()
+          $headCommit = (git rev-parse HEAD).Trim()
+          if ($tagCommit -ne $headCommit) {
+            throw "Checked out commit '$headCommit' does not match release tag commit '$tagCommit'."
+          }
+
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$channel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_COMMIT=$headCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download candidate packages and manifest
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.package_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: Toren-IDE-*
+          path: artifacts/package-run
+
+      - name: Download signed macOS x64 package
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.macos_x64_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: Toren-IDE-osx-x64-signed
+          path: artifacts/signed/osx-x64
+
+      - name: Download signed macOS arm64 package
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.macos_arm64_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: Toren-IDE-osx-arm64-signed
+          path: artifacts/signed/osx-arm64
+
+      - name: Promote and verify final artifacts
+        shell: pwsh
+        run: |
+          ./scripts/promote-release-manifest.ps1 `
+            -CandidateManifestPath artifacts/package-run/Toren-IDE-release-manifest/Toren-IDE-release-manifest.json `
+            -PackageArtifactsRoot artifacts/package-run `
+            -SignedMacX64Root artifacts/signed/osx-x64 `
+            -SignedMacArm64Root artifacts/signed/osx-arm64 `
+            -ExpectedVersion $env:RELEASE_VERSION `
+            -ExpectedChannel $env:RELEASE_CHANNEL `
+            -ExpectedSourceCommit $env:RELEASE_COMMIT `
+            -OutputDirectory artifacts/final
+
+      - name: Upload promoted release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toren-IDE-release-promotion
+          path: artifacts/final/*
+          if-no-files-found: error
+
+      - name: Ensure release does not already exist
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release '$RELEASE_TAG' already exists. Refusing to overwrite published artifacts." >&2
+            exit 1
+          fi
+
+      - name: Publish GitHub release
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          RELEASE_CHANNEL: ${{ env.RELEASE_CHANNEL }}
+        run: |
+          set -euo pipefail
+          args=(
+            "$RELEASE_TAG"
+            --verify-tag
+            --title "Toren IDE $RELEASE_VERSION"
+            --generate-notes
+          )
+          if [[ "$RELEASE_CHANNEL" == "preview" ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${args[@]}" artifacts/final/*
