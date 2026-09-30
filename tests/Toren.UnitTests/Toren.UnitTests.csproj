@@ -19,7 +19,6 @@
     <ProjectReference Include="../../src/Toren.Debugging/Toren.Debugging.csproj" />
     <ProjectReference Include="../../src/Toren.DotNet/Toren.DotNet.csproj" />
     <ProjectReference Include="../../src/Toren.Git/Toren.Git.csproj" />
-    <ProjectReference Include="../../src/Toren.Http/Toren.Http.csproj" />
     <ProjectReference Include="../../src/Toren.Language/Toren.Language.csproj" />
     <ProjectReference Include="../../src/Toren.Workspaces/Toren.Workspaces.csproj" />
   </ItemGroup>

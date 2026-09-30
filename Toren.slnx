@@ -5,7 +5,6 @@
   <Project Path="src/Toren.Debugging/Toren.Debugging.csproj" />
   <Project Path="src/Toren.DotNet/Toren.DotNet.csproj" />
   <Project Path="src/Toren.Git/Toren.Git.csproj" />
-  <Project Path="src/Toren.Http/Toren.Http.csproj" />
   <Project Path="src/Toren.Language/Toren.Language.csproj" />
   <Project Path="src/Toren.Platform/Toren.Platform.csproj" />
   <Project Path="src/Toren.Workspaces/Toren.Workspaces.csproj" />
