@@ -132,7 +132,7 @@ public sealed class DotNetUserSecretsService(IProcessRunner processRunner) : IDo
             : Result.Failure<string>(DotNetUserSecretsErrors.ProjectUnavailable(fullProjectPath));
     }
 
-    private static IReadOnlyList<UserSecretEntry> ParseList(string output)
+    private static List<UserSecretEntry> ParseList(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
