@@ -32,6 +32,10 @@ public sealed partial class HttpClientViewModel(
     private int _selectedRequestIndex = -1;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedEnvironment))]
+    private int _selectedEnvironmentIndex = -1;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSend))]
     [NotifyPropertyChangedFor(nameof(CanCancel))]
     private bool _isBusy;
@@ -50,11 +54,18 @@ public sealed partial class HttpClientViewModel(
 
     public ObservableCollection<HttpRequestDefinition> Requests { get; } = new();
 
+    public ObservableCollection<HttpEnvironment> Environments { get; } = new();
+
     public ObservableCollection<HttpRequestHistoryEntry> History { get; } = new();
 
     public HttpRequestDefinition? SelectedRequest =>
         SelectedRequestIndex >= 0 && SelectedRequestIndex < Requests.Count
             ? Requests[SelectedRequestIndex]
+            : null;
+
+    public HttpEnvironment? SelectedEnvironment =>
+        SelectedEnvironmentIndex >= 0 && SelectedEnvironmentIndex < Environments.Count
+            ? Environments[SelectedEnvironmentIndex]
             : null;
 
     public bool CanSend => !IsBusy && SelectedRequest is not null;
@@ -95,14 +106,35 @@ public sealed partial class HttpClientViewModel(
         NotifyAvailability();
     }
 
-    public void SetVariables(IReadOnlyDictionary<string, string> variables)
+    public void SetEnvironments(IReadOnlyList<HttpEnvironment> environments)
     {
-        ArgumentNullException.ThrowIfNull(variables);
-        _variables.Clear();
-        foreach (var variable in variables)
+        ArgumentNullException.ThrowIfNull(environments);
+        var previousName = SelectedEnvironment?.Name;
+        Environments.Clear();
+        foreach (var environment in environments)
         {
-            _variables[variable.Key] = variable.Value;
+            Environments.Add(environment);
         }
+
+        var matchingIndex = previousName is null
+            ? -1
+            : Environments
+                .Select(static (environment, index) => (environment, index))
+                .Where(item => item.environment.Name.Equals(previousName, StringComparison.OrdinalIgnoreCase))
+                .Select(static item => item.index)
+                .DefaultIfEmpty(-1)
+                .First();
+        SelectedEnvironmentIndex = matchingIndex >= 0
+            ? matchingIndex
+            : Environments.Count > 0 ? 0 : -1;
+        ApplySelectedEnvironment();
+    }
+
+    public void SetEnvironmentLoadError(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        SetEnvironments([]);
+        StatusText = message;
     }
 
     public async Task SendSelectedAsync(CancellationToken cancellationToken = default)
@@ -172,6 +204,26 @@ public sealed partial class HttpClientViewModel(
     {
         _requestHistory.Clear();
         History.Clear();
+    }
+
+    partial void OnSelectedEnvironmentIndexChanged(int value)
+    {
+        _ = value;
+        ApplySelectedEnvironment();
+    }
+
+    private void ApplySelectedEnvironment()
+    {
+        _variables.Clear();
+        if (SelectedEnvironment is not { } environment)
+        {
+            return;
+        }
+
+        foreach (var variable in environment.Variables)
+        {
+            _variables[variable.Key] = variable.Value;
+        }
     }
 
     private void SynchronizeHistory()

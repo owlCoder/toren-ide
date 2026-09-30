@@ -4,6 +4,7 @@ using Avalonia.LogicalTree;
 using Toren.App.Http.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Http;
+using Toren.DotNet.Http.Contracts;
 
 namespace Toren.App.Http.Services;
 
@@ -12,20 +13,24 @@ internal sealed class HttpClientController
     private readonly Window _window;
     private readonly MainWindowViewModel _shell;
     private readonly HttpClientViewModel _viewModel;
+    private readonly IHttpEnvironmentProvider? _environmentProvider;
     private readonly TabControl _toolTabs;
     private readonly TabItem _httpTab;
     private OpenDocumentViewModel? _activeDocument;
+    private CancellationTokenSource? _environmentCancellation;
     private bool _detached;
 
     private HttpClientController(
         Window window,
         MainWindowViewModel shell,
         HttpClientViewModel viewModel,
+        IHttpEnvironmentProvider? environmentProvider,
         TabControl toolTabs)
     {
         _window = window;
         _shell = shell;
         _viewModel = viewModel;
+        _environmentProvider = environmentProvider;
         _toolTabs = toolTabs;
         _httpTab = new TabItem
         {
@@ -39,7 +44,11 @@ internal sealed class HttpClientController
         SynchronizeActiveDocument();
     }
 
-    public static void Attach(Window window, MainWindowViewModel shell, HttpClientViewModel viewModel)
+    public static void Attach(
+        Window window,
+        MainWindowViewModel shell,
+        HttpClientViewModel viewModel,
+        IHttpEnvironmentProvider? environmentProvider = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(shell);
@@ -53,7 +62,7 @@ internal sealed class HttpClientController
             return;
         }
 
-        _ = new HttpClientController(window, shell, viewModel, toolTabs);
+        _ = new HttpClientController(window, shell, viewModel, environmentProvider, toolTabs);
     }
 
     private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
@@ -75,6 +84,7 @@ internal sealed class HttpClientController
     private void SynchronizeActiveDocument()
     {
         _viewModel.Cancel();
+        CancelEnvironmentLoad();
         if (_activeDocument is not null)
         {
             _activeDocument.PropertyChanged -= ActiveDocument_OnPropertyChanged;
@@ -87,6 +97,18 @@ internal sealed class HttpClientController
         }
 
         SynchronizeDocumentContent();
+        if (_environmentProvider is not null
+            && _activeDocument is not null
+            && Path.GetExtension(_activeDocument.Path).Equals(".http", StringComparison.OrdinalIgnoreCase))
+        {
+            var cancellation = new CancellationTokenSource();
+            _environmentCancellation = cancellation;
+            _ = LoadEnvironmentsAsync(_activeDocument.Path, cancellation);
+        }
+        else
+        {
+            _viewModel.SetEnvironments([]);
+        }
     }
 
     private void SynchronizeDocumentContent()
@@ -100,6 +122,46 @@ internal sealed class HttpClientController
         _viewModel.SetDocument(_activeDocument.Path, _activeDocument.Text);
     }
 
+    private async Task LoadEnvironmentsAsync(string documentPath, CancellationTokenSource cancellation)
+    {
+        try
+        {
+            var result = await _environmentProvider!
+                .GetEnvironmentsAsync(documentPath, cancellation.Token)
+                .ConfigureAwait(true);
+            if (_detached || cancellation.IsCancellationRequested || !ReferenceEquals(_environmentCancellation, cancellation))
+            {
+                return;
+            }
+
+            if (result.IsFailure)
+            {
+                _viewModel.SetEnvironmentLoadError(result.Error.Message);
+                return;
+            }
+
+            _viewModel.SetEnvironments(result.Value!);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_environmentCancellation, cancellation))
+            {
+                _environmentCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelEnvironmentLoad()
+    {
+        var cancellation = Interlocked.Exchange(ref _environmentCancellation, null);
+        cancellation?.Cancel();
+    }
+
     private void Window_OnClosed(object? sender, EventArgs eventArgs) => Detach();
 
     private void Detach()
@@ -111,6 +173,7 @@ internal sealed class HttpClientController
 
         _detached = true;
         _viewModel.Cancel();
+        CancelEnvironmentLoad();
         if (_activeDocument is not null)
         {
             _activeDocument.PropertyChanged -= ActiveDocument_OnPropertyChanged;

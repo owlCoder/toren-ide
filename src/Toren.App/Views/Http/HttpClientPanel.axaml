@@ -8,7 +8,7 @@
   <Grid RowDefinitions="Auto,*,Auto">
     <Border Grid.Row="0" Padding="9,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto,150,Auto,Auto" ColumnSpacing="8">
         <TextBlock Grid.Column="0" Text="Request" FontSize="10.5" VerticalAlignment="Center" />
         <ComboBox Grid.Column="1" ItemsSource="{Binding Requests}"
                   SelectedIndex="{Binding SelectedRequestIndex, Mode=TwoWay}">
@@ -25,9 +25,19 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Send"
+        <TextBlock Grid.Column="2" Text="Environment" FontSize="10.5" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="3" ItemsSource="{Binding Environments}"
+                  SelectedIndex="{Binding SelectedEnvironmentIndex, Mode=TwoWay}"
+                  PlaceholderText="No environment">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="http:HttpEnvironment">
+              <TextBlock Text="{Binding Name}" FontSize="10" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Grid.Column="4" Classes="toolbar-button" Content="Send"
                 Click="Send_OnClick" IsEnabled="{Binding CanSend}" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Cancel"
+        <Button Grid.Column="5" Classes="toolbar-button" Content="Cancel"
                 Click="Cancel_OnClick" IsEnabled="{Binding CanCancel}" />
       </Grid>
     </Border>

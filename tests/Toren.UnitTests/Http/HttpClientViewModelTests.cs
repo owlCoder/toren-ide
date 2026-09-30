@@ -12,14 +12,19 @@ namespace Toren.UnitTests.Http;
 public sealed class HttpClientViewModelTests
 {
     [Test]
-    public async Task ActiveHttpDocumentCanSendResolvedRequestAndRecordResponse()
+    public async Task ActiveHttpDocumentCanSendSelectedEnvironmentRequestAndRecordResponse()
     {
         var runner = new RecordingRunner();
         var viewModel = CreateViewModel(runner);
-        viewModel.SetVariables(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["baseUrl"] = "https://example.test",
-        });
+        viewModel.SetEnvironments(
+        [
+            new HttpEnvironment(
+                "Development",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["baseUrl"] = "https://example.test",
+                }),
+        ]);
         viewModel.SetDocument(
             Path.Combine(Path.GetTempPath(), "requests.http"),
             "# @name listWidgets\nGET {{baseUrl}}/api/widgets");
@@ -27,6 +32,8 @@ public sealed class HttpClientViewModelTests
         Assert.Multiple(() =>
         {
             Assert.That(viewModel.Requests, Has.Count.EqualTo(1));
+            Assert.That(viewModel.Environments, Has.Count.EqualTo(1));
+            Assert.That(viewModel.SelectedEnvironment?.Name, Is.EqualTo("Development"));
             Assert.That(viewModel.SelectedRequest?.Name, Is.EqualTo("listWidgets"));
             Assert.That(viewModel.CanSend, Is.True);
         });
@@ -42,6 +49,59 @@ public sealed class HttpClientViewModelTests
             Assert.That(viewModel.History, Has.Count.EqualTo(1));
             Assert.That(viewModel.History[0].RequestTarget, Is.EqualTo("https://example.test/api/widgets"));
             Assert.That(viewModel.IsBusy, Is.False);
+        });
+    }
+
+    [Test]
+    public void EnvironmentSelectionChangesResolvedVariables()
+    {
+        var viewModel = CreateViewModel(new RecordingRunner());
+        viewModel.SetEnvironments(
+        [
+            new HttpEnvironment(
+                "Development",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["baseUrl"] = "https://dev.example.test",
+                }),
+            new HttpEnvironment(
+                "Production",
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["baseUrl"] = "https://prod.example.test",
+                }),
+        ]);
+        viewModel.SetDocument(
+            Path.Combine(Path.GetTempPath(), "requests.http"),
+            "GET {{baseUrl}}/health");
+
+        Assert.That(viewModel.SelectedEnvironment?.Name, Is.EqualTo("Development"));
+        viewModel.SelectedEnvironmentIndex = 1;
+
+        Assert.That(viewModel.SelectedEnvironment?.Name, Is.EqualTo("Production"));
+    }
+
+    [Test]
+    public void SetEnvironmentsPreservesSelectionByNameWhenReloading()
+    {
+        var viewModel = CreateViewModel(new RecordingRunner());
+        viewModel.SetEnvironments(
+        [
+            CreateEnvironment("Development", "https://dev.example.test"),
+            CreateEnvironment("Production", "https://prod.example.test"),
+        ]);
+        viewModel.SelectedEnvironmentIndex = 1;
+
+        viewModel.SetEnvironments(
+        [
+            CreateEnvironment("Production", "https://prod2.example.test"),
+            CreateEnvironment("Development", "https://dev2.example.test"),
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.SelectedEnvironment?.Name, Is.EqualTo("Production"));
+            Assert.That(viewModel.SelectedEnvironment?.Variables["baseUrl"], Is.EqualTo("https://prod2.example.test"));
         });
     }
 
@@ -66,6 +126,14 @@ public sealed class HttpClientViewModelTests
             Assert.That(viewModel.StatusText, Does.Contain(".http"));
         });
     }
+
+    private static HttpEnvironment CreateEnvironment(string name, string baseUrl) =>
+        new(
+            name,
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["baseUrl"] = baseUrl,
+            });
 
     private static HttpClientViewModel CreateViewModel(IHttpRequestRunner runner) =>
         new(
