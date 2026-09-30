@@ -10,6 +10,8 @@ using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Services;
 using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
+using Toren.App.Packages.Services;
+using Toren.App.Packages.ViewModels;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Services;
 using Toren.App.Terminal.Services;
@@ -29,6 +31,8 @@ using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Services;
+using Toren.DotNet.Packages.Contracts;
+using Toren.DotNet.Packages.Services;
 using Toren.DotNet.Testing.Contracts;
 using Toren.DotNet.Testing.Services;
 using Toren.Language.CSharp.Contracts;
@@ -68,6 +72,7 @@ public sealed partial class App : Application
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
             IDotNetCommandService dotNetCommandService = new DotNetCommandService(processRunner);
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
+            IDotNetPackageService dotNetPackageService = new DotNetPackageService(processRunner);
             IDotNetTestDiscoveryService dotNetTestDiscoveryService = new DotNetTestDiscoveryService(processRunner);
             IDotNetTestRunService dotNetTestRunService = new DotNetTestRunService(processRunner);
             IDebugSessionService debugSessionService = new DapDebugSessionService(
@@ -273,6 +278,13 @@ public sealed partial class App : Application
                 mainWindow,
                 viewModel,
                 new Toren.App.SourceControl.ViewModels.SourceControlViewModel(gitRepositoryService),
+                viewModel.SetStatus);
+            PackageManagerController.Attach(
+                mainWindow,
+                viewModel,
+                workspaceClassifier,
+                projectGraphService,
+                new PackageManagerViewModel(dotNetPackageService),
                 viewModel.SetStatus);
             ProblemsScopeController.Attach(
                 mainWindow,
