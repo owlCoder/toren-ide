@@ -122,7 +122,8 @@ public sealed class HttpRequestRunnerTests
             Assert.That(handler.RequestHeaders["X-Request"], Is.EqualTo("toren"));
             Assert.That(result.Value!.StatusCode, Is.EqualTo(201));
             Assert.That(result.Value.Body, Is.EqualTo("{\"id\":42}"));
-            Assert.That(result.Value.Headers["X-Toren"], Is.EqualTo(new[] { "response" }));
+            Assert.That(result.Value.Headers["X-Toren"], Has.Count.EqualTo(1));
+            Assert.That(result.Value.Headers["X-Toren"][0], Is.EqualTo("response"));
             Assert.That(result.Value.Duration, Is.GreaterThanOrEqualTo(TimeSpan.Zero));
         });
     }
