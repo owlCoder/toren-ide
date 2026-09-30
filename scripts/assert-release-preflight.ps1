@@ -70,7 +70,7 @@ try {
         }
 
         Write-Host "Release preflight passed for commit $ExpectedCommit; immutable tag '$tag' is the only allowed missing release identity input."
-        exit 0
+        return
     }
 
     $tagCommit = (& git rev-list -n 1 $tag).Trim()
