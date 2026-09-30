@@ -72,6 +72,12 @@ if (-not (Test-Path -LiteralPath $CandidateManifestPath -PathType Leaf)) {
 }
 
 $candidate = Get-Content -LiteralPath $CandidateManifestPath -Raw | ConvertFrom-Json
+if ($candidate.schemaVersion -ne 1) {
+    throw "Unsupported candidate manifest schema version '$($candidate.schemaVersion)'."
+}
+if ($candidate.product -ne 'Toren IDE') {
+    throw "Candidate product '$($candidate.product)' is not 'Toren IDE'."
+}
 if ($candidate.version -ne $ExpectedVersion) {
     throw "Candidate version '$($candidate.version)' does not match '$ExpectedVersion'."
 }
@@ -82,25 +88,58 @@ if ($candidate.sourceCommit -ne $ExpectedSourceCommit) {
     throw "Candidate source commit '$($candidate.sourceCommit)' does not match '$ExpectedSourceCommit'."
 }
 
+$expectedCandidatePolicies = [ordered]@{
+    'linux-x64' = $false
+    'win-x64' = $true
+    'osx-x64' = $true
+    'osx-arm64' = $true
+}
+$candidateArtifacts = @($candidate.artifacts)
+if ($candidateArtifacts.Count -ne $expectedCandidatePolicies.Count) {
+    throw "Candidate manifest must contain exactly $($expectedCandidatePolicies.Count) artifacts, found $($candidateArtifacts.Count)."
+}
+
+foreach ($runtimeIdentifier in $expectedCandidatePolicies.Keys) {
+    $entries = @($candidateArtifacts | Where-Object runtimeIdentifier -eq $runtimeIdentifier)
+    if ($entries.Count -ne 1) {
+        throw "Candidate manifest must contain exactly one '$runtimeIdentifier' artifact."
+    }
+
+    $entry = $entries[0]
+    if ([string]::IsNullOrWhiteSpace($entry.fileName)) {
+        throw "Candidate '$runtimeIdentifier' artifact must include a file name."
+    }
+    if ($entry.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Candidate '$runtimeIdentifier' artifact does not contain a valid SHA-256 hash."
+    }
+    if ($entry.packageValidated -ne $true) {
+        throw "Candidate '$runtimeIdentifier' artifact was not package-validated."
+    }
+
+    $expectedSigning = $expectedCandidatePolicies[$runtimeIdentifier]
+    if ($entry.requiresPlatformSigning -ne $expectedSigning) {
+        throw "Candidate '$runtimeIdentifier' signing policy does not match the release contract."
+    }
+    if ($entry.distributionReady -ne $false) {
+        throw "Candidate '$runtimeIdentifier' must not be marked distribution-ready before promotion."
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 function Copy-CandidateArtifact {
     param([Parameter(Mandatory)][string] $RuntimeIdentifier)
 
-    $entry = @($candidate.artifacts | Where-Object runtimeIdentifier -eq $RuntimeIdentifier)
-    if ($entry.Count -ne 1) {
-        throw "Candidate manifest must contain exactly one '$RuntimeIdentifier' artifact."
-    }
-
+    $entry = @($candidateArtifacts | Where-Object runtimeIdentifier -eq $RuntimeIdentifier)[0]
     $artifactDirectory = Join-Path $PackageArtifactsRoot "Toren-IDE-$RuntimeIdentifier"
-    $packagePath = Join-Path $artifactDirectory $entry[0].fileName
+    $packagePath = Join-Path $artifactDirectory $entry.fileName
     $checksumPath = "$packagePath.sha256"
     $actualHash = Get-VerifiedHash -PackagePath $packagePath -ChecksumPath $checksumPath
-    if ($actualHash -ne $entry[0].sha256) {
+    if ($actualHash -ne $entry.sha256) {
         throw "Candidate manifest hash does not match '$RuntimeIdentifier' package bytes."
     }
 
-    $destinationPath = Join-Path $OutputDirectory $entry[0].fileName
+    $destinationPath = Join-Path $OutputDirectory $entry.fileName
     Copy-Item -LiteralPath $packagePath -Destination $destinationPath -Force
     "$actualHash  $([IO.Path]::GetFileName($destinationPath))" |
         Set-Content -LiteralPath "$destinationPath.sha256" -Encoding utf8NoBOM -NoNewline
@@ -135,6 +174,12 @@ function Copy-SignedMacArtifact {
     $actualHash = Get-VerifiedHash -PackagePath $sourcePath -ChecksumPath $sourceChecksum
     $attestation = Get-Content -LiteralPath $attestations[0].FullName -Raw | ConvertFrom-Json
 
+    if ($attestation.schemaVersion -ne 1) {
+        throw "Signed '$RuntimeIdentifier' attestation has unsupported schema version '$($attestation.schemaVersion)'."
+    }
+    if ($attestation.product -ne 'Toren IDE') {
+        throw "Signed '$RuntimeIdentifier' attestation product '$($attestation.product)' is not 'Toren IDE'."
+    }
     if ($attestation.version -ne $ExpectedVersion) {
         throw "Signed '$RuntimeIdentifier' version '$($attestation.version)' does not match '$ExpectedVersion'."
     }
