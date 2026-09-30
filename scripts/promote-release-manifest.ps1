@@ -125,7 +125,15 @@ foreach ($runtimeIdentifier in $expectedCandidatePolicies.Keys) {
     }
 }
 
-New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+if (Test-Path -LiteralPath $OutputDirectory) {
+    $existingOutput = @(Get-ChildItem -LiteralPath $OutputDirectory -Force)
+    if ($existingOutput.Count -ne 0) {
+        throw "Promotion output directory must be empty: $OutputDirectory"
+    }
+}
+else {
+    New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+}
 
 function Copy-CandidateArtifact {
     param([Parameter(Mandatory)][string] $RuntimeIdentifier)
