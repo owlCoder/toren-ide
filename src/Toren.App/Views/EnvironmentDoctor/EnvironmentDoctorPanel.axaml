@@ -1,0 +1,37 @@
+<UserControl x:Class="Toren.App.Views.EnvironmentDoctor.EnvironmentDoctorPanel"
+             x:ClassModifier="internal"
+             x:DataType="doctorvm:EnvironmentDoctorViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:doctorvm="clr-namespace:Toren.App.EnvironmentDoctor.ViewModels"
+             xmlns:doctor="clr-namespace:Toren.App.EnvironmentDoctor.Models">
+  <Grid RowDefinitions="Auto,*" RowSpacing="8" Margin="10,8">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <StackPanel Grid.Column="0" Spacing="3">
+        <TextBlock Text="Environment Doctor" FontSize="11" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="10" TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
+              Click="Refresh_OnClick" IsEnabled="{Binding CanRefresh}" />
+    </Grid>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Checks}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="doctor:EnvironmentDoctorCheck">
+          <Border Margin="0,0,0,6" Padding="8"
+                  BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="{Binding DisplayName}" FontSize="10.5" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding Status}" FontSize="9.5" />
+              </Grid>
+              <TextBlock Classes="muted" Text="{Binding Summary}" FontSize="10" TextWrapping="Wrap" />
+              <TextBlock Classes="subtle" Text="{Binding Remediation}" FontSize="9.5" TextWrapping="Wrap"
+                         IsVisible="{Binding Remediation, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>
