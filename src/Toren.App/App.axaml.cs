@@ -12,6 +12,8 @@ using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Adapters;
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Services;
+using Toren.App.EnvironmentDoctor.Services;
+using Toren.App.EnvironmentDoctor.ViewModels;
 using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
 using Toren.App.Http.Services;
@@ -84,6 +86,8 @@ public sealed partial class App : Application
             INativeShellProvider nativeShellProvider = new SystemNativeShellProvider();
             Toren.Git.Contracts.IGitRepositoryService gitRepositoryService =
                 new Toren.Git.Services.GitRepositoryService(processRunner);
+            Toren.Git.Contracts.IGitEnvironmentService gitEnvironmentService =
+                new Toren.Git.Services.GitEnvironmentService(processRunner);
             IExternalUriLauncher externalUriLauncher = new SystemExternalUriLauncher();
             IDotNetEnvironmentService dotNetEnvironmentService = new DotNetEnvironmentService(processRunner);
             IDotNetSdkResolver dotNetSdkResolver = new DotNetSdkResolver(processRunner);
@@ -286,6 +290,15 @@ public sealed partial class App : Application
                     efCoreToolService,
                     dockerComposeService,
                     dockerComposeFileLocator));
+            EnvironmentDoctorController.Attach(
+                mainWindow,
+                viewModel,
+                new EnvironmentDoctorViewModel(
+                    new EnvironmentDoctorService(
+                        dotNetSdkResolver,
+                        gitEnvironmentService,
+                        dockerComposeService,
+                        httpsDevelopmentCertificateService)));
             WorkspaceRunBrowserController.Attach(
                 mainWindow,
                 workspaceExecution,
