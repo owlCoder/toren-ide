@@ -194,6 +194,27 @@ try {
     $candidate.artifacts[0].distributionReady = $false
     Write-CandidateManifest -Manifest $candidate
 
+    $staleOutput = Join-Path $root 'stale-output'
+    New-Item -ItemType Directory -Force -Path $staleOutput | Out-Null
+    Set-Content -LiteralPath (Join-Path $staleOutput 'old-package.zip') -Value 'stale' -Encoding utf8NoBOM
+    $staleOutputRejected = $false
+    try {
+        Invoke-Promotion `
+            -ReleaseGatesConfirmed $true `
+            -Destination $staleOutput
+    }
+    catch {
+        if ($_.Exception.Message -like 'Promotion output directory must be empty:*') {
+            $staleOutputRejected = $true
+        }
+        else {
+            throw
+        }
+    }
+    if (-not $staleOutputRejected) {
+        throw 'Promotion helper accepted a non-empty destination that could leak stale release artifacts.'
+    }
+
     Invoke-Promotion -ReleaseGatesConfirmed $true -Destination $outputRoot
 
     $releaseManifestPath = Join-Path $outputRoot 'Toren-IDE-release-manifest.json'
