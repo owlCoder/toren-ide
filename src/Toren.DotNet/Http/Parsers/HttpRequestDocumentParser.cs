@@ -127,7 +127,7 @@ public sealed class HttpRequestDocumentParser : IHttpRequestDocumentParser
                 continue;
             }
 
-            var colonIndex = line.IndexOf(':', StringComparison.Ordinal);
+            var colonIndex = line.IndexOf(':');
             if (colonIndex <= 0)
             {
                 return Result.Failure<HttpRequestDefinition>(
