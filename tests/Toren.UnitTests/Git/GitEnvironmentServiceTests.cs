@@ -9,6 +9,8 @@ namespace Toren.UnitTests.Git;
 [TestFixture]
 public sealed class GitEnvironmentServiceTests
 {
+    private static readonly string[] VersionArguments = ["--version"];
+
     [Test]
     public async Task GetVersionUsesStandardGitVersionCommand()
     {
@@ -23,7 +25,7 @@ public sealed class GitEnvironmentServiceTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Value, Is.EqualTo("git version 2.51.0"));
             Assert.That(runner.Request.FileName, Is.EqualTo("git"));
-            Assert.That(runner.Request.Arguments, Is.EqualTo(new[] { "--version" }));
+            Assert.That(runner.Request.Arguments, Is.EqualTo(VersionArguments));
         });
     }
 
