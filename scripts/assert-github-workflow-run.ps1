@@ -9,7 +9,6 @@ param(
     [Parameter(Mandatory)]
     [string] $ExpectedWorkflowName,
 
-    [Parameter(Mandatory)]
     [string] $ExpectedWorkflowPath,
 
     [Parameter(Mandatory)]
@@ -33,6 +32,15 @@ if ($ExpectedRepository -notmatch '^[^/]+/[^/]+$') {
 }
 if ([string]::IsNullOrWhiteSpace($ExpectedWorkflowName)) {
     throw 'Expected workflow name is required.'
+}
+if ([string]::IsNullOrWhiteSpace($ExpectedWorkflowPath)) {
+    $ExpectedWorkflowPath = switch ($ExpectedWorkflowName) {
+        'Package' { '.github/workflows/package.yml' }
+        'Signed macOS Package' { '.github/workflows/signed-macos-package.yml' }
+        'Publish Release' { '.github/workflows/publish-release.yml' }
+        'Release Validation' { '.github/workflows/release-validation.yml' }
+        default { throw "Expected workflow path is required for unknown workflow '$ExpectedWorkflowName'." }
+    }
 }
 if ($ExpectedWorkflowPath -notmatch '^\.github/workflows/[^/]+\.(?:yml|yaml)$') {
     throw "Expected workflow path '$ExpectedWorkflowPath' is invalid."
