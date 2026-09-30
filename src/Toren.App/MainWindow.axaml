@@ -82,7 +82,7 @@
       </Grid>
     </Border>
 
-    <!-- IDE command bar: editor actions work now; build/run controls are wired by the M3 execution controller. -->
+    <!-- IDE command bar: editor actions plus runtime-wired build/run controls. -->
     <Border Grid.Row="1" Grid.ColumnSpan="3" Height="36" Classes="command-bar"
             BorderThickness="0,0,0,1">
       <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*,Auto">
@@ -111,58 +111,65 @@
           </Button>
           <Border Width="1" Height="18" Margin="5,0"
                   Background="{DynamicResource TorenBorderBrush}" />
-          <ComboBox Classes="command-select" Width="96" SelectedIndex="0" IsEnabled="False"
-                    ToolTip.Tip="Build configurations arrive with M3" ToolTip.ShowOnDisabled="True"
-                    AutomationProperties.Name="Build configuration, coming in M3">
+          <ComboBox x:Name="BuildConfigurationSelector" Classes="command-select" Width="96"
+                    SelectedIndex="0" IsEnabled="False"
+                    ToolTip.Tip="Build configuration" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Build configuration">
             <ComboBoxItem Content="Debug" />
             <ComboBoxItem Content="Release" />
           </ComboBox>
-          <ComboBox Classes="command-select" Width="190" SelectedIndex="-1" IsEnabled="False"
+          <ComboBox x:Name="StartupProjectSelector" Classes="command-select" Width="190"
+                    SelectedIndex="-1" IsEnabled="False"
                     ToolTip.Tip="Startup project" ToolTip.ShowOnDisabled="True"
                     AutomationProperties.Name="Startup project" />
-          <Button Classes="command-button run" IsEnabled="False"
-                  ToolTip.Tip="Build and run arrives with M3" ToolTip.ShowOnDisabled="True"
-                  AutomationProperties.Name="Run, coming in M3">
+          <Button x:Name="RunStartupProjectButton" Classes="command-button run" IsEnabled="False"
+                  ToolTip.Tip="Run selected startup project (F5)" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="Run selected startup project">
             <Path Width="16" Height="16" Stretch="Uniform"
                   Fill="{DynamicResource TorenSuccessBrush}"
                   Data="M8,5V19L19,12L8,5Z" />
           </Button>
         </StackPanel>
-        <TextBlock Grid.Column="2" Classes="subtle" Text="Build / Run · M3"
+        <TextBlock x:Name="ExecutionStatusText" Grid.Column="2" Classes="subtle"
+                   Text="Open a workspace to build or run"
                    FontSize="10.5" VerticalAlignment="Center" />
       </Grid>
     </Border>
 
-    <!-- Activity bar: one 24-unit filled icon family within consistent 48 px targets. -->
+    <!-- Activity bar: keyboard reachable 48 px targets with runtime-wired tools. -->
     <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
             Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
             BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-        <Button Grid.Row="0" Classes="activity-button active" ToolTip.Tip="Explorer"
-                AutomationProperties.Name="Explorer" IsTabStop="False">
+        <Button x:Name="ExplorerActivityButton" Grid.Row="0" Classes="activity-button active"
+                ToolTip.Tip="Explorer" AutomationProperties.Name="Explorer">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconExplorer}" />
         </Button>
-        <Button Grid.Row="1" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Source control — coming in MVP 1.0" AutomationProperties.Name="Source control, coming in MVP 1.0">
+        <Button x:Name="SourceControlActivityButton" Grid.Row="1" Classes="activity-button"
+                IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Source Control" AutomationProperties.Name="Source Control">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconSourceControl}" />
         </Button>
-        <Button Grid.Row="2" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Tests — coming in MVP 1.0" AutomationProperties.Name="Tests, coming in MVP 1.0">
+        <Button x:Name="TestsActivityButton" Grid.Row="2" Classes="activity-button"
+                IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Tests" AutomationProperties.Name="Tests">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconTests}" />
         </Button>
-        <Button Grid.Row="3" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Debug — coming in MVP 1.0" AutomationProperties.Name="Debug, coming in MVP 1.0">
+        <Button x:Name="DebugActivityButton" Grid.Row="3" Classes="activity-button"
+                IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Debug" AutomationProperties.Name="Debug">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconDebug}" />
         </Button>
-        <Button Grid.Row="5" Classes="activity-button" IsEnabled="False" ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Settings — coming in MVP 1.0" AutomationProperties.Name="Settings, coming in MVP 1.0">
+        <Button x:Name="SettingsActivityButton" Grid.Row="5" Classes="activity-button"
+                IsEnabled="False" ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Settings" AutomationProperties.Name="Settings">
           <Path Classes="shell-icon" Data="{StaticResource TorenIconSettings}" />
         </Button>
       </Grid>
     </Border>
 
     <!-- Explorer: workspace nodes are loaded as they are expanded. -->
-    <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
+    <Border x:Name="ExplorerPanel" Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
             Width="{StaticResource TorenExplorerWidth}" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
@@ -299,15 +306,15 @@
                 </Button>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <Button Classes="toolbar-button planned-action" IsEnabled="False"
-                          AutomationProperties.Name="New Project, coming in MVP 1.0"
+                          AutomationProperties.Name="New Project, planned"
                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                          ToolTip.Tip="Coming in MVP 1.0" ToolTip.ShowOnDisabled="True">
+                          ToolTip.Tip="Planned after the current MVP release scope" ToolTip.ShowOnDisabled="True">
                     <StackPanel Classes="action-content">
                       <Path Classes="shell-icon" Data="{StaticResource TorenIconNew}" />
                       <TextBlock Text="New Project" />
                     </StackPanel>
                   </Button>
-                  <TextBlock Grid.Column="1" Classes="subtle" Text="MVP 1.0"
+                  <TextBlock Grid.Column="1" Classes="subtle" Text="Planned"
                              FontSize="11" VerticalAlignment="Center" />
                 </Grid>
               </StackPanel>
@@ -366,14 +373,15 @@
                 </Button>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <Button Classes="link-button planned-action" IsEnabled="False"
-                          AutomationProperties.Name="Keyboard shortcuts, coming in MVP 1.0"
-                          ToolTip.Tip="Coming in MVP 1.0" ToolTip.ShowOnDisabled="True">
+                          AutomationProperties.Name="Keyboard shortcut reference, planned"
+                          ToolTip.Tip="Shortcut remapping is available in Settings; a dedicated reference view is planned"
+                          ToolTip.ShowOnDisabled="True">
                     <StackPanel Classes="action-content">
                       <Path Classes="shell-icon" Data="{StaticResource TorenIconKeyboard}" />
-                      <TextBlock Text="Keyboard shortcuts" />
+                      <TextBlock Text="Keyboard shortcut reference" />
                     </StackPanel>
                   </Button>
-                  <TextBlock Grid.Column="1" Classes="subtle" Text="MVP 1.0"
+                  <TextBlock Grid.Column="1" Classes="subtle" Text="Planned"
                              FontSize="11" VerticalAlignment="Center" />
                 </Grid>
               </StackPanel>
@@ -409,7 +417,7 @@
       </Grid>
     </Grid>
 
-    <!-- Tool window: TabControl supplies keyboard selection and future badge room. -->
+    <!-- Tool window: TabControl supplies keyboard selection and runtime tool content. -->
     <Border Grid.Row="3" Grid.Column="2" Height="{StaticResource TorenToolWindowHeight}"
             Classes="shell-surface" BorderThickness="0,1,0,0">
       <Grid RowDefinitions="4,*">
@@ -418,7 +426,7 @@
                   Background="{DynamicResource TorenBorderStrongBrush}"
                   HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
-        <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
+        <TabControl x:Name="ToolTabs" Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="6">
@@ -428,7 +436,7 @@
             </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="No problems to show" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="Diagnostics will appear here when project analysis is available." FontSize="11" />
+              <TextBlock Classes="muted" Text="Project, build, and editor diagnostics appear here." FontSize="11" />
             </StackPanel>
           </TabItem>
           <TabItem>
@@ -440,7 +448,7 @@
             </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
               <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="Build and tool output will appear here when those capabilities are available." FontSize="11" />
+              <TextBlock Classes="muted" Text="Build, run, restore, and tool output appears here." FontSize="11" />
             </StackPanel>
           </TabItem>
           <TabItem>
@@ -451,8 +459,8 @@
               </StackPanel>
             </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
-              <TextBlock Text="Terminal is coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="The integrated shell is not available yet." FontSize="11" />
+              <TextBlock Text="Integrated terminal" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="Start or select a shell session to work in the current workspace." FontSize="11" />
             </StackPanel>
           </TabItem>
           <TabItem>
@@ -463,8 +471,8 @@
               </StackPanel>
             </TabItem.Header>
             <StackPanel Margin="17,14" Spacing="6">
-              <TextBlock Text="Tests are coming in MVP 1.0" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="Test discovery and results are not available yet." FontSize="11" />
+              <TextBlock Text="No test results yet" FontWeight="SemiBold" FontSize="12" />
+              <TextBlock Classes="muted" Text="Run tests from Test Explorer to see discovery and execution results." FontSize="11" />
             </StackPanel>
           </TabItem>
         </TabControl>

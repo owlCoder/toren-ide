@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.LogicalTree;
 using Toren.App.Execution.Contracts;
 using Toren.App.Execution.ViewModels;
 using Toren.App.ViewModels;
@@ -77,9 +76,7 @@ internal sealed class WorkspaceExecutionController
 
     private void InstallOutputPanel()
     {
-        var toolTabs = _window.GetLogicalDescendants()
-            .OfType<TabControl>()
-            .FirstOrDefault(control => control.Classes.Contains("tool-tabs"));
+        var toolTabs = _window.FindControl<TabControl>("ToolTabs");
         var outputTab = toolTabs?.Items.OfType<TabItem>().Skip(1).FirstOrDefault();
         if (outputTab is null)
         {
@@ -94,44 +91,31 @@ internal sealed class WorkspaceExecutionController
 
     private void InstallCommandBar()
     {
-        var commandBar = _window.GetLogicalDescendants()
-            .OfType<Border>()
-            .FirstOrDefault(control => control.Classes.Contains("command-bar"));
-        if (commandBar is null)
+        _configurationSelector = _window.FindControl<ComboBox>("BuildConfigurationSelector");
+        _runTargetSelector = _window.FindControl<ComboBox>("StartupProjectSelector");
+        _runButton = _window.FindControl<Button>("RunStartupProjectButton");
+        _commandStatus = _window.FindControl<TextBlock>("ExecutionStatusText");
+
+        if (_configurationSelector is not null)
         {
-            return;
+            _configurationSelector.SelectionChanged += ConfigurationSelector_OnSelectionChanged;
+            ToolTip.SetTip(_configurationSelector, "Build configuration");
+            AutomationProperties.SetName(_configurationSelector, "Build configuration");
         }
 
-        var selectors = commandBar.GetLogicalDescendants()
-            .OfType<ComboBox>()
-            .Where(control => control.Classes.Contains("command-select"))
-            .Take(2)
-            .ToArray();
-        if (selectors.Length == 2)
+        if (_runTargetSelector is not null)
         {
-            _configurationSelector = selectors[0];
-            _runTargetSelector = selectors[1];
-            _configurationSelector.SelectionChanged += ConfigurationSelector_OnSelectionChanged;
             _runTargetSelector.SelectionChanged += RunTargetSelector_OnSelectionChanged;
-            ToolTip.SetTip(_configurationSelector, "Build configuration");
             ToolTip.SetTip(_runTargetSelector, "Startup project");
-            AutomationProperties.SetName(_configurationSelector, "Build configuration");
             AutomationProperties.SetName(_runTargetSelector, "Startup project");
         }
 
-        _runButton = commandBar.GetLogicalDescendants()
-            .OfType<Button>()
-            .FirstOrDefault(control => control.Classes.Contains("run"));
         if (_runButton is not null)
         {
             _runButton.Click += RunButton_OnClick;
             ToolTip.SetTip(_runButton, "Run selected startup project (F5)");
             AutomationProperties.SetName(_runButton, "Run selected startup project");
         }
-
-        _commandStatus = commandBar.GetLogicalDescendants()
-            .OfType<TextBlock>()
-            .FirstOrDefault(control => string.Equals(control.Text, "Build / Run · M3", StringComparison.Ordinal));
 
         UpdateCommandBarState();
     }
