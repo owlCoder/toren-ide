@@ -3,6 +3,8 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Toren.App.AspNetCore.Services;
 using Toren.App.AspNetCore.ViewModels;
+using Toren.App.DataTools.Services;
+using Toren.App.DataTools.ViewModels;
 using Toren.App.Debugging.Services;
 using Toren.App.Debugging.ViewModels;
 using Toren.App.Diagnostics.Contracts;
@@ -25,6 +27,8 @@ using Toren.App.Testing.Services;
 using Toren.App.Testing.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views;
+using Toren.Containers.Contracts;
+using Toren.Containers.Services;
 using Toren.Core.Execution.Contracts;
 using Toren.Core.Navigation.Contracts;
 using Toren.Debugging.Adapters;
@@ -32,6 +36,8 @@ using Toren.Debugging.Contracts;
 using Toren.Debugging.Services;
 using Toren.DotNet.AspNetCore.Contracts;
 using Toren.DotNet.AspNetCore.Services;
+using Toren.DotNet.EntityFramework.Contracts;
+using Toren.DotNet.EntityFramework.Services;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Services;
 using Toren.DotNet.Execution.Adapters;
@@ -85,6 +91,9 @@ public sealed partial class App : Application
             IDotNetLaunchProfileProvider dotNetLaunchProfileProvider = new FileDotNetLaunchProfileProvider();
             IDotNetPackageService dotNetPackageService = new DotNetPackageService(processRunner);
             IDotNetUserSecretsService dotNetUserSecretsService = new DotNetUserSecretsService(processRunner);
+            IEfCoreToolService efCoreToolService = new EfCoreToolService(processRunner);
+            IDockerComposeService dockerComposeService = new DockerComposeService(processRunner);
+            IDockerComposeFileLocator dockerComposeFileLocator = new FileSystemDockerComposeFileLocator();
             IHttpsDevelopmentCertificateService httpsDevelopmentCertificateService =
                 new HttpsDevelopmentCertificateService(processRunner);
             IAspNetApiShortcutResolver aspNetApiShortcutResolver = new AspNetApiShortcutResolver();
@@ -269,6 +278,14 @@ public sealed partial class App : Application
                     httpsDevelopmentCertificateService,
                     aspNetApiShortcutResolver,
                     externalUriLauncher));
+            DataToolsController.Attach(
+                mainWindow,
+                viewModel,
+                workspaceExecution,
+                new DataToolsViewModel(
+                    efCoreToolService,
+                    dockerComposeService,
+                    dockerComposeFileLocator));
             WorkspaceRunBrowserController.Attach(
                 mainWindow,
                 workspaceExecution,
