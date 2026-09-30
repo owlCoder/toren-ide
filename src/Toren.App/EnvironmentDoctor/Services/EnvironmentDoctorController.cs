@@ -29,7 +29,7 @@ internal sealed class EnvironmentDoctorController
         _toolTabs = toolTabs;
         _doctorTab = new TabItem
         {
-            Header = "DOCTOR",
+            Header = "Doctor",
             Content = new EnvironmentDoctorPanel { DataContext = viewModel },
         };
         _toolTabs.Items.Add(_doctorTab);

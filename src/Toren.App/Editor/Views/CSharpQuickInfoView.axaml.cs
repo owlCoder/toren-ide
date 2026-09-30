@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Editor.Views;
@@ -22,10 +21,5 @@ internal sealed partial class CSharpQuickInfoView : UserControl
             : symbol.Definition is { } sourceDefinition
                 ? $"Ln {sourceDefinition.Line}"
                 : "Metadata / external symbol";
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 }

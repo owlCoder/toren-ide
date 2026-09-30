@@ -10,9 +10,9 @@
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <StackPanel Grid.Column="0" Spacing="2">
-          <TextBlock Text="SOURCE CONTROL" FontSize="10" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding BranchText}" FontSize="10.5" TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5"
+          <TextBlock Text="SOURCE CONTROL" FontSize="11" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding BranchText}" FontSize="11" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11"
                      TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
@@ -22,47 +22,47 @@
 
     <Border Grid.Row="1" Padding="8,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <StackPanel Orientation="Horizontal" Spacing="6">
-          <ComboBox Width="170" ItemsSource="{Binding Branches}"
-                    SelectedIndex="{Binding SelectedBranchIndex, Mode=TwoWay}"
-                    ToolTip.Tip="Local branch">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="git:GitBranchInfo">
-                <TextBlock Text="{Binding Name}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-          <Button Classes="toolbar-button" Content="Switch"
-                  Click="SwitchBranch_OnClick" IsEnabled="{Binding CanSwitchBranch}" />
-          <Button Classes="toolbar-button" Content="Merge"
-                  Click="MergeBranch_OnClick" IsEnabled="{Binding CanMerge}"
-                  ToolTip.Tip="Merge selected branch into the current branch" />
-          <Button Classes="toolbar-button" Content="Abort Merge"
-                  Click="AbortMerge_OnClick" IsEnabled="{Binding CanAbortMerge}" />
-          <TextBox Width="150" Text="{Binding NewBranchName, Mode=TwoWay}"
-                   PlaceholderText="New branch" />
-          <Button Classes="toolbar-button" Content="New"
+      <WrapPanel Classes="tool-actions">
+        <ComboBox Width="170" ItemsSource="{Binding Branches}"
+                  SelectedIndex="{Binding SelectedBranchIndex, Mode=TwoWay}"
+                  ToolTip.Tip="Local branch">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="git:GitBranchInfo">
+              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Classes="toolbar-button" Content="Switch"
+                Click="SwitchBranch_OnClick" IsEnabled="{Binding CanSwitchBranch}" />
+        <Button Classes="toolbar-button" Content="Merge"
+                Click="MergeBranch_OnClick" IsEnabled="{Binding CanMerge}"
+                ToolTip.Tip="Merge selected branch into the current branch" />
+        <Button Classes="toolbar-button" Content="Abort Merge"
+                Click="AbortMerge_OnClick" IsEnabled="{Binding CanAbortMerge}" />
+        <Grid Width="210" ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,0,6,4">
+          <TextBox Text="{Binding NewBranchName, Mode=TwoWay}"
+                   PlaceholderText="New branch" AutomationProperties.Name="New branch name" />
+          <Button Grid.Column="1" Classes="toolbar-button" Content="New"
                   Click="CreateBranch_OnClick" IsEnabled="{Binding CanCreateBranch}" />
-          <Button Classes="toolbar-button" Content="Fetch"
-                  Click="Fetch_OnClick" IsEnabled="{Binding CanSync}" />
-          <Button Classes="toolbar-button" Content="Pull"
-                  Click="Pull_OnClick" IsEnabled="{Binding CanSync}" />
-          <Button Classes="toolbar-button" Content="Push"
-                  Click="Push_OnClick" IsEnabled="{Binding CanSync}" />
-          <Button Classes="toolbar-button" Content="Stash"
-                  Click="Stash_OnClick" IsEnabled="{Binding CanStash}" />
-          <Button Classes="toolbar-button" Content="Pop Stash"
-                  Click="PopStash_OnClick" IsEnabled="{Binding CanPopStash}" />
-        </StackPanel>
-      </ScrollViewer>
+        </Grid>
+        <Button Classes="toolbar-button" Content="Fetch"
+                Click="Fetch_OnClick" IsEnabled="{Binding CanSync}" />
+        <Button Classes="toolbar-button" Content="Pull"
+                Click="Pull_OnClick" IsEnabled="{Binding CanSync}" />
+        <Button Classes="toolbar-button" Content="Push"
+                Click="Push_OnClick" IsEnabled="{Binding CanSync}" />
+        <Button Classes="toolbar-button" Content="Stash"
+                Click="Stash_OnClick" IsEnabled="{Binding CanStash}" />
+        <Button Classes="toolbar-button" Content="Pop Stash"
+                Click="PopStash_OnClick" IsEnabled="{Binding CanPopStash}" />
+      </WrapPanel>
     </Border>
 
     <Border Grid.Row="2" Padding="8,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
         <TextBox Grid.Column="0" Text="{Binding CommitMessage, Mode=TwoWay}"
-                 PlaceholderText="Commit message" FontSize="10.5" />
+                 PlaceholderText="Commit message" FontSize="11" />
         <Button Grid.Column="1" Classes="toolbar-button" Content="Stage"
                 Click="Stage_OnClick" IsEnabled="{Binding CanStageSelected}"
                 ToolTip.Tip="Stage selected change; conflicted files are marked resolved after you edit them" />
@@ -83,10 +83,10 @@
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="scvm:SourceControlChangeViewModel">
               <Grid Margin="8,4" ColumnDefinitions="30,*" ColumnSpacing="7">
-                <TextBlock Grid.Column="0" Text="{Binding StatusText}" FontSize="10"
+                <TextBlock Grid.Column="0" Text="{Binding StatusText}" FontSize="11"
                            FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                            VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" FontSize="10.5"
+                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" FontSize="11"
                            TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayPath}" />
               </Grid>
             </DataTemplate>
@@ -99,7 +99,7 @@
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                ScrollViewer.VerticalScrollBarVisibility="Auto"
                BorderThickness="0" Padding="10"
-               FontSize="10.5" FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
+               FontSize="11" FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
     </Grid>
   </Grid>
 </UserControl>

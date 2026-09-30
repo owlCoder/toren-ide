@@ -3,13 +3,14 @@
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:workspaceModels="clr-namespace:Toren.Workspaces.Models;assembly=Toren.Workspaces"
-             HorizontalAlignment="Center"
+             HorizontalAlignment="Stretch"
              VerticalAlignment="Top"
-             Margin="0,18,0,0"
+             Margin="12,18,12,12"
+             MaxWidth="560"
              IsVisible="False">
   <UserControl.Styles>
     <Style Selector="Border.quick-open-card">
-      <Setter Property="Width" Value="560" />
+      <Setter Property="MaxWidth" Value="560" />
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
@@ -41,20 +42,20 @@
   </UserControl.Styles>
 
   <Border Classes="quick-open-card">
-    <StackPanel Spacing="7">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="7">
       <TextBox x:Name="QueryBox"
                Classes="quick-open-input"
                PlaceholderText="Go to File"
                TextChanged="QueryBox_OnTextChanged"
                KeyDown="QueryBox_OnKeyDown" />
 
-      <TextBlock x:Name="StatusText"
+      <TextBlock Grid.Row="1" x:Name="StatusText"
                  Text="Type to filter workspace files"
                  FontSize="10.5"
                  Foreground="{DynamicResource TorenTextSubtleBrush}"
                  Margin="2,0" />
 
-      <ListBox x:Name="ResultsList"
+      <ListBox Grid.Row="2" x:Name="ResultsList"
                Classes="quick-open-results"
                DoubleTapped="ResultsList_OnDoubleTapped">
         <ListBox.ItemTemplate>
@@ -83,6 +84,6 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
-    </StackPanel>
+    </Grid>
   </Border>
 </UserControl>

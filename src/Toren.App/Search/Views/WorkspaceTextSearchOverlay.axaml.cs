@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using Toren.App.Search.Models;
 
 namespace Toren.App.Search.Views;
@@ -62,11 +61,6 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         StatusText.Text = status;
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     private void QueryBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)

@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 
 namespace Toren.App.Editor.Views;
 
@@ -92,11 +91,6 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         InputBox.Text = initialQuery;
         InputBox.Focus();
         InputBox.SelectAll();
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     private void InputBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)

@@ -6,47 +6,49 @@
              xmlns:execvm="clr-namespace:Toren.App.Execution.ViewModels"
              xmlns:execmodels="clr-namespace:Toren.App.Execution.Models"
              xmlns:dotnetmodels="clr-namespace:Toren.DotNet.Execution.Models;assembly=Toren.DotNet">
-  <Grid RowDefinitions="Auto,*">
+  <Grid RowDefinitions="Auto,*,Auto">
     <Border Grid.Row="0"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1"
             Padding="10,5">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="7">
-        <ComboBox Grid.Column="0" Width="92"
-                  SelectedIndex="{Binding ConfigurationIndex}"
-                  IsEnabled="{Binding CanExecute}"
-                  ToolTip.Tip="Build configuration">
-          <ComboBoxItem Content="Debug" />
-          <ComboBoxItem Content="Release" />
-        </ComboBox>
-        <ComboBox Grid.Column="1" Width="170"
-                  ItemsSource="{Binding RunTargets}"
-                  SelectedIndex="{Binding SelectedRunTargetIndex}"
-                  IsEnabled="{Binding CanExecute}"
-                  ToolTip.Tip="Startup project">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="execmodels:WorkspaceExecutionTarget">
-              <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <ComboBox Grid.Column="2" Width="105"
-                  ItemsSource="{Binding TargetFrameworks}"
-                  SelectedIndex="{Binding SelectedTargetFrameworkIndex}"
-                  IsEnabled="{Binding CanExecute}"
-                  ToolTip.Tip="Target framework" />
-        <ComboBox Grid.Column="3" Width="130"
-                  ItemsSource="{Binding LaunchProfiles}"
-                  SelectedIndex="{Binding SelectedLaunchProfileIndex}"
-                  IsEnabled="{Binding CanExecute}"
-                  ToolTip.Tip="Launch profile">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="dotnetmodels:DotNetLaunchProfile">
-              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+      <StackPanel Spacing="2">
+        <WrapPanel Classes="tool-actions">
+          <ComboBox Width="92"
+                    SelectedIndex="{Binding ConfigurationIndex}"
+                    IsEnabled="{Binding CanExecute}"
+                    ToolTip.Tip="Build configuration">
+            <ComboBoxItem Content="Debug" />
+            <ComboBoxItem Content="Release" />
+          </ComboBox>
+          <ComboBox Width="170"
+                    ItemsSource="{Binding RunTargets}"
+                    SelectedIndex="{Binding SelectedRunTargetIndex}"
+                    IsEnabled="{Binding CanExecute}"
+                    ToolTip.Tip="Startup project">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="execmodels:WorkspaceExecutionTarget">
+                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <ComboBox Width="105"
+                    ItemsSource="{Binding TargetFrameworks}"
+                    SelectedIndex="{Binding SelectedTargetFrameworkIndex}"
+                    IsEnabled="{Binding CanExecute}"
+                    ToolTip.Tip="Target framework" />
+          <ComboBox Width="130"
+                    ItemsSource="{Binding LaunchProfiles}"
+                    SelectedIndex="{Binding SelectedLaunchProfileIndex}"
+                    IsEnabled="{Binding CanExecute}"
+                    ToolTip.Tip="Launch profile">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="dotnetmodels:DotNetLaunchProfile">
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </WrapPanel>
+        <WrapPanel Classes="tool-actions">
           <Button Classes="toolbar-button" Content="Restore" Click="Restore_OnClick"
                   IsEnabled="{Binding CanExecute}" />
           <Button Classes="toolbar-button" Content="Build" Click="Build_OnClick"
@@ -59,22 +61,19 @@
                   IsEnabled="{Binding CanExecute}" />
           <Button Classes="toolbar-button" Content="Run" Click="Run_OnClick"
                   IsEnabled="{Binding CanRun}" />
-        </StackPanel>
-        <TextBlock Grid.Column="5" Classes="subtle" Text="{Binding StatusText}"
-                   FontSize="10.5" VerticalAlignment="Center"
-                   TextTrimming="CharacterEllipsis" />
-        <Button Grid.Column="6" Classes="toolbar-button" Content="Cancel" Click="Cancel_OnClick"
-                IsEnabled="{Binding CanCancel}" />
-        <Button Grid.Column="7" Classes="toolbar-button" Content="Clear" Click="Clear_OnClick"
-                IsEnabled="{Binding HasOutput}" />
-      </Grid>
+          <Button Classes="toolbar-button" Content="Cancel" Click="Cancel_OnClick"
+                  IsEnabled="{Binding CanCancel}" />
+          <Button Classes="toolbar-button" Content="Clear" Click="Clear_OnClick"
+                  IsEnabled="{Binding HasOutput}" />
+        </WrapPanel>
+      </StackPanel>
     </Border>
 
     <Grid Grid.Row="1">
       <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding IsOutputEmpty}">
         <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
         <TextBlock Classes="muted" Text="Run a .NET command to see live CLI output. F5 runs the selected startup project; Shift+F5 cancels."
-                   FontSize="11" />
+                   FontSize="11" TextWrapping="Wrap" />
       </StackPanel>
 
       <ListBox ItemsSource="{Binding OutputLines}"
@@ -107,5 +106,8 @@
         </ListBox.ItemTemplate>
       </ListBox>
     </Grid>
+    <TextBlock Grid.Row="2" Classes="subtle" Text="{Binding StatusText}"
+               Margin="12,4" FontSize="11" TextTrimming="CharacterEllipsis"
+               ToolTip.Tip="{Binding StatusText}" />
   </Grid>
 </UserControl>

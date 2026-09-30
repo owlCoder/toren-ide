@@ -33,7 +33,7 @@ internal sealed class DataToolsController
         _toolTabs = toolTabs;
         _dataTab = new TabItem
         {
-            Header = "DATA",
+            Header = "Data",
             Content = new DataToolsPanel { DataContext = viewModel },
         };
         _toolTabs.Items.Add(_dataTab);

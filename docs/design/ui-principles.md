@@ -32,12 +32,14 @@ Activity | Primary side bar | Editor / documents
 bar      |                  |
          |                  |
 ----------------------------------------------------
-Bottom panel: Problems / Output / Terminal / Tests
+Bottom panel: Problems / Output / Terminal / tool tabs
 ----------------------------------------------------
 Status bar
 ```
 
 Optional contextual secondary panes may appear on the right, but permanent screen space should not be consumed by information that can live in the status bar, tool window, or command palette.
+
+Test Explorer replaces the primary sidebar through the Tests activity button. Sidebar and bottom-panel splitters support pointer dragging and keyboard resizing. Tool headers scroll horizontally when needed, and selecting a tool brings its tab into view.
 
 ## Visual language
 

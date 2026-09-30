@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using Toren.App.Settings.Contracts;
@@ -46,7 +47,7 @@ internal sealed class ApplicationSettingsController
         _settingsPanel = new ApplicationSettingsPanel { DataContext = viewModel };
         _settingsTab = new TabItem
         {
-            Header = "SETTINGS",
+            Header = "Settings",
             Content = _settingsPanel,
         };
         AutomationProperties.SetName(_settingsTab, "Settings tool tab");
@@ -68,6 +69,7 @@ internal sealed class ApplicationSettingsController
         _window.KeyDown += Window_OnKeyDown;
         _window.Opened += Window_OnOpened;
         _window.Closed += Window_OnClosed;
+        _window.ActualThemeVariantChanged += Window_OnActualThemeVariantChanged;
     }
 
     public static void Attach(
@@ -177,6 +179,21 @@ internal sealed class ApplicationSettingsController
         _editor.WordWrap = settings.EffectiveWordWrap;
     }
 
+    private void Window_OnActualThemeVariantChanged(object? sender, EventArgs eventArgs)
+    {
+        var wasLoading = _loading;
+        _loading = true;
+        try
+        {
+            // The status-bar toggle applies and saves the theme independently of this panel.
+            _viewModel.ThemeIndex = _window.ActualThemeVariant == ThemeVariant.Light ? 1 : 0;
+        }
+        finally
+        {
+            _loading = wasLoading;
+        }
+    }
+
     private void QueueSave(ApplicationSettings settings)
     {
         CancelSave();
@@ -245,6 +262,7 @@ internal sealed class ApplicationSettingsController
         _window.KeyDown -= Window_OnKeyDown;
         _window.Opened -= Window_OnOpened;
         _window.Closed -= Window_OnClosed;
+        _window.ActualThemeVariantChanged -= Window_OnActualThemeVariantChanged;
         if (_settingsButton is not null)
         {
             _settingsButton.Click -= SettingsButton_OnClick;

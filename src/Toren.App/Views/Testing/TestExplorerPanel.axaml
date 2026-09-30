@@ -13,9 +13,10 @@
             Padding="10,7">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <StackPanel Grid.Column="0" Spacing="2">
-          <TextBlock Text="TEST EXPLORER" FontSize="10" FontWeight="SemiBold" />
+          <TextBlock Text="TEST EXPLORER" FontSize="11" FontWeight="SemiBold" />
           <TextBlock Classes="muted" Text="{Binding StatusText}"
-                     FontSize="10.5" TextTrimming="CharacterEllipsis" />
+                     FontSize="11" TextWrapping="Wrap" MaxLines="3"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
         </StackPanel>
         <Button x:Name="RefreshTestsButton" Grid.Column="1"
                 Classes="toolbar-button" Content="Refresh"
@@ -27,7 +28,7 @@
     <Border Grid.Row="1" Padding="10,5"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1">
-      <StackPanel Orientation="Horizontal" Spacing="5">
+      <WrapPanel Classes="tool-actions">
         <Button Classes="toolbar-button" Content="Run All"
                 Click="RunAll_OnClick" IsEnabled="{Binding CanRunAll}" />
         <Button Classes="toolbar-button" Content="Rerun Failed Projects"
@@ -37,7 +38,7 @@
                 Click="Stop_OnClick" IsEnabled="{Binding CanStop}" />
         <Button Classes="toolbar-button" Content="Clear Output"
                 Click="ClearOutput_OnClick" IsEnabled="{Binding HasOutput}" />
-      </StackPanel>
+      </WrapPanel>
     </Border>
 
     <Grid Grid.Row="2" RowDefinitions="*,Auto">
@@ -50,7 +51,7 @@
         <StackPanel Margin="12" Spacing="5" IsVisible="{Binding IsEmpty}">
           <TextBlock Text="No tests discovered" FontWeight="SemiBold" FontSize="11.5" />
           <TextBlock Classes="muted" Text="Open a workspace with a test project, then refresh discovery."
-                     FontSize="10.5" TextWrapping="Wrap" />
+                     FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
 
         <ScrollViewer IsVisible="{Binding HasProjects}">
@@ -63,26 +64,26 @@
                                FontWeight="SemiBold" FontSize="11"
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="1" Classes="muted"
-                               Text="{Binding Tests.Count}" FontSize="10" />
+                               Text="{Binding Tests.Count}" FontSize="11" />
                   </Grid>
                   <TextBlock Text="{Binding ErrorMessage}"
                              Foreground="{DynamicResource TorenErrorBrush}"
-                             FontSize="10" TextWrapping="Wrap" />
+                             FontSize="11" TextWrapping="Wrap" />
                   <ItemsControl ItemsSource="{Binding Tests}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="dotnettests:DotNetTestCase">
                         <Grid Margin="12,2,0,2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                           <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
-                                     FontSize="10.5"
+                                     FontSize="11"
                                      TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding FullyQualifiedName}" />
                           <Button Grid.Column="1" Classes="toolbar-button"
                                   Content="Run" Click="RunTest_OnClick"
-                                  Padding="6,1" FontSize="9.5" />
+                                  Padding="6,1" FontSize="11" />
                           <Button Grid.Column="2" Classes="toolbar-button"
                                   Content="Debug" Click="DebugTest_OnClick"
                                   ToolTip.Tip="Start the selected test and wait for debugger attach"
-                                  Padding="6,1" FontSize="9.5" />
+                                  Padding="6,1" FontSize="11" />
                         </Grid>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -104,11 +105,11 @@
               <Grid Margin="8,2">
                 <TextBlock Text="{Binding Text}" IsVisible="{Binding IsStandardOutput}"
                            FontFamily="Cascadia Code, Menlo, Consolas, monospace"
-                           FontSize="9.5" TextWrapping="NoWrap" />
+                           FontSize="11" TextWrapping="NoWrap" />
                 <TextBlock Text="{Binding Text}" IsVisible="{Binding IsStandardError}"
                            Foreground="{DynamicResource TorenErrorBrush}"
                            FontFamily="Cascadia Code, Menlo, Consolas, monospace"
-                           FontSize="9.5" TextWrapping="NoWrap" />
+                           FontSize="11" TextWrapping="NoWrap" />
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>

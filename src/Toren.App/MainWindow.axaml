@@ -12,7 +12,19 @@
     <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
+  <Grid x:Name="ShellGrid">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" MinHeight="240" />
+      <RowDefinition Height="320" MinHeight="300" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="270" MinWidth="240" MaxWidth="420" />
+      <ColumnDefinition Width="*" MinWidth="600" />
+    </Grid.ColumnDefinitions>
     <!-- Window chrome and global actions -->
     <Border Grid.Row="0" Grid.ColumnSpan="3" Height="{StaticResource TorenTitleBarHeight}"
             Classes="shell-surface title-bar" BorderThickness="0,0,0,1">
@@ -85,7 +97,7 @@
     <!-- IDE command bar: editor actions plus runtime-wired build/run controls. -->
     <Border Grid.Row="1" Grid.ColumnSpan="3" Height="36" Classes="command-bar"
             BorderThickness="0,0,0,1">
-      <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*,Auto">
+      <Grid Margin="8,0,12,0" ColumnDefinitions="Auto,*" ColumnSpacing="16">
         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <Button Classes="command-button" Click="SaveActiveDocument_OnClick"
                   IsEnabled="{Binding Documents.HasActiveDocument}"
@@ -130,8 +142,8 @@
                   Data="M8,5V19L19,12L8,5Z" />
           </Button>
         </StackPanel>
-        <TextBlock x:Name="ExecutionStatusText" Grid.Column="2" Classes="subtle"
-                   Text="Open a workspace to build or run"
+        <TextBlock x:Name="ExecutionStatusText" Grid.Column="1" HorizontalAlignment="Right" Classes="subtle"
+                   Text="Open a workspace to build or run" TextTrimming="CharacterEllipsis" MaxWidth="520"
                    FontSize="10.5" VerticalAlignment="Center" />
       </Grid>
     </Border>
@@ -169,8 +181,7 @@
     </Border>
 
     <!-- Explorer: workspace nodes are loaded as they are expanded. -->
-    <Border x:Name="ExplorerPanel" Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface"
-            Width="{StaticResource TorenExplorerWidth}" BorderThickness="0,0,1,0">
+    <Border x:Name="ExplorerPanel" Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Classes="shell-surface" BorderThickness="0,0,1,0">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
@@ -217,6 +228,12 @@
         </Border>
       </Grid>
     </Border>
+
+    <GridSplitter Grid.Row="2" Grid.RowSpan="2" Grid.Column="1" Width="5"
+                  HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                  ResizeDirection="Columns" ResizeBehavior="CurrentAndNext"
+                  Classes="shell-splitter" AutomationProperties.Name="Resize sidebar"
+                  ToolTip.Tip="Drag or use arrow keys to resize the sidebar" />
 
     <!-- Document host: real files open as tabs and are edited with AvaloniaEdit. -->
     <Grid Grid.Row="2" Grid.Column="2" RowDefinitions="Auto,*">
@@ -280,12 +297,12 @@
       </Border>
       <Grid Grid.Row="1" Background="{DynamicResource TorenBackgroundBrush}">
         <ScrollViewer IsVisible="{Binding IsWelcomeContentVisible}" HorizontalScrollBarVisibility="Disabled">
-          <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="48,48,48,32"
-                RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="28">
+          <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="32,24,32,16"
+                RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="20">
             <StackPanel Grid.Row="0" Spacing="8">
               <TextBlock Text="Toren IDE" FontSize="30" FontWeight="SemiBold" />
               <TextBlock Classes="muted" FontSize="14"
-                         Text="Modern .NET development without project lock-in." />
+                         Text="Modern .NET development without project lock-in." TextWrapping="Wrap" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="28">
               <StackPanel Grid.Column="0" Spacing="9">
@@ -331,15 +348,17 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <Button Classes="link-button" Click="OpenRecent_OnClick"
-                              HorizontalContentAlignment="Left" ToolTip.Tip="{Binding Path}">
-                        <StackPanel Classes="action-content">
-                          <Path Classes="shell-icon" Data="{StaticResource TorenIconRecent}" />
-                          <StackPanel Spacing="2">
-                            <TextBlock Text="{Binding DisplayName}" FontSize="12" />
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                              AutomationProperties.Name="{Binding DisplayName}" ToolTip.Tip="{Binding Path}">
+                        <Grid ColumnDefinitions="16,*" ColumnSpacing="8">
+                          <Path Classes="shell-icon" Width="16" Height="16" VerticalAlignment="Center"
+                                Data="{StaticResource TorenIconRecent}" />
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{Binding DisplayName}" FontSize="12" TextTrimming="CharacterEllipsis" />
                             <TextBlock Classes="subtle" Text="{Binding Path}" FontSize="11"
-                                       TextTrimming="CharacterEllipsis" MaxWidth="320" />
+                                       TextTrimming="CharacterEllipsis" />
                           </StackPanel>
-                        </StackPanel>
+                        </Grid>
                       </Button>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -378,7 +397,7 @@
                           ToolTip.ShowOnDisabled="True">
                     <StackPanel Classes="action-content">
                       <Path Classes="shell-icon" Data="{StaticResource TorenIconKeyboard}" />
-                      <TextBlock Text="Keyboard shortcut reference" />
+                      <TextBlock Text="Keyboard shortcuts" />
                     </StackPanel>
                   </Button>
                   <TextBlock Grid.Column="1" Classes="subtle" Text="Planned"
@@ -418,14 +437,9 @@
     </Grid>
 
     <!-- Tool window: TabControl supplies keyboard selection and runtime tool content. -->
-    <Border Grid.Row="3" Grid.Column="2" Height="{StaticResource TorenToolWindowHeight}"
+    <Border Grid.Row="3" Grid.Column="2"
             Classes="shell-surface" BorderThickness="0,1,0,0">
-      <Grid RowDefinitions="4,*">
-        <Border Height="4" Background="{DynamicResource TorenSurfaceRaisedBrush}">
-          <Border Width="42" Height="2" CornerRadius="1"
-                  Background="{DynamicResource TorenBorderStrongBrush}"
-                  HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </Border>
+      <Grid RowDefinitions="6,*">
         <TabControl x:Name="ToolTabs" Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
           <TabItem>
             <TabItem.Header>
@@ -451,45 +465,27 @@
               <TextBlock Classes="muted" Text="Build, run, restore, and tool output appears here." FontSize="11" />
             </StackPanel>
           </TabItem>
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Path Classes="shell-icon" Data="{StaticResource TorenIconTerminal}" Width="14" Height="14" />
-                <TextBlock Text="Terminal" VerticalAlignment="Center" />
-              </StackPanel>
-            </TabItem.Header>
-            <StackPanel Margin="17,14" Spacing="6">
-              <TextBlock Text="Integrated terminal" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="Start or select a shell session to work in the current workspace." FontSize="11" />
-            </StackPanel>
-          </TabItem>
-          <TabItem>
-            <TabItem.Header>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Path Classes="shell-icon" Data="{StaticResource TorenIconTests}" Width="14" Height="14" />
-                <TextBlock Text="Tests" VerticalAlignment="Center" />
-              </StackPanel>
-            </TabItem.Header>
-            <StackPanel Margin="17,14" Spacing="6">
-              <TextBlock Text="No test results yet" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Classes="muted" Text="Run tests from Test Explorer to see discovery and execution results." FontSize="11" />
-            </StackPanel>
-          </TabItem>
         </TabControl>
       </Grid>
     </Border>
+
+    <GridSplitter Grid.Row="3" Grid.Column="2" Height="6"
+                  HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                  ResizeDirection="Rows" ResizeBehavior="PreviousAndCurrent"
+                  Classes="shell-splitter" AutomationProperties.Name="Resize tool panel"
+                  ToolTip.Tip="Drag or use arrow keys to resize the tool panel" />
 
     <!-- Compact status bar with theme switching and known runtime state. -->
     <Border Grid.Row="4" Grid.ColumnSpan="3" Height="{StaticResource TorenStatusBarHeight}"
             Background="{DynamicResource TorenSurfaceRaisedBrush}"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="12,0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-        <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+      <Grid Margin="12,0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" VerticalAlignment="Center">
           <Ellipse Width="6" Height="6" Fill="{DynamicResource TorenSuccessBrush}" VerticalAlignment="Center" />
-          <TextBlock Text="{Binding StatusText}" FontSize="11" MaxWidth="640"
-                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        </StackPanel>
-        <Button Grid.Column="2" x:Name="ThemeToggleButton" Classes="theme-toggle"
+          <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="11"
+                     TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusText}" />
+        </Grid>
+        <Button Grid.Column="1" x:Name="ThemeToggleButton" Classes="theme-toggle"
                 Click="ToggleTheme_OnClick" ToolTip.Tip="Switch theme"
                 AutomationProperties.Name="Toggle light and dark theme">
           <Grid Width="14" Height="14">
@@ -501,7 +497,7 @@
                   Data="M12.1,2C7.07,2 3,6.07 3,11.1C3,16.13 7.07,20.2 12.1,20.2C16.04,20.2 19.4,17.7 20.67,14.2C19.33,15.04 17.75,15.53 16.05,15.53C11.74,15.53 8.25,12.04 8.25,7.73C8.25,5.62 9.09,3.71 10.45,2.3C11,2.1 11.54,2 12.1,2Z" />
           </Grid>
         </Button>
-        <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+        <TextBlock Grid.Column="2" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>

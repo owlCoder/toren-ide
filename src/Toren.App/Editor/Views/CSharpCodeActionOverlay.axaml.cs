@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
 using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Editor.Views;
@@ -35,11 +34,6 @@ internal sealed partial class CSharpCodeActionOverlay : UserControl
     {
         IsVisible = false;
         ResultsList.ItemsSource = null;
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     private void ResultsList_OnKeyDown(object? sender, KeyEventArgs eventArgs)

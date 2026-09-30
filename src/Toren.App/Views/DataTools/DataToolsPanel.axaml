@@ -12,7 +12,7 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
           <StackPanel Grid.Column="0" Spacing="3">
             <TextBlock Text="EF Core" FontSize="11" FontWeight="SemiBold" />
-            <TextBlock Classes="muted" Text="{Binding EfStatusText}" FontSize="10"
+            <TextBlock Classes="muted" Text="{Binding EfStatusText}" FontSize="11"
                        TextWrapping="Wrap" />
           </StackPanel>
           <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
@@ -23,7 +23,8 @@
           <TextBox Grid.Column="0" Text="{Binding NewMigrationName, Mode=TwoWay}"
                    PlaceholderText="Migration name" />
           <TextBox Grid.Column="1" Text="{Binding MigrationOutputDirectory, Mode=TwoWay}"
-                   PlaceholderText="Output directory (optional)" />
+                   PlaceholderText="Output folder" AutomationProperties.Name="Migration output directory"
+                   ToolTip.Tip="Optional migration output directory" />
           <Button Grid.Column="2" Classes="toolbar-button" Content="Add"
                   Click="AddMigration_OnClick" IsEnabled="{Binding CanAddMigration}" />
         </Grid>
@@ -33,9 +34,9 @@
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="ef:EfCoreMigrationInfo">
               <Grid Margin="6,4" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="10.5"
+                <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11"
                            TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="1" Classes="subtle" FontSize="9.5"
+                <TextBlock Grid.Column="1" Classes="subtle" FontSize="11"
                            Text="{Binding Applied}" />
               </Grid>
             </DataTemplate>
@@ -48,7 +49,8 @@
 
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="6">
           <TextBox Grid.Column="0" Text="{Binding DatabaseTarget, Mode=TwoWay}"
-                   PlaceholderText="Target migration (empty = latest)" />
+                   PlaceholderText="Target migration" AutomationProperties.Name="Database target migration"
+                   ToolTip.Tip="Leave empty to update to the latest migration" />
           <Button Grid.Column="1" Classes="toolbar-button" Content="Update Database"
                   Click="UpdateDatabase_OnClick" IsEnabled="{Binding CanUseEf}" />
         </Grid>
@@ -58,7 +60,7 @@
     <Grid Grid.Column="1" Margin="10,8" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="7">
       <StackPanel Grid.Row="0" Spacing="3">
         <TextBlock Text="Docker Compose" FontSize="11" FontWeight="SemiBold" />
-        <TextBlock Classes="muted" Text="{Binding DockerStatusText}" FontSize="10"
+        <TextBlock Classes="muted" Text="{Binding DockerStatusText}" FontSize="11"
                    TextWrapping="Wrap" />
       </StackPanel>
 
@@ -69,7 +71,7 @@
                 Click="RefreshDocker_OnClick" />
       </Grid>
 
-      <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6">
+      <WrapPanel Grid.Row="2" Classes="tool-actions">
         <Button Classes="toolbar-button" Content="Up" Click="Up_OnClick"
                 IsEnabled="{Binding CanUseDocker}" />
         <Button Classes="toolbar-button" Content="Down" Click="Down_OnClick"
@@ -78,14 +80,14 @@
                 IsEnabled="{Binding CanUseDocker}" />
         <Button Classes="toolbar-button" Content="Logs" Click="Logs_OnClick"
                 IsEnabled="{Binding CanUseDocker}" />
-      </StackPanel>
+      </WrapPanel>
 
       <TextBox Grid.Row="3" Text="{Binding DockerLogs}" IsReadOnly="True"
                AcceptsReturn="True" TextWrapping="NoWrap"
                ScrollViewer.VerticalScrollBarVisibility="Auto"
                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                FontFamily="Cascadia Mono, Menlo, Consolas, monospace"
-               FontSize="10" />
+               FontSize="11" />
     </Grid>
   </Grid>
 </UserControl>

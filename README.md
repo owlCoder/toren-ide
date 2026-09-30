@@ -8,7 +8,7 @@ Toren IDE is a cross-platform, local-first development environment for modern .N
 
 **MVP 1.0 is under active implementation.** Development is organized as small vertical slices that keep the repository buildable and testable across macOS, Windows, and Linux.
 
-The foundation and quality/UI baseline are in place. M1 workspace work is underway: Explorer can browse folders, solutions, and project files, while recent workspaces are stored outside projects. See [`docs/progress.md`](docs/progress.md) for the live feature matrix and [`docs/roadmap.md`](docs/roadmap.md) for delivery slices.
+M0–M8 are implemented, including workspace/editor/language services, build and test workflows, debugging, Git, NuGet, ASP.NET Core, HTTP, EF Core and Docker Compose tools. M9 release hardening is active: signed promotion and final validation of the promoted Windows/macOS/Linux packages remain release gates. See [`docs/progress.md`](docs/progress.md) for the live feature matrix and [`docs/roadmap.md`](docs/roadmap.md) for delivery slices.
 
 ## Product principles
 
@@ -72,6 +72,7 @@ dotnet run --project src/Toren.App/Toren.App.csproj
 - [`docs/progress.md`](docs/progress.md) — live implementation status;
 - [`docs/roadmap.md`](docs/roadmap.md) — MVP delivery slices;
 - [`docs/design/ui-principles.md`](docs/design/ui-principles.md) — Toren UI/UX principles;
+- [`docs/design/ui-review.md`](docs/design/ui-review.md) — responsive layout checks and visual review coverage;
 - [`docs/engineering/maintainability.md`](docs/engineering/maintainability.md) — code-quality baseline.
 
 ## Contributing

@@ -9,29 +9,29 @@
     <Border Grid.Row="0" Padding="9,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto,150,Auto,Auto" ColumnSpacing="8">
-        <TextBlock Grid.Column="0" Text="Request" FontSize="10.5" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="0" Text="Request" FontSize="11" VerticalAlignment="Center" />
         <ComboBox Grid.Column="1" ItemsSource="{Binding Requests}"
                   SelectedIndex="{Binding SelectedRequestIndex, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="http:HttpRequestDefinition">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
-                <TextBlock Grid.Column="0" Text="{Binding Method}" FontSize="10" FontWeight="SemiBold" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                  <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold" />
-                  <TextBlock Classes="muted" Text="{Binding RequestTarget}" FontSize="10"
+                <TextBlock Grid.Column="0" Text="{Binding Method}" FontSize="11" FontWeight="SemiBold" />
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                  <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding RequestTarget}" FontSize="11"
                              TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                </Grid>
               </Grid>
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <TextBlock Grid.Column="2" Text="Environment" FontSize="10.5" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Text="Environment" FontSize="11" VerticalAlignment="Center" />
         <ComboBox Grid.Column="3" ItemsSource="{Binding Environments}"
                   SelectedIndex="{Binding SelectedEnvironmentIndex, Mode=TwoWay}"
                   PlaceholderText="No environment">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="http:HttpEnvironment">
-              <TextBlock Text="{Binding Name}" FontSize="10" />
+              <TextBlock Text="{Binding Name}" FontSize="11" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
@@ -46,7 +46,7 @@
       <Border Grid.Column="0" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <TextBlock Grid.Column="0" Text="History" FontSize="10.5" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="0" Text="History" FontSize="11" FontWeight="SemiBold" />
             <Button Grid.Column="1" Classes="toolbar-button" Content="Clear"
                     Click="ClearHistory_OnClick" />
           </Grid>
@@ -54,10 +54,10 @@
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="http:HttpRequestHistoryEntry">
                 <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="7">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontSize="10"
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontSize="11"
                              FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding StatusCode}" FontSize="10" />
-                  <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="9.5"
+                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding StatusCode}" FontSize="11" />
+                  <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="11"
                              Text="{Binding RequestTarget}" TextTrimming="CharacterEllipsis" />
                 </Grid>
               </DataTemplate>
@@ -69,7 +69,7 @@
       <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
         <Border Grid.Row="0" Padding="9,7"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-          <TextBlock Text="{Binding ResponseStatus}" FontSize="10.5" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding ResponseStatus}" FontSize="11" FontWeight="SemiBold" />
         </Border>
         <TextBox Grid.Row="1" Margin="8,7,8,0" MinHeight="54" MaxHeight="110"
                  Text="{Binding ResponseHeaders}" IsReadOnly="True" AcceptsReturn="True"
@@ -83,7 +83,7 @@
       </Grid>
     </Grid>
 
-    <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="9.5"
+    <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="11"
                Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
   </Grid>
 </UserControl>

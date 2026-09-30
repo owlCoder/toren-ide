@@ -13,6 +13,7 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 - **Done** — custom Toren window chrome/title bars for the main shell and application dialogs;
 - **Done** — activity rail disabled/planned states render without native-theme visual artifacts;
 - **Done** — final code-side shell polish removes stale milestone copy, keeps the activity rail keyboard reachable, uses stable named anchors for runtime-wired shell controllers, modernizes Avalonia placeholder APIs, and aligns Debug/Settings automation labels with current functionality;
+- **Implemented; locally validated** — responsive shell/tool-panel review adds working bounded splitters, scrolling tool headers, wrapping action rows, aligned settings fields, readable panel labels and constrained search popovers; generated XAML initialization fixes null named controls in editor overlays, and the status-bar theme toggle stays synchronized with Settings. Headless dark/light rendering and macOS source-build interaction checks are documented in [`design/ui-review.md`](design/ui-review.md); promoted release-artifact validation remains open;
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;

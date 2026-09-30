@@ -8,7 +8,7 @@
     <Border Grid.Row="0" Padding="10,6"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-        <TextBlock Grid.Column="0" Text="TERMINAL" FontSize="10" FontWeight="SemiBold"
+        <TextBlock Grid.Column="0" Text="TERMINAL" FontSize="11" FontWeight="SemiBold"
                    VerticalAlignment="Center" />
         <Button Grid.Column="1" Classes="toolbar-button" Content="New"
                 Click="NewSession_OnClick" />
@@ -29,9 +29,9 @@
           </ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-          <TextBlock Classes="muted" Text="{Binding SelectedSession.StatusText}" FontSize="10.5"
+          <TextBlock Classes="muted" Text="{Binding SelectedSession.StatusText}" FontSize="11"
                      TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="muted" Text="{Binding SelectedSession.WorkingDirectory}" FontSize="9.5"
+          <TextBlock Classes="muted" Text="{Binding SelectedSession.WorkingDirectory}" FontSize="11"
                      TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <Button Grid.Column="2" Classes="toolbar-button" Content="Start"
@@ -46,7 +46,7 @@
     <ListBox Grid.Row="2" ItemsSource="{Binding SelectedSession.Lines}" BorderThickness="0">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="terminalvm:TerminalLineViewModel">
-          <TextBlock Margin="10,2" Text="{Binding Text}" FontSize="10.5"
+          <TextBlock Margin="10,2" Text="{Binding Text}" FontSize="11"
                      FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                      TextWrapping="Wrap" />
         </DataTemplate>

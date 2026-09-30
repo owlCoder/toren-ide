@@ -12,7 +12,7 @@
                Text="{Binding SearchText, Mode=TwoWay}" PlaceholderText="Search settings"
                AutomationProperties.Name="Search settings"
                AutomationProperties.HelpText="Filter settings by name or category" />
-      <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5" TextWrapping="Wrap"
+      <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11" TextWrapping="Wrap"
                  AutomationProperties.Name="Settings status" />
     </StackPanel>
 
@@ -23,11 +23,11 @@
           <Grid RowDefinitions="Auto,Auto" RowSpacing="7">
             <StackPanel Grid.Row="0" Spacing="2">
               <TextBlock Text="Appearance" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="9.5" />
+              <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="11" />
             </StackPanel>
-            <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
-              <TextBlock Text="Color theme" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}"
+            <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
+              <TextBlock Text="Color theme" VerticalAlignment="Center" FontSize="11" />
+              <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}"
                         AutomationProperties.Name="Color theme"
                         AutomationProperties.HelpText="Choose the Toren IDE light or dark color theme">
                 <ComboBoxItem Content="Dark" />
@@ -42,10 +42,10 @@
           <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
             <StackPanel Grid.Row="0" Spacing="2">
               <TextBlock Text="Editor" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Changes apply to the active editor immediately." FontSize="9.5" />
+              <TextBlock Classes="muted" Text="Changes apply to the active editor immediately." FontSize="11" />
             </StackPanel>
-            <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
-              <TextBlock Text="Font size" VerticalAlignment="Center" FontSize="10" />
+            <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
+              <TextBlock Text="Font size" VerticalAlignment="Center" FontSize="11" />
               <Slider Grid.Column="1" Minimum="8" Maximum="40" TickFrequency="1"
                       Value="{Binding EditorFontSize, Mode=TwoWay}"
                       AutomationProperties.Name="Editor font size"
@@ -65,20 +65,20 @@
           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
             <StackPanel Grid.Row="0" Spacing="2">
               <TextBlock Text="Keyboard" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Core shell shortcuts can be changed without restarting Toren IDE." FontSize="9.5" />
+              <TextBlock Classes="muted" Text="Core shell shortcuts can be changed without restarting Toren IDE." FontSize="11" />
             </StackPanel>
-            <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
-              <TextBlock Text="Save active document" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding SaveKeybindingIndex, Mode=TwoWay}"
+            <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
+              <TextBlock Text="Save active document" VerticalAlignment="Center" FontSize="11" />
+              <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="{Binding SaveKeybindingIndex, Mode=TwoWay}"
                         AutomationProperties.Name="Save active document shortcut">
                 <ComboBoxItem Content="Ctrl/Cmd+S" />
                 <ComboBoxItem Content="Ctrl/Cmd+Shift+S" />
                 <ComboBoxItem Content="Alt+S" />
               </ComboBox>
             </Grid>
-            <Grid Grid.Row="2" ColumnDefinitions="150,*" ColumnSpacing="10">
-              <TextBlock Text="Open Settings" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding OpenSettingsKeybindingIndex, Mode=TwoWay}"
+            <Grid Grid.Row="2" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
+              <TextBlock Text="Open Settings" VerticalAlignment="Center" FontSize="11" />
+              <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" SelectedIndex="{Binding OpenSettingsKeybindingIndex, Mode=TwoWay}"
                         AutomationProperties.Name="Open Settings shortcut">
                 <ComboBoxItem Content="Ctrl/Cmd+Alt+S" />
                 <ComboBoxItem Content="Ctrl/Cmd+Alt+Shift+S" />
@@ -89,7 +89,7 @@
         </Border>
 
         <TextBlock IsVisible="{Binding !HasSearchResults}" Classes="muted"
-                   Text="No settings match your search." FontSize="10"
+                   Text="No settings match your search." FontSize="11"
                    AutomationProperties.Name="No settings match your search" />
       </StackPanel>
     </ScrollViewer>

@@ -11,7 +11,7 @@
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBlock Grid.Column="0" Classes="muted" Text="{Binding StatusText}"
-                   FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                   FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
         <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
                 Click="Refresh_OnClick" IsEnabled="{Binding CanManageSecrets}" />
       </Grid>
@@ -43,7 +43,7 @@
                    SelectedIndex="{Binding SelectedSecretIndex, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="secrets:UserSecretEntry">
-                <TextBlock Margin="6,5" Text="{Binding Key}" FontSize="10.5"
+                <TextBlock Margin="6,5" Text="{Binding Key}" FontSize="11"
                            TextTrimming="CharacterEllipsis" />
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -58,7 +58,7 @@
       <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="10,8">
         <StackPanel Grid.Row="0" Spacing="6">
           <TextBlock Text="HTTPS development certificate" FontSize="11" FontWeight="SemiBold" />
-          <TextBlock Classes="muted" Text="{Binding HttpsStatusText}" FontSize="10" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding HttpsStatusText}" FontSize="11" TextWrapping="Wrap" />
           <Button Classes="toolbar-button" Content="Trust Certificate" HorizontalAlignment="Left"
                   Click="TrustHttps_OnClick" IsEnabled="{Binding CanTrustHttps}" />
         </StackPanel>
@@ -81,7 +81,7 @@
       </Grid>
     </Grid>
 
-    <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="9.5"
+    <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="11" TextWrapping="Wrap"
                Text="Secret values are never displayed. User Secrets and HTTPS actions use the standard .NET CLI." />
   </Grid>
 </UserControl>

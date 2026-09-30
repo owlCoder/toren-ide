@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
 using Toren.Workspaces.Models;
 
 namespace Toren.App.Editor.Views;
@@ -45,11 +44,6 @@ internal sealed partial class WorkspaceQuickOpenOverlay : UserControl
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         StatusText.Text = status;
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     private void QueryBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)

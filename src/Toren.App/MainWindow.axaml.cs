@@ -7,6 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
@@ -58,6 +59,7 @@ internal sealed partial class MainWindow : Window
 
         InitializeComponent();
         InstallProblemsPanel();
+        ToolTabs.SelectionChanged += ToolTabs_OnSelectionChanged;
         _themeToggleIcon = new ThemeToggleIcon();
         ThemeToggleButton.Content = _themeToggleIcon;
 
@@ -99,6 +101,14 @@ internal sealed partial class MainWindow : Window
         panel.ProblemActivated += NavigateToProblem;
         problemsTab.Content = panel;
         toolTabs!.SelectedIndex = 0;
+    }
+
+    private void ToolTabs_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
+    {
+        if (ReferenceEquals(eventArgs.Source, ToolTabs) && ToolTabs.SelectedItem is TabItem selectedTab)
+        {
+            Dispatcher.UIThread.Post(selectedTab.BringIntoView, DispatcherPriority.Loaded);
+        }
     }
 
     private void ConfigureEditor()

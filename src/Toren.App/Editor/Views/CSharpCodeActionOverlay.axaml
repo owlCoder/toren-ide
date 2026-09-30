@@ -30,7 +30,7 @@
   </UserControl.Styles>
 
   <Border Classes="code-action-card">
-    <StackPanel Spacing="5">
+    <Grid RowDefinitions="Auto,*" RowSpacing="5">
       <Grid ColumnDefinitions="*,Auto" Margin="4,2,4,0">
         <TextBlock Text="Quick Fix"
                    FontSize="11"
@@ -42,7 +42,7 @@
                    Foreground="{DynamicResource TorenTextSubtleBrush}" />
       </Grid>
 
-      <ListBox x:Name="ResultsList"
+      <ListBox Grid.Row="1" x:Name="ResultsList"
                Classes="code-action-results"
                KeyDown="ResultsList_OnKeyDown"
                DoubleTapped="ResultsList_OnDoubleTapped">
@@ -62,6 +62,6 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
-    </StackPanel>
+    </Grid>
   </Border>
 </UserControl>

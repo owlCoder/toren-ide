@@ -1,6 +1,8 @@
 using Toren.App.Documents.Adapters;
+using Toren.App.Documents.Contracts;
 using Toren.App.Documents.Services;
 using Toren.App.Settings.Adapters;
+using Toren.App.Settings.Contracts;
 using Toren.App.Settings.Models;
 using Toren.App.Settings.Services;
 using Toren.App.Settings.ViewModels;
@@ -11,13 +13,21 @@ namespace Toren.App;
 internal sealed partial class MainWindow
 {
     public MainWindow(MainWindowViewModel viewModel)
-        : this(viewModel, CreateApplicationSettingsStore())
+        : this(viewModel, CreateApplicationSettingsStore(), CreateDocumentSessionStore())
+    {
+    }
+
+    public MainWindow(
+        MainWindowViewModel viewModel,
+        IApplicationSettingsStore applicationSettingsStore,
+        IDocumentSessionStore documentSessionStore)
+        : this(viewModel, applicationSettingsStore)
     {
         KeyDown -= MainWindow_OnKeyDown;
         DocumentSessionRecoveryController.Attach(
             this,
             _viewModel.Documents,
-            CreateDocumentSessionStore(),
+            documentSessionStore,
             _viewModel.SetStatus);
         ApplicationSettingsController.Attach(
             this,
