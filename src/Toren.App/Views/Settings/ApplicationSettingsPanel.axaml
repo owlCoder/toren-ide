@@ -3,15 +3,20 @@
              x:DataType="settingsvm:ApplicationSettingsViewModel"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:settingsvm="clr-namespace:Toren.App.Settings.ViewModels">
+             xmlns:settingsvm="clr-namespace:Toren.App.Settings.ViewModels"
+             AutomationProperties.Name="Application settings">
   <Grid RowDefinitions="Auto,*" RowSpacing="10" Margin="12,10">
     <StackPanel Grid.Row="0" Spacing="6">
       <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" />
-      <TextBox Text="{Binding SearchText, Mode=TwoWay}" Watermark="Search settings" />
-      <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5" TextWrapping="Wrap" />
+      <TextBox x:Name="SettingsSearchBox"
+               Text="{Binding SearchText, Mode=TwoWay}" Watermark="Search settings"
+               AutomationProperties.Name="Search settings"
+               AutomationProperties.HelpText="Filter settings by name or category" />
+      <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5" TextWrapping="Wrap"
+                 AutomationProperties.Name="Settings status" />
     </StackPanel>
 
-    <ScrollViewer Grid.Row="1">
+    <ScrollViewer Grid.Row="1" AutomationProperties.Name="Settings categories">
       <StackPanel Spacing="10">
         <Border IsVisible="{Binding ShowAppearanceSection}" Padding="10"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
@@ -22,7 +27,9 @@
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
               <TextBlock Text="Color theme" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+              <ComboBox Grid.Column="1" SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}"
+                        AutomationProperties.Name="Color theme"
+                        AutomationProperties.HelpText="Choose the Toren IDE light or dark color theme">
                 <ComboBoxItem Content="Dark" />
                 <ComboBoxItem Content="Light" />
               </ComboBox>
@@ -40,12 +47,16 @@
             <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
               <TextBlock Text="Font size" VerticalAlignment="Center" FontSize="10" />
               <Slider Grid.Column="1" Minimum="8" Maximum="40" TickFrequency="1"
-                      Value="{Binding EditorFontSize, Mode=TwoWay}" />
+                      Value="{Binding EditorFontSize, Mode=TwoWay}"
+                      AutomationProperties.Name="Editor font size"
+                      AutomationProperties.HelpText="Editor font size from 8 to 40" />
             </Grid>
             <CheckBox Grid.Row="2" Content="Show line numbers"
-                      IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
+                      IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}"
+                      AutomationProperties.Name="Show line numbers" />
             <CheckBox Grid.Row="3" Content="Word wrap"
-                      IsChecked="{Binding WordWrap, Mode=TwoWay}" />
+                      IsChecked="{Binding WordWrap, Mode=TwoWay}"
+                      AutomationProperties.Name="Word wrap" />
           </Grid>
         </Border>
 
@@ -58,7 +69,8 @@
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,*" ColumnSpacing="10">
               <TextBlock Text="Save active document" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding SaveKeybindingIndex, Mode=TwoWay}">
+              <ComboBox Grid.Column="1" SelectedIndex="{Binding SaveKeybindingIndex, Mode=TwoWay}"
+                        AutomationProperties.Name="Save active document shortcut">
                 <ComboBoxItem Content="Ctrl/Cmd+S" />
                 <ComboBoxItem Content="Ctrl/Cmd+Shift+S" />
                 <ComboBoxItem Content="Alt+S" />
@@ -66,7 +78,8 @@
             </Grid>
             <Grid Grid.Row="2" ColumnDefinitions="150,*" ColumnSpacing="10">
               <TextBlock Text="Open Settings" VerticalAlignment="Center" FontSize="10" />
-              <ComboBox Grid.Column="1" SelectedIndex="{Binding OpenSettingsKeybindingIndex, Mode=TwoWay}">
+              <ComboBox Grid.Column="1" SelectedIndex="{Binding OpenSettingsKeybindingIndex, Mode=TwoWay}"
+                        AutomationProperties.Name="Open Settings shortcut">
                 <ComboBoxItem Content="Ctrl/Cmd+Alt+S" />
                 <ComboBoxItem Content="Ctrl/Cmd+Alt+Shift+S" />
                 <ComboBoxItem Content="F12" />
@@ -76,7 +89,8 @@
         </Border>
 
         <TextBlock IsVisible="{Binding !HasSearchResults}" Classes="muted"
-                   Text="No settings match your search." FontSize="10" />
+                   Text="No settings match your search." FontSize="10"
+                   AutomationProperties.Name="No settings match your search" />
       </StackPanel>
     </ScrollViewer>
   </Grid>

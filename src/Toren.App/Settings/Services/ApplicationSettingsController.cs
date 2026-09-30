@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using AvaloniaEdit;
 using Toren.App.Settings.Contracts;
 using Toren.App.Settings.Models;
@@ -21,6 +22,7 @@ internal sealed class ApplicationSettingsController
     private readonly Func<Task> _saveActiveDocument;
     private readonly TabControl _toolTabs;
     private readonly TabItem _settingsTab;
+    private readonly ApplicationSettingsPanel _settingsPanel;
     private readonly Button? _settingsButton;
     private CancellationTokenSource? _saveCancellation;
     private bool _loading;
@@ -42,11 +44,13 @@ internal sealed class ApplicationSettingsController
         _applyTheme = applyTheme;
         _saveActiveDocument = saveActiveDocument;
         _toolTabs = toolTabs;
+        _settingsPanel = new ApplicationSettingsPanel { DataContext = viewModel };
         _settingsTab = new TabItem
         {
             Header = "SETTINGS",
-            Content = new ApplicationSettingsPanel { DataContext = viewModel },
+            Content = _settingsPanel,
         };
+        AutomationProperties.SetName(_settingsTab, "Settings tool tab");
         _toolTabs.Items.Add(_settingsTab);
 
         var activityRail = window.GetLogicalDescendants()
@@ -60,6 +64,9 @@ internal sealed class ApplicationSettingsController
             _settingsButton.IsEnabled = true;
             ToolTip.SetTip(_settingsButton, "Settings");
             AutomationProperties.SetName(_settingsButton, "Settings");
+            AutomationProperties.SetHelpText(
+                _settingsButton,
+                "Open application settings and keyboard shortcuts");
             _settingsButton.Click += SettingsButton_OnClick;
         }
 
@@ -135,7 +142,7 @@ internal sealed class ApplicationSettingsController
                 eventArgs.Key,
                 eventArgs.KeyModifiers))
         {
-            _toolTabs.SelectedItem = _settingsTab;
+            OpenSettings();
             eventArgs.Handled = true;
             return;
         }
@@ -217,7 +224,13 @@ internal sealed class ApplicationSettingsController
     }
 
     private void SettingsButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs eventArgs) =>
+        OpenSettings();
+
+    private void OpenSettings()
+    {
         _toolTabs.SelectedItem = _settingsTab;
+        Dispatcher.UIThread.Post(_settingsPanel.FocusSearch, DispatcherPriority.Input);
+    }
 
     private void CancelSave()
     {

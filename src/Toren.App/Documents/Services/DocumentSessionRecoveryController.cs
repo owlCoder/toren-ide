@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Toren.App.Documents.Contracts;
+using Toren.App.Documents.Models;
 using Toren.App.ViewModels;
 
 namespace Toren.App.Documents.Services;
@@ -15,6 +16,7 @@ internal sealed class DocumentSessionRecoveryController
     private readonly IDocumentSessionStore _sessionStore;
     private readonly Action<string> _setStatus;
     private CancellationTokenSource? _saveCancellation;
+    private DocumentSessionState? _lastPersistedSession;
     private bool _detached;
 
     private DocumentSessionRecoveryController(
@@ -104,10 +106,20 @@ internal sealed class DocumentSessionRecoveryController
         try
         {
             await Task.Delay(SaveDelay, cancellation.Token).ConfigureAwait(true);
+            var session = _documents.CaptureSession();
+            if (DocumentSessionStateComparer.AreEquivalent(session, _lastPersistedSession))
+            {
+                return;
+            }
+
             var saved = await _sessionStore
-                .SaveAsync(_documents.CaptureSession(), cancellation.Token)
+                .SaveAsync(session, cancellation.Token)
                 .ConfigureAwait(true);
-            if (saved.IsFailure && ReferenceEquals(_saveCancellation, cancellation))
+            if (saved.IsSuccess)
+            {
+                _lastPersistedSession = saved.Value;
+            }
+            else if (ReferenceEquals(_saveCancellation, cancellation))
             {
                 _setStatus(saved.Error.Message);
             }

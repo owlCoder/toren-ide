@@ -8,4 +8,6 @@ internal sealed partial class ApplicationSettingsPanel : UserControl
     {
         InitializeComponent();
     }
+
+    public void FocusSearch() => SettingsSearchBox.Focus();
 }
