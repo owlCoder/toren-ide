@@ -26,8 +26,7 @@
                 <TextBlock Grid.Column="1" Classes="subtle" Text="{Binding Status}" FontSize="9.5" />
               </Grid>
               <TextBlock Classes="muted" Text="{Binding Summary}" FontSize="10" TextWrapping="Wrap" />
-              <TextBlock Classes="subtle" Text="{Binding Remediation}" FontSize="9.5" TextWrapping="Wrap"
-                         IsVisible="{Binding Remediation, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TextBlock Classes="subtle" Text="{Binding Remediation}" FontSize="9.5" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </DataTemplate>
