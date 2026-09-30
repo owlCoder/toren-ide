@@ -82,7 +82,8 @@
 
       <TextBox Grid.Row="3" Text="{Binding DockerLogs}" IsReadOnly="True"
                AcceptsReturn="True" TextWrapping="NoWrap"
-               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                FontFamily="Cascadia Mono, Menlo, Consolas, monospace"
                FontSize="10" />
     </Grid>
