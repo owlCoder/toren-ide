@@ -9,11 +9,20 @@ Use this checklist for every public Preview or Stable release. It complements `p
 - Confirm the release commit is the exact commit intended for distribution.
 - Do not move an existing public release tag to a different commit.
 
+Before spending signing credentials, run the local release preflight against the intended commit. Before the immutable tag exists, use `-AllowMissingTag`; after creating the tag, rerun without it:
+
+```powershell
+./scripts/assert-release-preflight.ps1 -ReleaseVersion <version> -ExpectedCommit <40-char-sha> -AllowMissingTag
+./scripts/assert-release-preflight.ps1 -ReleaseVersion <version> -ExpectedCommit <40-char-sha>
+```
+
+The preflight rejects unsupported version syntax, the wrong checked-out commit, a missing/mispointed release tag, or missing release workflow/script/documentation files.
+
 ## 2. Validate source and CI
 
 - Confirm the normal CI workflow is green on Linux, Windows, and macOS.
 - Confirm NUnit, xUnit, MSTest, and Microsoft Testing Platform compatibility gates are green.
-- Confirm the release-promotion and release-validation contract tests are green on all three CI platforms.
+- Confirm the release-promotion, release-validation, workflow-run provenance, and release-preflight contract tests are green on all three CI platforms.
 - Review open release-blocking issues and known regressions.
 - Confirm `docs/progress.md` does not claim a release gate that has not actually been validated.
 

@@ -75,3 +75,7 @@ jobs:
       - name: GitHub workflow run provenance contract
         shell: pwsh
         run: ./scripts/test-github-workflow-run-provenance.ps1
+
+      - name: Release preflight contract
+        shell: pwsh
+        run: ./scripts/test-release-preflight.ps1
