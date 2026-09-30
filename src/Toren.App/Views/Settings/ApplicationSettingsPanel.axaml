@@ -9,7 +9,7 @@
     <StackPanel Grid.Row="0" Spacing="6">
       <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" />
       <TextBox x:Name="SettingsSearchBox"
-               Text="{Binding SearchText, Mode=TwoWay}" Watermark="Search settings"
+               Text="{Binding SearchText, Mode=TwoWay}" PlaceholderText="Search settings"
                AutomationProperties.Name="Search settings"
                AutomationProperties.HelpText="Filter settings by name or category" />
       <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="9.5" TextWrapping="Wrap"
