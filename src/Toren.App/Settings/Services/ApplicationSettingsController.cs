@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using AvaloniaEdit;
 using Toren.App.Settings.Contracts;
@@ -17,6 +18,7 @@ internal sealed class ApplicationSettingsController
     private readonly ApplicationSettingsViewModel _viewModel;
     private readonly TextEditor _editor;
     private readonly Action<ApplicationThemePreference> _applyTheme;
+    private readonly Func<Task> _saveActiveDocument;
     private readonly TabControl _toolTabs;
     private readonly TabItem _settingsTab;
     private readonly Button? _settingsButton;
@@ -30,6 +32,7 @@ internal sealed class ApplicationSettingsController
         ApplicationSettingsViewModel viewModel,
         TextEditor editor,
         Action<ApplicationThemePreference> applyTheme,
+        Func<Task> saveActiveDocument,
         TabControl toolTabs)
     {
         _window = window;
@@ -37,6 +40,7 @@ internal sealed class ApplicationSettingsController
         _viewModel = viewModel;
         _editor = editor;
         _applyTheme = applyTheme;
+        _saveActiveDocument = saveActiveDocument;
         _toolTabs = toolTabs;
         _settingsTab = new TabItem
         {
@@ -60,6 +64,7 @@ internal sealed class ApplicationSettingsController
         }
 
         _viewModel.PropertyChanged += ViewModel_OnPropertyChanged;
+        _window.KeyDown += Window_OnKeyDown;
         _window.Opened += Window_OnOpened;
         _window.Closed += Window_OnClosed;
     }
@@ -69,13 +74,15 @@ internal sealed class ApplicationSettingsController
         IApplicationSettingsStore store,
         ApplicationSettingsViewModel viewModel,
         TextEditor editor,
-        Action<ApplicationThemePreference> applyTheme)
+        Action<ApplicationThemePreference> applyTheme,
+        Func<Task> saveActiveDocument)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(editor);
         ArgumentNullException.ThrowIfNull(applyTheme);
+        ArgumentNullException.ThrowIfNull(saveActiveDocument);
 
         var toolTabs = window.GetLogicalDescendants()
             .OfType<TabControl>()
@@ -88,6 +95,7 @@ internal sealed class ApplicationSettingsController
                 viewModel,
                 editor,
                 applyTheme,
+                saveActiveDocument,
                 toolTabs);
         }
     }
@@ -114,6 +122,36 @@ internal sealed class ApplicationSettingsController
         }
     }
 
+    private async void Window_OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.Handled)
+        {
+            return;
+        }
+
+        var settings = _viewModel.ToSettings();
+        if (ApplicationKeybindingMatcher.Matches(
+                settings.EffectiveOpenSettingsKeybinding,
+                eventArgs.Key,
+                eventArgs.KeyModifiers))
+        {
+            _toolTabs.SelectedItem = _settingsTab;
+            eventArgs.Handled = true;
+            return;
+        }
+
+        if (!ApplicationKeybindingMatcher.Matches(
+                settings.EffectiveSaveKeybinding,
+                eventArgs.Key,
+                eventArgs.KeyModifiers))
+        {
+            return;
+        }
+
+        await _saveActiveDocument().ConfigureAwait(true);
+        eventArgs.Handled = true;
+    }
+
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         if (_loading
@@ -121,6 +159,7 @@ internal sealed class ApplicationSettingsController
                 or nameof(ApplicationSettingsViewModel.StatusText)
                 or nameof(ApplicationSettingsViewModel.ShowAppearanceSection)
                 or nameof(ApplicationSettingsViewModel.ShowEditorSection)
+                or nameof(ApplicationSettingsViewModel.ShowKeyboardSection)
                 or nameof(ApplicationSettingsViewModel.HasSearchResults))
         {
             return;
@@ -198,6 +237,7 @@ internal sealed class ApplicationSettingsController
         _detached = true;
         CancelSave();
         _viewModel.PropertyChanged -= ViewModel_OnPropertyChanged;
+        _window.KeyDown -= Window_OnKeyDown;
         _window.Opened -= Window_OnOpened;
         _window.Closed -= Window_OnClosed;
         if (_settingsButton is not null)

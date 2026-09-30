@@ -11,12 +11,14 @@ internal sealed partial class MainWindow
     public MainWindow(MainWindowViewModel viewModel)
         : this(viewModel, CreateApplicationSettingsStore())
     {
+        KeyDown -= MainWindow_OnKeyDown;
         ApplicationSettingsController.Attach(
             this,
             _applicationSettingsStore,
             new ApplicationSettingsViewModel(),
             DocumentEditor,
-            ApplyThemePreference);
+            ApplyThemePreference,
+            () => _viewModel.SaveActiveDocumentAsync());
     }
 
     private void ApplyThemePreference(ApplicationThemePreference theme) =>

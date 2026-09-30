@@ -23,6 +23,8 @@ public sealed class FileApplicationSettingsStoreTests
             Assert.That(result.Value.EffectiveEditorFontSize, Is.EqualTo(ApplicationSettings.DefaultEditorFontSize));
             Assert.That(result.Value.EffectiveShowLineNumbers, Is.True);
             Assert.That(result.Value.EffectiveWordWrap, Is.False);
+            Assert.That(result.Value.EffectiveSaveKeybinding, Is.EqualTo(ApplicationSettings.DefaultSaveKeybinding));
+            Assert.That(result.Value.EffectiveOpenSettingsKeybinding, Is.EqualTo(ApplicationSettings.DefaultOpenSettingsKeybinding));
         });
     }
 
@@ -36,7 +38,9 @@ public sealed class FileApplicationSettingsStoreTests
             ApplicationThemePreference.Light,
             EditorFontSize: 16,
             ShowLineNumbers: false,
-            WordWrap: true);
+            WordWrap: true,
+            SaveKeybinding: "alt+s",
+            OpenSettingsKeybinding: "f12");
 
         var saved = await store.SaveAsync(expected);
         var loaded = await store.LoadAsync();
@@ -49,11 +53,12 @@ public sealed class FileApplicationSettingsStoreTests
             Assert.That(File.ReadAllText(path), Does.Contain("\"Version\":1"));
             Assert.That(File.ReadAllText(path), Does.Contain("\"Theme\":\"light\""));
             Assert.That(File.ReadAllText(path), Does.Contain("\"EditorFontSize\":16"));
+            Assert.That(File.ReadAllText(path), Does.Contain("\"SaveKeybinding\":\"alt+s\""));
         });
     }
 
     [Test]
-    public async Task LegacyThemeOnlyFileLoadsEditorDefaults()
+    public async Task LegacyThemeOnlyFileLoadsCurrentDefaults()
     {
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "settings.json");
@@ -69,11 +74,13 @@ public sealed class FileApplicationSettingsStoreTests
             Assert.That(result.Value.EffectiveEditorFontSize, Is.EqualTo(ApplicationSettings.DefaultEditorFontSize));
             Assert.That(result.Value.EffectiveShowLineNumbers, Is.True);
             Assert.That(result.Value.EffectiveWordWrap, Is.False);
+            Assert.That(result.Value.EffectiveSaveKeybinding, Is.EqualTo(ApplicationSettings.DefaultSaveKeybinding));
+            Assert.That(result.Value.EffectiveOpenSettingsKeybinding, Is.EqualTo(ApplicationSettings.DefaultOpenSettingsKeybinding));
         });
     }
 
     [Test]
-    public async Task ThemeOnlySavePreservesEditorPreferences()
+    public async Task ThemeOnlySavePreservesEditorAndKeybindingPreferences()
     {
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "settings.json");
@@ -82,7 +89,9 @@ public sealed class FileApplicationSettingsStoreTests
             ApplicationThemePreference.Dark,
             EditorFontSize: 18,
             ShowLineNumbers: false,
-            WordWrap: true));
+            WordWrap: true,
+            SaveKeybinding: "primary+shift+s",
+            OpenSettingsKeybinding: "f12"));
 
         var saved = await store.SaveAsync(new ApplicationSettings(ApplicationThemePreference.Light));
         var loaded = await store.LoadAsync();
@@ -95,6 +104,8 @@ public sealed class FileApplicationSettingsStoreTests
             Assert.That(loaded.Value.EffectiveEditorFontSize, Is.EqualTo(18));
             Assert.That(loaded.Value.EffectiveShowLineNumbers, Is.False);
             Assert.That(loaded.Value.EffectiveWordWrap, Is.True);
+            Assert.That(loaded.Value.EffectiveSaveKeybinding, Is.EqualTo("primary+shift+s"));
+            Assert.That(loaded.Value.EffectiveOpenSettingsKeybinding, Is.EqualTo("f12"));
         });
     }
 
@@ -120,6 +131,22 @@ public sealed class FileApplicationSettingsStoreTests
         await File.WriteAllTextAsync(
             path,
             "{\"Version\":1,\"Theme\":\"dark\",\"EditorFontSize\":72}");
+        var store = new FileApplicationSettingsStore(path);
+
+        var result = await store.LoadAsync();
+
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.Error.Code, Is.EqualTo("app.settings.invalid-format"));
+    }
+
+    [Test]
+    public async Task UnsupportedStoredKeybindingReturnsStableFormatError()
+    {
+        using var directory = new TemporaryDirectory();
+        var path = Path.Combine(directory.Path, "settings.json");
+        await File.WriteAllTextAsync(
+            path,
+            "{\"Version\":1,\"Theme\":\"dark\",\"SaveKeybinding\":\"ctrl+q\"}");
         var store = new FileApplicationSettingsStore(path);
 
         var result = await store.LoadAsync();

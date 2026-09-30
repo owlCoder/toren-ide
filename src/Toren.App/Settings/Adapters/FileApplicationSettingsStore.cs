@@ -32,7 +32,9 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
             if (stored is null
                 || stored.Version != 1
                 || !TryParseTheme(stored.Theme, out var theme)
-                || !IsValidEditorFontSize(stored.EditorFontSize))
+                || !IsValidEditorFontSize(stored.EditorFontSize)
+                || !IsValidSaveKeybinding(stored.SaveKeybinding)
+                || !IsValidOpenSettingsKeybinding(stored.OpenSettingsKeybinding))
             {
                 return Result.Failure<ApplicationSettings>(ApplicationSettingsErrors.InvalidFormat());
             }
@@ -41,7 +43,9 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
                 theme,
                 stored.EditorFontSize ?? ApplicationSettings.DefaultEditorFontSize,
                 stored.ShowLineNumbers ?? ApplicationSettings.DefaultShowLineNumbers,
-                stored.WordWrap ?? ApplicationSettings.DefaultWordWrap));
+                stored.WordWrap ?? ApplicationSettings.DefaultWordWrap,
+                stored.SaveKeybinding ?? ApplicationSettings.DefaultSaveKeybinding,
+                stored.OpenSettingsKeybinding ?? ApplicationSettings.DefaultOpenSettingsKeybinding));
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or SecurityException or JsonException)
@@ -65,8 +69,12 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
             settings.Theme,
             settings.EditorFontSize ?? baseline.EffectiveEditorFontSize,
             settings.ShowLineNumbers ?? baseline.EffectiveShowLineNumbers,
-            settings.WordWrap ?? baseline.EffectiveWordWrap);
-        if (!IsValidEditorFontSize(merged.EditorFontSize))
+            settings.WordWrap ?? baseline.EffectiveWordWrap,
+            settings.SaveKeybinding ?? baseline.EffectiveSaveKeybinding,
+            settings.OpenSettingsKeybinding ?? baseline.EffectiveOpenSettingsKeybinding);
+        if (!IsValidEditorFontSize(merged.EditorFontSize)
+            || !IsValidSaveKeybinding(merged.SaveKeybinding)
+            || !IsValidOpenSettingsKeybinding(merged.OpenSettingsKeybinding))
         {
             return Result.Failure<ApplicationSettings>(ApplicationSettingsErrors.InvalidFormat());
         }
@@ -87,7 +95,9 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
                         Theme: merged.Theme == ApplicationThemePreference.Light ? "light" : "dark",
                         EditorFontSize: merged.EffectiveEditorFontSize,
                         ShowLineNumbers: merged.EffectiveShowLineNumbers,
-                        WordWrap: merged.EffectiveWordWrap),
+                        WordWrap: merged.EffectiveWordWrap,
+                        SaveKeybinding: merged.EffectiveSaveKeybinding,
+                        OpenSettingsKeybinding: merged.EffectiveOpenSettingsKeybinding),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
             }
 
@@ -119,6 +129,12 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
     private static bool IsValidEditorFontSize(double? value) =>
         value is null or >= MinimumEditorFontSize and <= MaximumEditorFontSize;
 
+    private static bool IsValidSaveKeybinding(string? value) =>
+        value is null or "primary+s" or "primary+shift+s" or "alt+s";
+
+    private static bool IsValidOpenSettingsKeybinding(string? value) =>
+        value is null or "primary+alt+s" or "primary+alt+shift+s" or "f12";
+
     private static bool TryParseTheme(string? value, out ApplicationThemePreference theme)
     {
         if (string.Equals(value, "dark", StringComparison.OrdinalIgnoreCase))
@@ -142,5 +158,7 @@ public sealed class FileApplicationSettingsStore(string filePath) : IApplication
         string Theme,
         double? EditorFontSize = null,
         bool? ShowLineNumbers = null,
-        bool? WordWrap = null);
+        bool? WordWrap = null,
+        string? SaveKeybinding = null,
+        string? OpenSettingsKeybinding = null);
 }
