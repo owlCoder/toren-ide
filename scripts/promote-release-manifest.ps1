@@ -118,9 +118,32 @@ function Copy-SignedMacArtifact {
         throw "Expected exactly one signed macOS ZIP for '$RuntimeIdentifier', found $($packages.Count)."
     }
 
+    $attestations = @(Get-ChildItem -LiteralPath $ArtifactRoot -File -Filter '*.release.json')
+    if ($attestations.Count -ne 1) {
+        throw "Expected exactly one signed macOS attestation for '$RuntimeIdentifier', found $($attestations.Count)."
+    }
+
     $sourcePath = $packages[0].FullName
     $sourceChecksum = "$sourcePath.sha256"
     $actualHash = Get-VerifiedHash -PackagePath $sourcePath -ChecksumPath $sourceChecksum
+    $attestation = Get-Content -LiteralPath $attestations[0].FullName -Raw | ConvertFrom-Json
+
+    if ($attestation.version -ne $ExpectedVersion) {
+        throw "Signed '$RuntimeIdentifier' version '$($attestation.version)' does not match '$ExpectedVersion'."
+    }
+    if ($attestation.runtimeIdentifier -ne $RuntimeIdentifier) {
+        throw "Signed artifact attestation RID '$($attestation.runtimeIdentifier)' does not match '$RuntimeIdentifier'."
+    }
+    if ($attestation.sourceCommit -ne $ExpectedSourceCommit) {
+        throw "Signed '$RuntimeIdentifier' source commit '$($attestation.sourceCommit)' does not match '$ExpectedSourceCommit'."
+    }
+    if ($attestation.sha256 -ne $actualHash) {
+        throw "Signed '$RuntimeIdentifier' attestation hash does not match package bytes."
+    }
+    if ($attestation.developerIdSigned -ne $true -or $attestation.notarized -ne $true -or $attestation.stapled -ne $true) {
+        throw "Signed '$RuntimeIdentifier' attestation does not confirm signing, notarization, and stapling."
+    }
+
     $destinationName = "Toren-IDE-$RuntimeIdentifier.zip"
     $destinationPath = Join-Path $OutputDirectory $destinationName
     Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force

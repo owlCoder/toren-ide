@@ -57,10 +57,20 @@ jobs:
             fi
           done
 
+      - name: Validate release version
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-preview\.\d+)?$') {
+            throw "Unsupported release version '$env:RELEASE_VERSION'."
+          }
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -174,12 +184,34 @@ jobs:
             "$APPLE_DEVELOPER_ID_IDENTITY" \
             toren-notary
 
-      - name: Create checksum
-        shell: bash
+      - name: Create checksum and signed-artifact attestation
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          RUNTIME_IDENTIFIER: ${{ inputs.rid }}
         run: |
-          set -euo pipefail
-          PACKAGE="artifacts/bundle/Toren IDE.zip"
-          shasum -a 256 "$PACKAGE" > "$PACKAGE.sha256"
+          $ErrorActionPreference = 'Stop'
+          $package = 'artifacts/bundle/Toren IDE.zip'
+          $checksumPath = "$package.sha256"
+          $attestationPath = 'artifacts/bundle/Toren IDE.release.json'
+          $hash = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $([IO.Path]::GetFileName($package))" |
+            Set-Content -LiteralPath $checksumPath -Encoding utf8NoBOM -NoNewline
+
+          $sourceCommit = (git rev-parse HEAD).Trim()
+          $attestation = [ordered]@{
+            schemaVersion = 1
+            product = 'Toren IDE'
+            version = $env:RELEASE_VERSION
+            runtimeIdentifier = $env:RUNTIME_IDENTIFIER
+            sourceCommit = $sourceCommit
+            sha256 = $hash
+            developerIdSigned = $true
+            notarized = $true
+            stapled = $true
+          }
+          $attestation | ConvertTo-Json -Depth 4 |
+            Set-Content -LiteralPath $attestationPath -Encoding utf8NoBOM
 
       - name: Upload signed package
         uses: actions/upload-artifact@v4
@@ -188,4 +220,5 @@ jobs:
           path: |
             artifacts/bundle/Toren IDE.zip
             artifacts/bundle/Toren IDE.zip.sha256
+            artifacts/bundle/Toren IDE.release.json
           if-no-files-found: error
