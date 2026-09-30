@@ -67,7 +67,8 @@
                  PlaceholderText="Response headers" />
         <TextBox Grid.Row="2" Margin="8" Text="{Binding ResponseBody}" IsReadOnly="True"
                  AcceptsReturn="True" TextWrapping="NoWrap"
-                 HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                  FontFamily="Cascadia Code, Menlo, Consolas, monospace" PlaceholderText="Response body" />
       </Grid>
     </Grid>
