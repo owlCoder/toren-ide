@@ -21,10 +21,11 @@ public sealed class HttpRequestVariableResolver : IHttpRequestVariableResolver
             return Result.Failure<HttpRequestDefinition>(uriResult.Error);
         }
 
-        if (!Uri.TryCreate(uriResult.Value, UriKind.Absolute, out var uri)
+        var resolvedUriText = uriResult.Value!;
+        if (!Uri.TryCreate(resolvedUriText, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidResolvedUri(uriResult.Value));
+            return Result.Failure<HttpRequestDefinition>(HttpRequestErrors.InvalidResolvedUri(resolvedUriText));
         }
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -36,7 +37,7 @@ public sealed class HttpRequestVariableResolver : IHttpRequestVariableResolver
                 return Result.Failure<HttpRequestDefinition>(headerResult.Error);
             }
 
-            headers[header.Key] = headerResult.Value;
+            headers[header.Key] = headerResult.Value!;
         }
 
         string? body = null;
@@ -48,7 +49,7 @@ public sealed class HttpRequestVariableResolver : IHttpRequestVariableResolver
                 return Result.Failure<HttpRequestDefinition>(bodyResult.Error);
             }
 
-            body = bodyResult.Value;
+            body = bodyResult.Value!;
         }
 
         return Result.Success(request with
