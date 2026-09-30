@@ -14,7 +14,9 @@ internal sealed class WorkspaceRunBrowserController
     private readonly AspNetLaunchUriResolver _launchUriResolver;
     private readonly IExternalUriLauncher _uriLauncher;
     private readonly Action<string> _setStatus;
+    private readonly Action<Uri>? _applicationUriResolved;
     private bool _launchAttempted;
+    private bool _applicationUriReported;
     private bool _detached;
 
     private WorkspaceRunBrowserController(
@@ -22,13 +24,15 @@ internal sealed class WorkspaceRunBrowserController
         WorkspaceExecutionViewModel execution,
         AspNetLaunchUriResolver launchUriResolver,
         IExternalUriLauncher uriLauncher,
-        Action<string> setStatus)
+        Action<string> setStatus,
+        Action<Uri>? applicationUriResolved)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _execution = execution ?? throw new ArgumentNullException(nameof(execution));
         _launchUriResolver = launchUriResolver ?? throw new ArgumentNullException(nameof(launchUriResolver));
         _uriLauncher = uriLauncher ?? throw new ArgumentNullException(nameof(uriLauncher));
         _setStatus = setStatus ?? throw new ArgumentNullException(nameof(setStatus));
+        _applicationUriResolved = applicationUriResolved;
 
         _execution.PropertyChanged += Execution_OnPropertyChanged;
         _execution.OutputLines.CollectionChanged += OutputLines_OnCollectionChanged;
@@ -40,14 +44,16 @@ internal sealed class WorkspaceRunBrowserController
         WorkspaceExecutionViewModel execution,
         AspNetLaunchUriResolver launchUriResolver,
         IExternalUriLauncher uriLauncher,
-        Action<string> setStatus)
+        Action<string> setStatus,
+        Action<Uri>? applicationUriResolved = null)
     {
         _ = new WorkspaceRunBrowserController(
             window,
             execution,
             launchUriResolver,
             uriLauncher,
-            setStatus);
+            setStatus,
+            applicationUriResolved);
     }
 
     private void Execution_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
@@ -56,14 +62,14 @@ internal sealed class WorkspaceRunBrowserController
             && _execution.CurrentCommandKind == DotNetCommandKind.Run)
         {
             _launchAttempted = false;
+            _applicationUriReported = false;
         }
     }
 
     private void OutputLines_OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
-        if (_launchAttempted
-            || _execution.CurrentCommandKind != DotNetCommandKind.Run
-            || _execution.SelectedLaunchProfile is not { LaunchBrowser: true } launchProfile
+        if (_execution.CurrentCommandKind != DotNetCommandKind.Run
+            || _execution.SelectedLaunchProfile is not { } launchProfile
             || eventArgs.NewItems is null)
         {
             return;
@@ -77,11 +83,20 @@ internal sealed class WorkspaceRunBrowserController
                 continue;
             }
 
-            _launchAttempted = true;
-            var launch = _uriLauncher.Launch(launchUri);
-            if (!launch.IsSuccess)
+            if (!_applicationUriReported)
             {
-                _setStatus(launch.Error.Message);
+                _applicationUriReported = true;
+                _applicationUriResolved?.Invoke(launchUri);
+            }
+
+            if (!_launchAttempted && launchProfile.LaunchBrowser)
+            {
+                _launchAttempted = true;
+                var launch = _uriLauncher.Launch(launchUri);
+                if (!launch.IsSuccess)
+                {
+                    _setStatus(launch.Error.Message);
+                }
             }
 
             return;

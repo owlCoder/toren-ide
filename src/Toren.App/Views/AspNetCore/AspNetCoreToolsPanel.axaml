@@ -1,0 +1,87 @@
+<UserControl x:Class="Toren.App.Views.AspNetCore.AspNetCoreToolsPanel"
+             x:ClassModifier="internal"
+             x:DataType="aspvm:AspNetCoreToolsViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:aspvm="clr-namespace:Toren.App.AspNetCore.ViewModels"
+             xmlns:secrets="clr-namespace:Toren.DotNet.UserSecrets.Models;assembly=Toren.DotNet"
+             xmlns:asp="clr-namespace:Toren.DotNet.AspNetCore.Models;assembly=Toren.DotNet">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Padding="10,7"
+            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock Grid.Column="0" Classes="muted" Text="{Binding StatusText}"
+                   FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
+                Click="Refresh_OnClick" IsEnabled="{Binding CanManageSecrets}" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="3*,2*">
+      <Border Grid.Column="0" Padding="10,8"
+              BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <TextBlock Grid.Column="0" Text="User Secrets" FontSize="11" FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="toolbar-button" Content="Initialize"
+                    Click="InitializeSecrets_OnClick" IsEnabled="{Binding CanManageSecrets}" />
+            <Button Grid.Column="2" Classes="toolbar-button" Content="Clear All"
+                    Click="ClearSecrets_OnClick" IsEnabled="{Binding CanManageSecrets}" />
+          </Grid>
+
+          <Grid Grid.Row="1" Margin="0,8,0,8" ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Text="{Binding NewSecretKey, Mode=TwoWay}"
+                     PlaceholderText="Secret key" />
+            <TextBox Grid.Column="1" Text="{Binding NewSecretValue, Mode=TwoWay}"
+                     PasswordChar="●" PlaceholderText="Secret value" />
+            <Button Grid.Column="2" Classes="toolbar-button" Content="Set"
+                    Click="SaveSecret_OnClick" IsEnabled="{Binding CanSaveSecret}" />
+          </Grid>
+
+          <ListBox Grid.Row="2" ItemsSource="{Binding Secrets}"
+                   SelectedIndex="{Binding SelectedSecretIndex, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="secrets:UserSecretEntry">
+                <TextBlock Margin="6,5" Text="{Binding Key}" FontSize="10.5"
+                           TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <Button Grid.Row="3" Margin="0,8,0,0" Classes="toolbar-button" Content="Remove Selected"
+                  HorizontalAlignment="Right" Click="RemoveSecret_OnClick"
+                  IsEnabled="{Binding CanRemoveSecret}" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="10,8">
+        <StackPanel Grid.Row="0" Spacing="6">
+          <TextBlock Text="HTTPS development certificate" FontSize="11" FontWeight="SemiBold" />
+          <TextBlock Classes="muted" Text="{Binding HttpsStatusText}" FontSize="10" TextWrapping="Wrap" />
+          <Button Classes="toolbar-button" Content="Trust Certificate" HorizontalAlignment="Left"
+                  Click="TrustHttps_OnClick" IsEnabled="{Binding CanTrustHttps}" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Height="1" Margin="0,12"
+                Background="{DynamicResource TorenBorderBrush}" />
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,*">
+          <TextBlock Grid.Row="0" Text="API shortcuts" FontSize="11" FontWeight="SemiBold" />
+          <ItemsControl Grid.Row="1" Margin="0,7,0,0" ItemsSource="{Binding ApiShortcuts}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="asp:AspNetApiShortcut">
+                <Button Classes="toolbar-button" HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left" Margin="0,0,0,5"
+                        Content="{Binding DisplayName}" Click="OpenShortcut_OnClick" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+      </Grid>
+    </Grid>
+
+    <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="9.5"
+               Text="Secret values are never displayed. User Secrets and HTTPS actions use the standard .NET CLI." />
+  </Grid>
+</UserControl>
