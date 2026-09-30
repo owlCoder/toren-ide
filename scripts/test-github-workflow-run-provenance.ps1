@@ -8,6 +8,7 @@ function Write-RunFixture {
     param(
         [Parameter(Mandatory)] [string] $Path,
         [string] $Name = 'Package',
+        [string] $WorkflowPath = '.github/workflows/package.yml',
         [string] $Status = 'completed',
         [string] $Conclusion = 'success',
         [string] $Event = 'push',
@@ -19,12 +20,33 @@ function Write-RunFixture {
     [ordered]@{
         id = [long]$Id
         name = $Name
+        path = $WorkflowPath
         status = $Status
         conclusion = $Conclusion
         event = $Event
         head_sha = $HeadSha
         repository = [ordered]@{ full_name = $Repository }
     } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Path -Encoding utf8NoBOM
+}
+
+function Invoke-Validator {
+    param(
+        [Parameter(Mandatory)] [string] $Fixture,
+        [string] $ExpectedHeadSha
+    )
+
+    $arguments = @{
+        RunId = '12345'
+        ExpectedRepository = 'owlCoder/toren-ide'
+        ExpectedWorkflowName = 'Package'
+        ExpectedWorkflowPath = '.github/workflows/package.yml'
+        AllowedEvents = @('push', 'workflow_dispatch')
+        RunMetadataPath = $Fixture
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedHeadSha)) {
+        $arguments.ExpectedHeadSha = $ExpectedHeadSha
+    }
+    & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') @arguments
 }
 
 function Assert-Rejected {
@@ -48,39 +70,27 @@ function Assert-Rejected {
 try {
     $fixture = Join-Path $root 'run.json'
     Write-RunFixture -Path $fixture
-
-    & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') `
-        -RunId '12345' `
-        -ExpectedRepository 'owlCoder/toren-ide' `
-        -ExpectedWorkflowName 'Package' `
-        -AllowedEvents @('push', 'workflow_dispatch') `
-        -ExpectedHeadSha '1111111111111111111111111111111111111111' `
-        -RunMetadataPath $fixture
+    Invoke-Validator -Fixture $fixture -ExpectedHeadSha '1111111111111111111111111111111111111111'
 
     Write-RunFixture -Path $fixture -Name 'CI'
-    Assert-Rejected -ExpectedMessage "belongs to 'CI'" -Action {
-        & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') -RunId '12345' -ExpectedRepository 'owlCoder/toren-ide' -ExpectedWorkflowName 'Package' -AllowedEvents @('push') -RunMetadataPath $fixture
-    }
+    Assert-Rejected -ExpectedMessage "belongs to 'CI'" -Action { Invoke-Validator -Fixture $fixture }
+
+    Write-RunFixture -Path $fixture -WorkflowPath '.github/workflows/other.yml'
+    Assert-Rejected -ExpectedMessage "path '.github/workflows/other.yml' does not match" -Action { Invoke-Validator -Fixture $fixture }
 
     Write-RunFixture -Path $fixture -Conclusion 'failure'
-    Assert-Rejected -ExpectedMessage 'did not succeed' -Action {
-        & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') -RunId '12345' -ExpectedRepository 'owlCoder/toren-ide' -ExpectedWorkflowName 'Package' -AllowedEvents @('push') -RunMetadataPath $fixture
-    }
+    Assert-Rejected -ExpectedMessage 'did not succeed' -Action { Invoke-Validator -Fixture $fixture }
 
     Write-RunFixture -Path $fixture -Event 'pull_request'
-    Assert-Rejected -ExpectedMessage 'is not allowed' -Action {
-        & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') -RunId '12345' -ExpectedRepository 'owlCoder/toren-ide' -ExpectedWorkflowName 'Package' -AllowedEvents @('push', 'workflow_dispatch') -RunMetadataPath $fixture
-    }
+    Assert-Rejected -ExpectedMessage 'is not allowed' -Action { Invoke-Validator -Fixture $fixture }
 
     Write-RunFixture -Path $fixture -HeadSha '2222222222222222222222222222222222222222'
     Assert-Rejected -ExpectedMessage 'does not match' -Action {
-        & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') -RunId '12345' -ExpectedRepository 'owlCoder/toren-ide' -ExpectedWorkflowName 'Package' -AllowedEvents @('push') -ExpectedHeadSha '1111111111111111111111111111111111111111' -RunMetadataPath $fixture
+        Invoke-Validator -Fixture $fixture -ExpectedHeadSha '1111111111111111111111111111111111111111'
     }
 
     Write-RunFixture -Path $fixture -Repository 'other/repo'
-    Assert-Rejected -ExpectedMessage "does not match 'owlCoder/toren-ide'" -Action {
-        & (Join-Path $PSScriptRoot 'assert-github-workflow-run.ps1') -RunId '12345' -ExpectedRepository 'owlCoder/toren-ide' -ExpectedWorkflowName 'Package' -AllowedEvents @('push') -RunMetadataPath $fixture
-    }
+    Assert-Rejected -ExpectedMessage "does not match 'owlCoder/toren-ide'" -Action { Invoke-Validator -Fixture $fixture }
 
     Write-Host 'GitHub workflow run provenance contract tests passed.'
 }
