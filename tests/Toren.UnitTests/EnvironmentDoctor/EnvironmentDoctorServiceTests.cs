@@ -14,6 +14,14 @@ namespace Toren.UnitTests.EnvironmentDoctor;
 [TestFixture]
 public sealed class EnvironmentDoctorServiceTests
 {
+    private static readonly string[] ExpectedCheckIds =
+    [
+        "dotnet-sdk",
+        "git",
+        "docker-compose",
+        "https-dev-cert",
+    ];
+
     [Test]
     public async Task CheckReturnsHealthyCoreToolsAndOptionalWarnings()
     {
@@ -58,13 +66,7 @@ public sealed class EnvironmentDoctorServiceTests
             Assert.That(report.IsSuccess, Is.True);
             Assert.That(report.Value!.ErrorCount, Is.EqualTo(2));
             Assert.That(report.Value.WarningCount, Is.EqualTo(2));
-            Assert.That(report.Value.Checks.Select(check => check.Id), Is.EqualTo(new[]
-            {
-                "dotnet-sdk",
-                "git",
-                "docker-compose",
-                "https-dev-cert",
-            }));
+            Assert.That(report.Value.Checks.Select(check => check.Id), Is.EqualTo(ExpectedCheckIds));
         });
     }
 
