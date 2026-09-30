@@ -1,5 +1,5 @@
 using System.Net;
-using System.Net.Http.Headers;
+using NUnit.Framework;
 using Toren.DotNet.Http.Models;
 using Toren.DotNet.Http.Parsers;
 using Toren.DotNet.Http.Services;
