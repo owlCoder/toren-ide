@@ -49,7 +49,7 @@ jobs:
           }
 
       - name: Checkout immutable release tag
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.source_ref }}
           fetch-depth: 0
