@@ -160,7 +160,7 @@ public sealed class HttpRequestRunnerTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        Assert.CatchAsync<OperationCanceledException>(async () =>
             await runner.ExecuteAsync(CreateGetRequest(), cancellation.Token));
     }
 
