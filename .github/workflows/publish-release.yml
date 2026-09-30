@@ -109,6 +109,37 @@ jobs:
             fi
           done
 
+      - name: Validate dry-run source workflow provenance
+        if: ${{ inputs.dry_run }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
+          MACOS_X64_RUN_ID: ${{ inputs.macos_x64_run_id }}
+          MACOS_ARM64_RUN_ID: ${{ inputs.macos_arm64_run_id }}
+        run: |
+          ./scripts/assert-github-workflow-run.ps1 `
+            -RunId $env:PACKAGE_RUN_ID `
+            -ExpectedRepository $env:GITHUB_REPOSITORY `
+            -ExpectedWorkflowName 'Package' `
+            -AllowedEvents @('push', 'workflow_dispatch') `
+            -ExpectedHeadSha $env:RELEASE_COMMIT `
+            -GitHubToken $env:GITHUB_TOKEN
+
+          ./scripts/assert-github-workflow-run.ps1 `
+            -RunId $env:MACOS_X64_RUN_ID `
+            -ExpectedRepository $env:GITHUB_REPOSITORY `
+            -ExpectedWorkflowName 'Signed macOS Package' `
+            -AllowedEvents @('workflow_dispatch') `
+            -GitHubToken $env:GITHUB_TOKEN
+
+          ./scripts/assert-github-workflow-run.ps1 `
+            -RunId $env:MACOS_ARM64_RUN_ID `
+            -ExpectedRepository $env:GITHUB_REPOSITORY `
+            -ExpectedWorkflowName 'Signed macOS Package' `
+            -AllowedEvents @('workflow_dispatch') `
+            -GitHubToken $env:GITHUB_TOKEN
+
       - name: Download candidate packages and manifest
         if: ${{ inputs.dry_run }}
         uses: actions/download-artifact@v5
@@ -174,6 +205,20 @@ jobs:
             exit 78
           fi
 
+      - name: Validate Release Validation workflow provenance
+        if: ${{ !inputs.dry_run }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
+        run: |
+          ./scripts/assert-github-workflow-run.ps1 `
+            -RunId $env:VALIDATION_RUN_ID `
+            -ExpectedRepository $env:GITHUB_REPOSITORY `
+            -ExpectedWorkflowName 'Release Validation' `
+            -AllowedEvents @('workflow_dispatch') `
+            -GitHubToken $env:GITHUB_TOKEN
+
       - name: Download release validation record
         if: ${{ !inputs.dry_run }}
         uses: actions/download-artifact@v5
@@ -199,6 +244,20 @@ jobs:
             throw "Validation record promotion run ID '$($record.promotionRunId)' is invalid."
           }
           "promotion_run_id=$($record.promotionRunId)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Validate dry-run promotion workflow provenance
+        if: ${{ !inputs.dry_run }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROMOTION_RUN_ID: ${{ steps.validation.outputs.promotion_run_id }}
+        run: |
+          ./scripts/assert-github-workflow-run.ps1 `
+            -RunId $env:PROMOTION_RUN_ID `
+            -ExpectedRepository $env:GITHUB_REPOSITORY `
+            -ExpectedWorkflowName 'Publish Release' `
+            -AllowedEvents @('workflow_dispatch') `
+            -GitHubToken $env:GITHUB_TOKEN
 
       - name: Download exact hands-on-validated promotion artifact
         if: ${{ !inputs.dry_run }}
