@@ -19,6 +19,10 @@ on:
         description: Signed macOS Package workflow run ID for osx-arm64
         required: true
         type: string
+      validation_run_id:
+        description: Release Validation workflow run ID; required when dry_run is false
+        required: false
+        type: string
       confirm_release_gates:
         description: Confirm required platform signing and release smoke gates are complete
         required: true
@@ -121,6 +125,38 @@ jobs:
             -ExpectedSourceCommit $env:RELEASE_COMMIT `
             -ReleaseGatesConfirmed $true `
             -OutputDirectory artifacts/final
+
+      - name: Require release validation record before publication
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$VALIDATION_RUN_ID" ]]; then
+            echo "A Release Validation workflow run ID is required for public publication." >&2
+            exit 78
+          fi
+
+      - name: Download release validation record
+        if: ${{ !inputs.dry_run }}
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.validation_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: Toren-IDE-release-validation
+          path: artifacts/validation
+
+      - name: Verify validated release candidate bytes
+        if: ${{ !inputs.dry_run }}
+        shell: pwsh
+        run: |
+          ./scripts/validate-release-validation-record.ps1 `
+            -RecordPath artifacts/validation/Toren-IDE-release-validation.json `
+            -PromotionRoot artifacts/final `
+            -ExpectedVersion $env:RELEASE_VERSION `
+            -ExpectedChannel $env:RELEASE_CHANNEL `
+            -ExpectedSourceCommit $env:RELEASE_COMMIT
 
       - name: Upload promoted release artifacts
         uses: actions/upload-artifact@v4
