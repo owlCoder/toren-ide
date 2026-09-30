@@ -1,0 +1,121 @@
+name: Release Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable release tag being validated
+        required: true
+        type: string
+      promotion_run_id:
+        description: Successful Publish Release dry-run ID containing Toren-IDE-release-promotion
+        required: true
+        type: string
+      confirm_windows_smoke:
+        description: Windows promoted candidate passed the release checklist smoke test
+        required: true
+        default: false
+        type: boolean
+      confirm_linux_smoke:
+        description: Linux promoted candidate passed the release checklist smoke test
+        required: true
+        default: false
+        type: boolean
+      confirm_macos_smoke:
+        description: macOS promoted candidates passed the release checklist smoke test
+        required: true
+        default: false
+        type: boolean
+      confirm_visual_accessibility:
+        description: Final cross-platform visual and accessibility review passed
+        required: true
+        default: false
+        type: boolean
+      confirm_performance:
+        description: Final release-candidate performance smoke review passed
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    name: release-validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Resolve and validate release identity
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -match '^v(?<version>\d+\.\d+\.\d+)$') {
+            $version = $Matches['version']
+            $channel = 'stable'
+          }
+          elseif ($env:RELEASE_TAG -match '^v(?<version>\d+\.\d+\.\d+-preview\.\d+)$') {
+            $version = $Matches['version']
+            $channel = 'preview'
+          }
+          else {
+            throw "Unsupported release tag '$env:RELEASE_TAG'."
+          }
+
+          $tagCommit = (git rev-list -n 1 $env:RELEASE_TAG).Trim()
+          $headCommit = (git rev-parse HEAD).Trim()
+          if ($tagCommit -ne $headCommit) {
+            throw "Checked out commit '$headCommit' does not match release tag commit '$tagCommit'."
+          }
+
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$channel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_COMMIT=$headCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download promoted release candidates
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.promotion_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: Toren-IDE-release-promotion
+          path: artifacts/promotion
+
+      - name: Create release validation record
+        shell: pwsh
+        env:
+          VALIDATED_BY: ${{ github.actor }}
+          PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
+          WINDOWS_SMOKE: ${{ inputs.confirm_windows_smoke }}
+          LINUX_SMOKE: ${{ inputs.confirm_linux_smoke }}
+          MACOS_SMOKE: ${{ inputs.confirm_macos_smoke }}
+          VISUAL_ACCESSIBILITY: ${{ inputs.confirm_visual_accessibility }}
+          PERFORMANCE: ${{ inputs.confirm_performance }}
+        run: |
+          ./scripts/create-release-validation-record.ps1 `
+            -PromotionRoot artifacts/promotion `
+            -ExpectedVersion $env:RELEASE_VERSION `
+            -ExpectedChannel $env:RELEASE_CHANNEL `
+            -ExpectedSourceCommit $env:RELEASE_COMMIT `
+            -PromotionRunId $env:PROMOTION_RUN_ID `
+            -ValidatedBy $env:VALIDATED_BY `
+            -WindowsSmokeConfirmed ([bool]::Parse($env:WINDOWS_SMOKE)) `
+            -LinuxSmokeConfirmed ([bool]::Parse($env:LINUX_SMOKE)) `
+            -MacosSmokeConfirmed ([bool]::Parse($env:MACOS_SMOKE)) `
+            -VisualAccessibilityConfirmed ([bool]::Parse($env:VISUAL_ACCESSIBILITY)) `
+            -PerformanceConfirmed ([bool]::Parse($env:PERFORMANCE)) `
+            -OutputPath artifacts/validation/Toren-IDE-release-validation.json
+
+      - name: Upload release validation record
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toren-IDE-release-validation
+          path: artifacts/validation/Toren-IDE-release-validation.json
+          if-no-files-found: error
