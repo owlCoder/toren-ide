@@ -1,8 +1,9 @@
+using Toren.Containers.Models;
 using Toren.Core.Results;
 
 namespace Toren.Containers.Contracts;
 
 public interface IDockerComposeFileLocator
 {
-    Result<string?> Find(string workspacePath);
+    Result<DockerComposeFileLocation> Find(string workspacePath);
 }

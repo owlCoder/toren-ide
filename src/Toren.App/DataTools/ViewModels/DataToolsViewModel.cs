@@ -96,7 +96,7 @@ public sealed partial class DataToolsViewModel(
         }
 
         var result = _composeFileLocator.Find(workspacePath);
-        ComposeFilePath = result.IsSuccess ? result.Value ?? string.Empty : string.Empty;
+        ComposeFilePath = result.IsSuccess ? result.Value!.Path ?? string.Empty : string.Empty;
         DockerStatusText = result.IsFailure
             ? result.Error.Message
             : string.IsNullOrWhiteSpace(ComposeFilePath)

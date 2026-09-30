@@ -14,3 +14,8 @@ public sealed record DockerComposeToolStatus(
     bool IsAvailable,
     string? Version,
     string? Details);
+
+public sealed record DockerComposeFileLocation(string? Path)
+{
+    public bool Exists => !string.IsNullOrWhiteSpace(Path);
+}

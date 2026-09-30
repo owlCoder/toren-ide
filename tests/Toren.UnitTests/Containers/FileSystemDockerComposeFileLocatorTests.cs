@@ -20,7 +20,8 @@ public sealed class FileSystemDockerComposeFileLocatorTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Is.EqualTo(composePath));
+            Assert.That(result.Value!.Exists, Is.True);
+            Assert.That(result.Value.Path, Is.EqualTo(composePath));
         });
     }
 
@@ -36,11 +37,11 @@ public sealed class FileSystemDockerComposeFileLocatorTests
 
         var result = locator.Find(workspaceFile);
 
-        Assert.That(result.Value, Is.EqualTo(composePath));
+        Assert.That(result.Value!.Path, Is.EqualTo(composePath));
     }
 
     [Test]
-    public void FindReturnsNullWhenComposeFileIsAbsent()
+    public void FindReturnsEmptyLocationWhenComposeFileIsAbsent()
     {
         using var directory = new TemporaryDirectory();
         var locator = new FileSystemDockerComposeFileLocator();
@@ -50,7 +51,9 @@ public sealed class FileSystemDockerComposeFileLocatorTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Is.Null);
+            Assert.That(result.Value, Is.Not.Null);
+            Assert.That(result.Value!.Exists, Is.False);
+            Assert.That(result.Value.Path, Is.Null);
         });
     }
 
