@@ -10,6 +10,9 @@ param(
     [string] $ExpectedWorkflowName,
 
     [Parameter(Mandatory)]
+    [string] $ExpectedWorkflowPath,
+
+    [Parameter(Mandatory)]
     [string[]] $AllowedEvents,
 
     [string] $ExpectedHeadSha,
@@ -30,6 +33,9 @@ if ($ExpectedRepository -notmatch '^[^/]+/[^/]+$') {
 }
 if ([string]::IsNullOrWhiteSpace($ExpectedWorkflowName)) {
     throw 'Expected workflow name is required.'
+}
+if ($ExpectedWorkflowPath -notmatch '^\.github/workflows/[^/]+\.(?:yml|yaml)$') {
+    throw "Expected workflow path '$ExpectedWorkflowPath' is invalid."
 }
 if ($AllowedEvents.Count -eq 0 -or @($AllowedEvents | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -ne 0) {
     throw 'At least one non-empty allowed workflow event is required.'
@@ -68,6 +74,9 @@ if ($run.repository.full_name -ne $ExpectedRepository) {
 if ($run.name -ne $ExpectedWorkflowName) {
     throw "Workflow run '$RunId' belongs to '$($run.name)', expected '$ExpectedWorkflowName'."
 }
+if ($run.path -ne $ExpectedWorkflowPath) {
+    throw "Workflow run '$RunId' path '$($run.path)' does not match '$ExpectedWorkflowPath'."
+}
 if ($run.status -ne 'completed') {
     throw "Workflow run '$RunId' is not completed (status '$($run.status)')."
 }
@@ -81,4 +90,4 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedHeadSha) -and $run.head_sha -ne $
     throw "Workflow run '$RunId' head SHA '$($run.head_sha)' does not match '$ExpectedHeadSha'."
 }
 
-Write-Host "Validated GitHub Actions provenance for run $RunId: $ExpectedWorkflowName ($($run.event), $($run.conclusion))."
+Write-Host "Validated GitHub Actions provenance for run $RunId: $ExpectedWorkflowName at $ExpectedWorkflowPath ($($run.event), $($run.conclusion))."
