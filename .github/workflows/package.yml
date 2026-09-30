@@ -1,0 +1,146 @@
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/package.yml
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  package:
+    name: ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-x64
+          - os: macos-latest
+            rid: osx-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: |
+          dotnet publish src/Toren.App/Toren.App.csproj `
+            --configuration Release `
+            --runtime "${{ matrix.rid }}" `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:UseAppHost=true `
+            --output "artifacts/publish/${{ matrix.rid }}"
+
+      - name: Verify Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "artifacts/publish/${{ matrix.rid }}/Toren.App.exe")) {
+            throw "Published Windows executable was not found."
+          }
+
+      - name: Package Windows artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/package | Out-Null
+          Compress-Archive `
+            -Path "artifacts/publish/${{ matrix.rid }}/*" `
+            -DestinationPath "artifacts/package/Toren-IDE-${{ matrix.rid }}.zip" `
+            -CompressionLevel Optimal
+
+      - name: Verify and package Linux artifact
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "artifacts/publish/${{ matrix.rid }}/Toren.App"
+          mkdir -p artifacts/package
+          tar -C "artifacts/publish/${{ matrix.rid }}" -czf \
+            "artifacts/package/Toren-IDE-${{ matrix.rid }}.tar.gz" .
+
+      - name: Build unsigned macOS app bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISH_DIR="artifacts/publish/${{ matrix.rid }}"
+          APP_DIR="artifacts/bundle/${{ matrix.rid }}/Toren IDE.app"
+          MACOS_DIR="$APP_DIR/Contents/MacOS"
+          RESOURCES_DIR="$APP_DIR/Contents/Resources"
+          mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" artifacts/package
+          cp -R "$PUBLISH_DIR"/. "$MACOS_DIR"/
+          chmod +x "$MACOS_DIR/Toren.App"
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == v* ]]; then
+            SHORT_VERSION="${GITHUB_REF_NAME#v}"
+            BUILD_VERSION="$SHORT_VERSION"
+          else
+            SHORT_VERSION="0.0.0-preview"
+            BUILD_VERSION="0.0.${GITHUB_RUN_NUMBER}"
+          fi
+
+          cat > "$APP_DIR/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>Toren.App</string>
+            <key>CFBundleIdentifier</key>
+            <string>dev.toren.ide</string>
+            <key>CFBundleName</key>
+            <string>Toren IDE</string>
+            <key>CFBundleDisplayName</key>
+            <string>Toren IDE</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>$SHORT_VERSION</string>
+            <key>CFBundleVersion</key>
+            <string>$BUILD_VERSION</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          plutil -lint "$APP_DIR/Contents/Info.plist"
+          test -x "$MACOS_DIR/Toren.App"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$APP_DIR" "artifacts/package/Toren-IDE-${{ matrix.rid }}.zip"
+
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem artifacts/package -File | Select-Object -First 1
+          if ($null -eq $package) { throw "Package artifact was not created." }
+          $hash = (Get-FileHash -Algorithm SHA256 $package.FullName).Hash.ToLowerInvariant()
+          "$hash  $($package.Name)" | Set-Content -NoNewline "$($package.FullName).sha256"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toren-IDE-${{ matrix.rid }}
+          path: artifacts/package/*
+          if-no-files-found: error
