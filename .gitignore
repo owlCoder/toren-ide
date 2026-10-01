@@ -5,6 +5,10 @@
 [Dd]ebug/
 [Rr]elease/
 
+# Release documentation is source, not build output.
+!/docs/release/
+!/docs/release/**
+
 # .NET tooling
 *.user
 *.suo

@@ -92,6 +92,10 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 - Problem clicks navigate across files. Evaluated compiler inputs and source generators remove false project-context diagnostics; the local ParcelBox reproduction returned zero after the correction.
 - Release builds and unit/UI checks validate these source changes locally. The signed promotion and exact-artifact cross-platform release gates below remain open.
 
+## Release candidate preparation — 2026-10-01
+
+An unpublished Draft release path assembles checksum-verified Windows x64, Linux x64, macOS Intel and Apple Silicon candidates from successful Package and CI runs at one immutable tag. Package payloads and manifests share the same release version; About uses Toren's informational version, Mac bundle versions remain numeric, and each archive includes its runtime, license, instructions and source identity. CI covers identity rejection and draft artifact integrity/policy contracts. This preparation does not close M9: real Apple signing/notarization and final hands-on promoted-artifact validation remain required before public publication.
+
 ## Delivery slices
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.

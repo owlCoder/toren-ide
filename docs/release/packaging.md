@@ -11,7 +11,11 @@ The packaging workflow currently produces:
 - `osx-x64` — ZIP containing an unsigned `Toren IDE.app` bundle for Intel Macs;
 - `osx-arm64` — ZIP containing an unsigned `Toren IDE.app` bundle for Apple Silicon.
 
-Each package is accompanied by a SHA-256 checksum file. The workflow verifies the expected app host before uploading an artifact. Runtime-specific publishes explicitly pass `--self-contained true`; relying on the RID alone is intentionally avoided.
+Each package is accompanied by a SHA-256 checksum file. The workflow verifies the app host, bundled CoreCLR/host libraries, self-contained runtime configuration and exact assembly version before uploading an artifact. Runtime-specific publishes explicitly pass `--self-contained true`; relying on the RID alone is intentionally avoided.
+
+Release identity is resolved through `scripts/resolve-package-identity.ps1` for both package payloads and candidate metadata. Tag builds use the exact tagged SemVer; manual runs can specify a version/channel, and unversioned development runs use `0.0.0-preview.<run>`. macOS numeric bundle versions are kept separate from the full prerelease version, which remains in `TorenReleaseVersion` and assembly metadata. About displays the app's own informational version.
+
+All archives include `README.md`, `LICENSE` and `release-info.json` (inside `Contents/MacOS` for Mac bundles). The runtime is bundled for launching Toren; the workspace's required SDK is still needed for project commands.
 
 ## Platform signing policy
 
@@ -28,6 +32,8 @@ The package workflow creates the standard `.app` layout and an `Info.plist` with
 ## Running the workflow
 
 `Package` can be started manually from GitHub Actions. Changes to the packaging workflow itself also run the four-RID package matrix on `main`, which acts as the packaging regression gate.
+
+Before signing is configured, the separate manual `Draft Release` workflow can attach verified candidates to an unpublished GitHub Draft. It validates successful Package/CI run provenance at the tagged commit and keeps `distributionReady=false`. See `publishing.md` for the draft inputs and later signed-publication path.
 
 Before publishing a release:
 

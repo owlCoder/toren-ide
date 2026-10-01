@@ -25,7 +25,8 @@ public sealed class AboutWindowViewModel
 
     private static string GetProductVersion()
     {
-        var version = Assembly.GetEntryAssembly()?.GetName().Version;
-        return version is null ? "Development build" : version.ToString(3);
+        var assembly = typeof(AboutWindowViewModel).Assembly;
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        return string.IsNullOrWhiteSpace(version) ? "Development build" : version.Split('+')[0];
     }
 }

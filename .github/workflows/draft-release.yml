@@ -1,0 +1,83 @@
+name: Draft Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable candidate tag (vX.Y.Z or vX.Y.Z-preview.N)
+        required: true
+        type: string
+      package_run_id:
+        description: Successful Package run for this exact tagged commit
+        required: true
+        type: string
+      ci_run_id:
+        description: Successful cross-platform CI run for this exact commit
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: draft-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout immutable release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Validate tag and source workflows
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          PACKAGE_RUN_ID: ${{ inputs.package_run_id }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $identity = ./scripts/resolve-package-identity.ps1 -RefType tag -RefName $env:RELEASE_TAG
+          $commit = (git rev-parse HEAD).Trim()
+          ./scripts/assert-release-preflight.ps1 -ReleaseVersion $identity.Version -ExpectedCommit $commit
+          ./scripts/assert-github-workflow-run.ps1 -RunId $env:PACKAGE_RUN_ID -ExpectedRepository $env:GITHUB_REPOSITORY -ExpectedWorkflowName Package -AllowedEvents @('push', 'workflow_dispatch') -ExpectedHeadSha $commit -GitHubToken $env:GITHUB_TOKEN
+          ./scripts/assert-github-workflow-run.ps1 -RunId $env:CI_RUN_ID -ExpectedRepository $env:GITHUB_REPOSITORY -ExpectedWorkflowName CI -ExpectedWorkflowPath '.github/workflows/ci.yml' -AllowedEvents @('push', 'workflow_dispatch') -ExpectedHeadSha $commit -GitHubToken $env:GITHUB_TOKEN
+          "RELEASE_VERSION=$($identity.Version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$($identity.Channel)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_COMMIT=$commit" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download candidate archives and manifest
+        uses: actions/download-artifact@v5
+        with:
+          run-id: ${{ inputs.package_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: Toren-IDE-*
+          path: artifacts/candidates
+
+      - name: Verify exact draft asset set
+        shell: pwsh
+        run: |
+          ./scripts/prepare-draft-release.ps1 -ArtifactsRoot artifacts/candidates -ExpectedVersion $env:RELEASE_VERSION -ExpectedSourceCommit $env:RELEASE_COMMIT -OutputDirectory artifacts/draft
+
+      - name: Create unpublished GitHub release draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          notes="docs/release/notes/$RELEASE_VERSION.md"
+          test -f "$notes"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to replace its assets." >&2
+            exit 1
+          fi
+          args=("$RELEASE_TAG" --verify-tag --draft --title "Toren IDE $RELEASE_VERSION" --notes-file "$notes")
+          if [[ "$RELEASE_CHANNEL" == "preview" ]]; then args+=(--prerelease); fi
+          url=$(gh release create "${args[@]}" artifacts/draft/*)
+          printf 'Draft release: %s\n\nCandidate bytes only. Apple signing and final hands-on release validation remain required before public publication.\n' "$url" >> "$GITHUB_STEP_SUMMARY"

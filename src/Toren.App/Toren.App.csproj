@@ -7,6 +7,8 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets/Brand/toren-icon-256.png" />
     <Content Include="Assets/Brand/Toren.icns" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../LICENSE" Link="LICENSE" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/release/package-readme.md" Link="README.md" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

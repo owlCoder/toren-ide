@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: Optional version for the release-candidate manifest
+        description: Optional SemVer for the app and release-candidate manifest
         required: false
         type: string
       release_channel:
@@ -22,6 +22,9 @@ on:
     paths:
       - .github/workflows/package.yml
       - scripts/create-release-manifest.ps1
+      - scripts/resolve-package-identity.ps1
+      - scripts/verify-published-app.ps1
+      - docs/release/package-readme.md
 
 permissions:
   contents: read
@@ -56,6 +59,17 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Resolve package version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.release_version }}
+          INPUT_CHANNEL: ${{ inputs.release_channel }}
+        run: |
+          $identity = ./scripts/resolve-package-identity.ps1 -InputVersion $env:INPUT_VERSION -InputChannel $env:INPUT_CHANNEL
+          "RELEASE_VERSION=$($identity.Version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$($identity.Channel)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "NUMERIC_VERSION=$($identity.NumericVersion)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Publish self-contained app
         shell: pwsh
         run: |
@@ -64,7 +78,24 @@ jobs:
             --runtime "${{ matrix.rid }}" `
             --self-contained true `
             -p:UseAppHost=true `
+            "-p:Version=$env:RELEASE_VERSION" `
             --output "artifacts/publish/${{ matrix.rid }}"
+
+      - name: Record identity and verify bundled runtime
+        shell: pwsh
+        env:
+          PACKAGE_RID: ${{ matrix.rid }}
+        run: |
+          $publishDirectory = "artifacts/publish/$env:PACKAGE_RID"
+          [ordered]@{
+            product = 'Toren IDE'
+            version = $env:RELEASE_VERSION
+            channel = $env:RELEASE_CHANNEL
+            sourceCommit = $env:GITHUB_SHA
+            runtimeIdentifier = $env:PACKAGE_RID
+            selfContained = $true
+          } | ConvertTo-Json | Set-Content "$publishDirectory/release-info.json" -Encoding utf8NoBOM
+          ./scripts/verify-published-app.ps1 -PublishDirectory $publishDirectory -RuntimeIdentifier $env:PACKAGE_RID -ExpectedVersion $env:RELEASE_VERSION
 
       - name: Verify Windows executable
         if: runner.os == 'Windows'
@@ -107,14 +138,6 @@ jobs:
           cp -R "$PUBLISH_DIR"/. "$MACOS_DIR"/
           chmod +x "$MACOS_DIR/Toren.App"
 
-          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == v* ]]; then
-            SHORT_VERSION="${GITHUB_REF_NAME#v}"
-            BUILD_VERSION="$SHORT_VERSION"
-          else
-            SHORT_VERSION="0.0.0-preview"
-            BUILD_VERSION="0.0.${GITHUB_RUN_NUMBER}"
-          fi
-
           cp "$MACOS_DIR/Assets/Brand/Toren.icns" "$RESOURCES_DIR/Toren.icns"
 
           cat > "$APP_DIR/Contents/Info.plist" <<PLIST
@@ -135,9 +158,11 @@ jobs:
             <key>CFBundlePackageType</key>
             <string>APPL</string>
             <key>CFBundleShortVersionString</key>
-            <string>$SHORT_VERSION</string>
+            <string>$NUMERIC_VERSION</string>
             <key>CFBundleVersion</key>
-            <string>$BUILD_VERSION</string>
+            <string>$NUMERIC_VERSION</string>
+            <key>TorenReleaseVersion</key>
+            <string>$RELEASE_VERSION</string>
             <key>NSHighResolutionCapable</key>
             <true/>
           </dict>
@@ -180,36 +205,13 @@ jobs:
 
       - name: Resolve release identity
         shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.release_version }}
+          INPUT_CHANNEL: ${{ inputs.release_channel }}
         run: |
-          $refType = '${{ github.ref_type }}'
-          $refName = '${{ github.ref_name }}'
-          $inputVersion = '${{ inputs.release_version }}'
-          $inputChannel = '${{ inputs.release_channel }}'
-
-          if ($refType -eq 'tag') {
-            if ($refName -match '^v(?<version>\d+\.\d+\.\d+)$') {
-              $version = $Matches['version']
-              $channel = 'stable'
-            }
-            elseif ($refName -match '^v(?<version>\d+\.\d+\.\d+-preview\.\d+)$') {
-              $version = $Matches['version']
-              $channel = 'preview'
-            }
-            else {
-              throw "Unsupported release tag '$refName'."
-            }
-          }
-          elseif (-not [string]::IsNullOrWhiteSpace($inputVersion)) {
-            $version = $inputVersion
-            $channel = if ([string]::IsNullOrWhiteSpace($inputChannel)) { 'preview' } else { $inputChannel }
-          }
-          else {
-            $version = "0.0.0-preview.${{ github.run_number }}"
-            $channel = 'preview'
-          }
-
-          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_CHANNEL=$channel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $identity = ./scripts/resolve-package-identity.ps1 -InputVersion $env:INPUT_VERSION -InputChannel $env:INPUT_CHANNEL
+          "RELEASE_VERSION=$($identity.Version)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_CHANNEL=$($identity.Channel)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Create and verify release-candidate manifest
         shell: pwsh

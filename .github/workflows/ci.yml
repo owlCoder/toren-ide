@@ -79,3 +79,11 @@ jobs:
       - name: Release preflight contract
         shell: pwsh
         run: ./scripts/test-release-preflight.ps1
+
+      - name: Package identity contract
+        shell: pwsh
+        run: ./scripts/test-package-identity.ps1
+
+      - name: Draft release contract
+        shell: pwsh
+        run: ./scripts/test-draft-release.ps1

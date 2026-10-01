@@ -14,6 +14,20 @@ The release checklist in `checklist.md` remains authoritative for the human sign
 
 ## Preparing a release
 
+### Unpublished download draft
+
+`Draft Release` provides a preparatory path before signing credentials and hands-on public-release gates are complete. It **only creates a GitHub Draft**; it cannot publish a public release or mark candidate manifest entries distribution-ready.
+
+1. Add release notes at `docs/release/notes/<version>.md`, commit them with the release source, and create the immutable tag.
+2. Wait for successful `CI` and `Package` runs on that exact commit. Tagged Package builds propagate the version into .NET assembly metadata, About, macOS bundle metadata and the candidate manifest; archives contain launch instructions, a license and release identity.
+3. Run `Draft Release` with `release_tag`, `package_run_id` and `ci_run_id`.
+
+The workflow checks successful same-repository source-run provenance, exact tag/commit/version, the four expected candidate filenames/signing policies, and all checksums. It attaches the four archives, four SHA-256 sidecars and candidate manifest to an **unpublished** draft. Draft assets are available to repository maintainers; they are not public downloads.
+
+This path does not satisfy the signing or hands-on release gates below. Do not publish the candidate draft using GitHub's Publish button. After the signed/promoted artifact set has passed Release Validation, remove **only the unpublished draft**, keeping its immutable tag, then use the guarded `Publish Release` path. That workflow intentionally refuses to overwrite any existing release. Never delete or replace an already-public release to reuse a version.
+
+### Signed public release
+
 Create the immutable release tag first:
 
 - Preview: `vMAJOR.MINOR.PATCH-preview.N`
