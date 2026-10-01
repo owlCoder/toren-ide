@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.IO.Enumeration;
 using System.Security;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
@@ -12,6 +13,14 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
     private static readonly FrozenSet<string> ExcludedDirectories =
         new[] { ".git", ".idea", ".vs", "bin", "node_modules", "obj" }
             .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    // Hidden and system entries are listed, and an unreadable directory is reported.
+    private static readonly EnumerationOptions AllEntries = new()
+    {
+        AttributesToSkip = 0,
+        IgnoreInaccessible = false,
+        RecurseSubdirectories = false,
+    };
 
     public Task<Result<IReadOnlyList<WorkspaceFileEntry>>> GetFilesAsync(
         string workspacePath,
@@ -37,33 +46,30 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
         try
         {
             var files = new List<WorkspaceFileEntry>();
-            var pending = new Stack<string>();
-            pending.Push(rootDirectory);
+            var pending = new Stack<(string Directory, string RelativePrefix)>();
+            pending.Push((rootDirectory, string.Empty));
 
             while (pending.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var directory = pending.Pop();
+                var (directory, relativePrefix) = pending.Pop();
 
-                foreach (var filePath in Directory.EnumerateFiles(directory))
+                // One pass per directory yields files and subdirectories together, and relative
+                // paths are composed while descending instead of being recomputed per file.
+                foreach (var entry in new FileSystemEnumerable<DirectoryEntry>(directory, ReadEntry, AllEntries))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var fullPath = Path.GetFullPath(filePath);
-                    files.Add(new WorkspaceFileEntry(
-                        fullPath,
-                        NormalizeRelativePath(Path.GetRelativePath(rootDirectory, fullPath)),
-                        Path.GetFileName(fullPath)));
-                }
-
-                foreach (var childDirectory in Directory.EnumerateDirectories(directory))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (ShouldSkipDirectory(childDirectory))
+                    if (!entry.IsDirectory)
                     {
-                        continue;
+                        files.Add(new WorkspaceFileEntry(
+                            Path.Join(directory, entry.Name),
+                            relativePrefix + entry.Name,
+                            entry.Name));
                     }
-
-                    pending.Push(childDirectory);
+                    else if (!ExcludedDirectories.Contains(entry.Name) && !entry.IsReparsePoint)
+                    {
+                        pending.Push((Path.Join(directory, entry.Name), $"{relativePrefix}{entry.Name}/"));
+                    }
                 }
             }
 
@@ -78,6 +84,13 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
         }
     }
 
+    private static DirectoryEntry ReadEntry(ref FileSystemEntry entry) =>
+        new(
+            entry.FileName.ToString(),
+            entry.IsDirectory,
+            // Only directories are tested for links, so files cost no attribute lookup.
+            entry.IsDirectory && (entry.Attributes & FileAttributes.ReparsePoint) != 0);
+
     private static string GetRootDirectory(string workspacePath)
     {
         var fullPath = Path.GetFullPath(workspacePath);
@@ -91,16 +104,5 @@ public sealed class FileSystemWorkspaceFileProvider : IWorkspaceFileProvider
             : fullPath;
     }
 
-    private static bool ShouldSkipDirectory(string directory)
-    {
-        if (ExcludedDirectories.Contains(Path.GetFileName(directory)))
-        {
-            return true;
-        }
-
-        return (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0;
-    }
-
-    private static string NormalizeRelativePath(string path) =>
-        path.Replace(Path.DirectorySeparatorChar, '/');
+    private readonly record struct DirectoryEntry(string Name, bool IsDirectory, bool IsReparsePoint);
 }

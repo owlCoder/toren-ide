@@ -72,6 +72,85 @@ public sealed class FileSystemWorkspaceFileProviderTests
         }
     }
 
+    [Test]
+    public async Task MatchesAPlainRecursiveListingIncludingHiddenFilesAndOrder()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            foreach (var file in new[]
+                     {
+                         "b.txt", "A.txt", ".hidden", "src/App/Program.cs", "src/App/Nested/Deep/File.cs",
+                         "src/app2/Lower.cs", "src/App/obj/Generated.cs", "src/App/Bin/Output.dll",
+                         "node_modules/package/index.js", ".vs/state", ".idea/workspace.xml", "docs/read me.md",
+                     })
+            {
+                var path = Path.Combine(root, file.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, string.Empty);
+            }
+
+            Directory.CreateDirectory(Path.Combine(root, "src", "Empty"));
+            try
+            {
+                Directory.CreateSymbolicLink(Path.Combine(root, "linked-directory"), Path.Combine(root, "src"));
+                File.CreateSymbolicLink(Path.Combine(root, "linked-file.cs"), Path.Combine(root, "src", "App", "Program.cs"));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Creating links needs a privilege on Windows; the rest of the comparison still applies.
+            }
+
+            var result = await new FileSystemWorkspaceFileProvider().GetFilesAsync(root);
+
+            Assert.That(result.IsSuccess, Is.True);
+            var expected = ListRecursively(Path.GetFullPath(root));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Value!.Select(file => file.Path), Is.EqualTo(expected.Select(file => file.Path)));
+                Assert.That(result.Value!.Select(file => file.RelativePath), Is.EqualTo(expected.Select(file => file.RelativePath)));
+                Assert.That(result.Value!.Select(file => file.Name), Is.EqualTo(expected.Select(file => file.Name)));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>The straightforward listing the provider must agree with.</summary>
+    private static List<(string Path, string RelativePath, string Name)> ListRecursively(string root)
+    {
+        var excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".git", ".idea", ".vs", "bin", "node_modules", "obj" };
+        var files = new List<(string Path, string RelativePath, string Name)>();
+        var pending = new Stack<string>([root]);
+        while (pending.Count > 0)
+        {
+            var directory = pending.Pop();
+            foreach (var file in Directory.EnumerateFiles(directory))
+            {
+                files.Add((
+                    Path.GetFullPath(file),
+                    Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/'),
+                    Path.GetFileName(file)));
+            }
+
+            foreach (var child in Directory.EnumerateDirectories(directory))
+            {
+                if (!excluded.Contains(Path.GetFileName(child))
+                    && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0)
+                {
+                    pending.Push(child);
+                }
+            }
+        }
+
+        return files
+            .OrderBy(static file => file.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(static file => file.Path, StringComparer.Ordinal)
+            .ToList();
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), $"toren-workspace-files-{Guid.NewGuid():N}");
