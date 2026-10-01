@@ -1,6 +1,7 @@
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Models;
 using Toren.App.Editor.Contracts;
+using Toren.Core.IO;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -11,10 +12,7 @@ public sealed class WorkspaceDiagnosticsCoordinator(
     ICSharpWorkspaceDiagnosticService workspaceDiagnosticService,
     ICSharpSyntaxService syntaxService) : IWorkspaceDiagnosticsCoordinator
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly object _gate = new();
     private readonly ICSharpSemanticContextProvider _semanticContextProvider = semanticContextProvider

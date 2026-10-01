@@ -9,6 +9,7 @@ using Toren.App.ViewModels;
 using Toren.App.Views.Testing;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
+using Toren.Workspaces.Services;
 
 namespace Toren.App.Testing.Services;
 
@@ -216,15 +217,7 @@ internal sealed class TestExplorerController
             return null;
         }
 
-        var path = _shell.WorkspacePath;
-        if (Directory.Exists(path))
-        {
-            return _workspaceClassifier.ClassifyDirectory(path);
-        }
-
-        return _workspaceClassifier.TryClassifyFile(path, out var workspace)
-            ? workspace
-            : null;
+        return _workspaceClassifier.ClassifyPath(_shell.WorkspacePath);
     }
 
     private void CancelRefresh()

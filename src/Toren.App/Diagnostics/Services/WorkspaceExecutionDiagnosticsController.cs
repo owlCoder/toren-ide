@@ -4,6 +4,7 @@ using Toren.App.Diagnostics.ViewModels;
 using Toren.App.Execution.Models;
 using Toren.App.Execution.ViewModels;
 using Toren.App.ViewModels;
+using Toren.Core.IO;
 using Toren.DotNet.Execution.Models;
 
 namespace Toren.App.Diagnostics.Services;
@@ -51,8 +52,7 @@ internal sealed class WorkspaceExecutionDiagnosticsController : IDisposable
     {
         if (_detached || !_shell.Explorer.IsWorkspaceOpen || !Path.GetFullPath(_shell.WorkspacePath).Equals(
                 Path.GetFullPath(eventArgs.Workspace.Path),
-                OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-                    ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) return;
+                FileSystemPath.Comparison)) return;
 
         var diagnostics = _parser.Parse(eventArgs.Workspace, eventArgs.Result);
         _problems.ReplaceSupplemental(SupplementalSourceKey, diagnostics);

@@ -3,15 +3,13 @@ using Avalonia.Controls;
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Models;
 using Toren.App.ViewModels;
+using Toren.Core.IO;
 
 namespace Toren.App.Diagnostics.Services;
 
 internal sealed class ProblemsScopeController
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly Window _window;
     private readonly MainWindowViewModel _viewModel;

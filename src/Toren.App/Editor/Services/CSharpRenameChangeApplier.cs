@@ -1,6 +1,7 @@
 using Toren.App.Documents.Contracts;
 using Toren.App.Documents.Models;
 using Toren.App.ViewModels;
+using Toren.Core.IO;
 using Toren.Core.Results;
 using Toren.Language.CSharp.Models;
 
@@ -10,10 +11,7 @@ internal sealed class CSharpRenameChangeApplier(
     DocumentHostViewModel documents,
     ITextDocumentStore documentStore)
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly DocumentHostViewModel _documents = documents
         ?? throw new ArgumentNullException(nameof(documents));

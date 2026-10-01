@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using AvaloniaEdit;
 using Toren.App.Editor.Views;
+using Toren.Core.IO;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -126,9 +127,7 @@ internal sealed class CSharpCodeActionController
         return current is not null
             && Path.GetFullPath(current.Path).Equals(
                 Path.GetFullPath(sourcePath),
-                OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-                    ? StringComparison.OrdinalIgnoreCase
-                    : StringComparison.Ordinal)
+                FileSystemPath.Comparison)
             && current.Text.Equals(sourceText, StringComparison.Ordinal);
     }
 
@@ -167,9 +166,7 @@ internal sealed class CSharpCodeActionController
     private static bool PathsEqual(string left, string right) =>
         Path.GetFullPath(left).Equals(
             Path.GetFullPath(right),
-            OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-                ? StringComparison.OrdinalIgnoreCase
-                : StringComparison.Ordinal);
+            FileSystemPath.Comparison);
 
     private void Overlay_OnCloseRequested(object? sender, EventArgs eventArgs)
     {

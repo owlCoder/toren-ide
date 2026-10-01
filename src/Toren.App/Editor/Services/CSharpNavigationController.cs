@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using AvaloniaEdit;
+using Toren.Core.IO;
 using Toren.Language.CSharp.Contracts;
 using Toren.Language.CSharp.Models;
 
@@ -8,10 +9,7 @@ namespace Toren.App.Editor.Services;
 
 internal sealed class CSharpNavigationController
 {
-    private static readonly StringComparison PathComparison =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+    private static readonly StringComparison PathComparison = FileSystemPath.Comparison;
 
     private readonly Window _window;
     private readonly TextEditor _editor;

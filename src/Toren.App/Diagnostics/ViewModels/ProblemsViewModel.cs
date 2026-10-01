@@ -1,16 +1,14 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.App.Diagnostics.Models;
+using Toren.Core.IO;
 using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Diagnostics.ViewModels;
 
 public sealed partial class ProblemsViewModel : ObservableObject
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly Dictionary<string, List<ProblemItemViewModel>> _itemsByFile = new(PathComparer);
     private readonly List<ProblemItemViewModel> _workspaceItems = [];

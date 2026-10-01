@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Toren.App.Documents.Contracts;
 using Toren.App.Search.Contracts;
 using Toren.App.Search.Models;
+using Toren.Core.IO;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
 
@@ -12,10 +13,7 @@ public sealed class WorkspaceTextSearchService(
     IWorkspaceFileProvider fileProvider,
     ITextDocumentStore documentStore) : IWorkspaceTextSearchService
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(500);
 
     private static readonly HashSet<string> SearchableExtensions = new(StringComparer.OrdinalIgnoreCase)

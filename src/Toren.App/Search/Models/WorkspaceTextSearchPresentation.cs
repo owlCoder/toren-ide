@@ -1,11 +1,10 @@
+using Toren.Core.IO;
+
 namespace Toren.App.Search.Models;
 
 public static class WorkspaceTextSearchPresentation
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     public static IReadOnlyList<WorkspaceTextSearchDisplayItem> Build(
         IReadOnlyList<WorkspaceTextSearchResult> results)

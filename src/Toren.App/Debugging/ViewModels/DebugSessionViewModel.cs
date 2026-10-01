@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.App.Debugging.Services;
+using Toren.Core.IO;
 using Toren.Core.Results;
 using Toren.Debugging.Models;
 
@@ -8,10 +9,7 @@ namespace Toren.App.Debugging.ViewModels;
 
 public sealed partial class DebugSessionViewModel(DebugSessionCoordinator coordinator) : ObservableObject
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly DebugSessionCoordinator _coordinator = coordinator
         ?? throw new ArgumentNullException(nameof(coordinator));
