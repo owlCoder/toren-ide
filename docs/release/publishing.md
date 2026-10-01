@@ -2,6 +2,10 @@
 
 Toren IDE separates package validation, platform signing, hands-on release validation, and public release publication. The final GitHub release is never created directly from an unsigned package workflow run or from release bytes that differ from the hands-on-validated dry-run artifact set.
 
+### Recorded exception: 1.0.0-preview.2
+
+`1.0.0-preview.2` was published by maintainer decision as a Windows x64 and Linux x64 Preview directly from its Draft, without signed macOS packages, a dry-run promotion or a Release Validation record. Its release notes state this. The exception does not change the process below, which remains required for Stable releases and for any release that includes macOS packages.
+
 ## Workflows
 
 1. `Package` builds the four release-candidate RIDs, verifies each SHA-256 checksum, and emits `Toren-IDE-release-manifest.json` as candidate metadata.

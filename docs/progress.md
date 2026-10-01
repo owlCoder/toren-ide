@@ -96,6 +96,8 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 
 An unpublished Draft release path assembles checksum-verified Windows x64, Linux x64, macOS Intel and Apple Silicon candidates from successful Package and CI runs at one immutable tag. Package payloads and manifests share the same release version; About uses Toren's informational version, Mac bundle versions remain numeric, and each archive includes its runtime, license, instructions and source identity. CI covers identity rejection and draft artifact integrity/policy contracts. This preparation does not close M9: real Apple signing/notarization and final hands-on promoted-artifact validation remain required before public publication.
 
+`1.0.0-preview.2` was published as a Windows x64 and Linux x64 Preview by maintainer decision, from that Draft path and outside the guarded `Publish Release` workflow. It carries no Release Validation record and no macOS packages, so it does not satisfy or close any of the gates above.
+
 ## Delivery slices
 
 - **M0 — Done:** foundation, standard formats, cross-platform CI.

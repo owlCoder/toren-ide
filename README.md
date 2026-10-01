@@ -33,7 +33,7 @@ Some capabilities remain partial. The [feature matrix](docs/progress.md) tracks 
 
 Binary packages are prepared as **self-contained builds** with the .NET 10 runtime included. You can launch Toren without installing a separate .NET runtime; developing a project still requires its .NET SDK.
 
-The first candidate, **`1.0.0-preview.1`**, is being prepared as an **unpublished Draft release**. Drafts are visible to repository maintainers, and are not public downloads. Public distribution remains pending Apple signing/notarization and final validation of the exact release packages. The [Releases page](https://github.com/owlCoder/toren-ide/releases) will contain public downloads after those gates pass.
+**`1.0.0-preview.2`** is available on the [Releases page](https://github.com/owlCoder/toren-ide/releases) as an early public **Preview for Windows x64 and Linux x64**. It was published ahead of the full release checklist: hands-on validation of those exact archives has not been recorded, and the Windows archive is not Authenticode signed. macOS packages are not published until they are Developer ID signed and notarized.
 
 Choose the archive for your machine:
 
@@ -41,14 +41,14 @@ Choose the archive for your machine:
 | --- | --- | --- |
 | Windows x64 | `Toren-IDE-win-x64.zip` | Extract the full ZIP and run `Toren.App.exe` |
 | Linux x64 | `Toren-IDE-linux-x64.tar.gz` | Extract the full archive and run `./Toren.App` |
-| macOS Apple Silicon | `Toren-IDE-osx-arm64.zip` | Extract and move `Toren IDE.app` to Applications |
-| macOS Intel | `Toren-IDE-osx-x64.zip` | Extract and move `Toren IDE.app` to Applications |
+| macOS Apple Silicon | Not published yet | Pending Developer ID signing and notarization |
+| macOS Intel | Not published yet | Pending Developer ID signing and notarization |
 
 Keep all extracted files together. Each archive contains launch instructions, the Apache license and `release-info.json` identifying its version, architecture and source commit. SHA-256 checksum files accompany the archives.
 
-Linux requires its native desktop/runtime dependencies; see the [Avalonia Linux deployment guide](https://docs.avaloniaui.net/docs/deployment/linux). Candidate macOS bundles from CI and Draft releases have **not** received Developer ID signing or notarization. They are maintainer validation artifacts; public macOS downloads must pass the [signing process](docs/release/macos-signing.md).
+Linux requires its native desktop/runtime dependencies; see the [Avalonia Linux deployment guide](https://docs.avaloniaui.net/docs/deployment/linux). Candidate macOS bundles from CI have **not** received Developer ID signing or notarization. They are maintainer validation artifacts and are not attached to the public Preview; public macOS downloads must pass the [signing process](docs/release/macos-signing.md).
 
-Packages currently cover Windows/Linux x64 and both Mac architectures. Installers, Windows/Linux ARM64 builds and an automatic updater are not included.
+Public packages currently cover Windows and Linux x64; both Mac architectures are built in CI but not published. Installers, Windows/Linux ARM64 builds and an automatic updater are not included.
 
 ## Open your first workspace
 
