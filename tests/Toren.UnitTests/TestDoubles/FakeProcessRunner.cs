@@ -11,12 +11,15 @@ internal sealed class FakeProcessRunner(
 {
     public ProcessRequest? LastRequest { get; private set; }
 
+    public List<ProcessRequest> Requests { get; } = [];
+
     public Task<Result<ProcessResult>> RunAsync(
         ProcessRequest request,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LastRequest = request;
+        Requests.Add(request);
         return Task.FromResult(Result.Success(new ProcessResult(exitCode, standardOutput, standardError)));
     }
 }

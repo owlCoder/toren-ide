@@ -18,8 +18,8 @@ The OSS maintainability and UI/UX baseline is in place. The final code-side UI p
 - **Done** — explicit `Result<T>` semantics for expected operational failures;
 - **Done** — feature-oriented source layout (`Contracts`, `Models`, `Services`, `Adapters`, etc. when meaningful);
 - **Done** — workspace tree orchestration depends on solution/project-reference contracts; `dotnet`/MSBuild process details live behind adapters and workspace models remain data-only;
-- **Done** — evaluated project metadata is isolated behind `IProjectMetadataProvider`; MSBuild-specific evaluation stays in an adapter instead of leaking into Explorer or models;
-- **Done** — evaluated folder/solution/project graph composition is isolated behind `IWorkspaceProjectGraphService`; graph models remain data-only and project-reference edges carry resolved paths;
+- **Done** — evaluated project metadata and compiler inputs are isolated behind `IProjectEvaluationProvider`; MSBuild-specific evaluation stays in adapters instead of leaking into Explorer or models;
+- **Done** — evaluated folder/solution/project graph composition is isolated behind `IWorkspaceProjectGraphService` and `IWorkspaceProjectCatalog`; one evaluated snapshot per open workspace is shared by all tools, evaluated in a single MSBuild invocation per stage and re-evaluated only when its input files change; graph models remain data-only and project-reference edges carry resolved paths;
 - **Done** — plain-folder project discovery is isolated behind `IFolderProjectProvider` and skips generated/IDE directories plus reparse points;
 - **Done** — workspace SDK resolution is isolated behind `IDotNetSdkResolver` and uses the workspace directory so standard `global.json` selection rules stay authoritative;
 - **Done** — workspace file discovery and ranked quick-open search are isolated behind `IWorkspaceFileProvider` and `IWorkspaceFileSearchService`; generated/IDE directories stay out of the file index;

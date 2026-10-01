@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
+using Toren.Workspaces.Errors;
 using Toren.Workspaces.Models;
 using Toren.Workspaces.Services;
 
@@ -9,265 +10,517 @@ namespace Toren.UnitTests.Workspaces;
 [TestFixture]
 public sealed class WorkspaceProjectGraphServiceTests
 {
-    private static readonly string[] DefaultTargetFrameworks = ["net10.0"];
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+    private static readonly WorkspaceDescriptor App = CreateWorkspace("App");
+    private static readonly WorkspaceDescriptor Other = CreateWorkspace("Other");
 
     [Test]
-    public async Task SolutionGraphComposesProjectsMetadataAndEvaluatedReferences()
+    public async Task OverlappingConsumersShareOneEvaluation()
     {
-        var root = Path.Combine(Path.GetTempPath(), "ParcelBox");
-        var api = Path.Combine(root, "ParcelBox.Api", "ParcelBox.Api.csproj");
-        var locker = Path.Combine(root, "ParcelBox.Simulators.LockerControl", "ParcelBox.Simulators.LockerControl.csproj");
-        var folderProvider = new FakeFolderProjectProvider([]);
-        var solutionProvider = new FakeSolutionProjectProvider([api, locker]);
-        var metadataProvider = new FakeProjectMetadataProvider();
-        var referenceProvider = new FakeProjectReferenceProvider(api, locker);
-        var service = new WorkspaceProjectGraphService(
-            folderProvider,
-            solutionProvider,
-            metadataProvider,
-            referenceProvider);
-        var workspace = new WorkspaceDescriptor(
-            Path.Combine(root, "ParcelBox.sln"),
-            "ParcelBox",
-            WorkspaceKind.Solution);
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider { OnEvaluate = async (_, token) => await gate.Task.WaitAsync(token) };
+        using var service = CreateService(provider);
 
-        var result = await service.LoadAsync(workspace);
+        var graphs = Enumerable.Range(0, 3).Select(_ => service.LoadAsync(App)).ToArray();
+        var catalogs = Enumerable.Range(0, 2).Select(_ => service.GetProjectsAsync(App)).ToArray();
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        gate.SetResult();
+        var graphResults = await Task.WhenAll(graphs).WaitAsync(Timeout);
+        var catalogResults = await Task.WhenAll(catalogs).WaitAsync(Timeout);
 
-        Assert.That(result.IsSuccess, Is.True);
         Assert.Multiple(() =>
         {
-            Assert.That(result.Value!.Projects, Has.Count.EqualTo(2));
-            Assert.That(string.Join("|", result.Value.Projects.Select(project => project.DisplayName)),
-                Is.EqualTo("Api|LockerControl"));
-            Assert.That(result.Value.Projects[0].Metadata.AssemblyName, Is.EqualTo("ParcelBox.Api"));
-            Assert.That(string.Join("|", result.Value.Projects[0].Metadata.TargetFrameworks), Is.EqualTo("net10.0"));
-            Assert.That(result.Value.Projects[0].References, Has.Count.EqualTo(1));
-            Assert.That(result.Value.Projects[0].References[0].ResolvedPath, Is.EqualTo(locker));
-            Assert.That(folderProvider.CallCount, Is.Zero);
-            Assert.That(solutionProvider.CallCount, Is.EqualTo(1));
-            Assert.That(metadataProvider.CallCount, Is.EqualTo(2));
-            Assert.That(referenceProvider.CallCount, Is.EqualTo(2));
+            Assert.That(graphResults.Select(result => result.IsSuccess), Is.All.True);
+            Assert.That(catalogResults.Select(result => result.IsSuccess), Is.All.True);
+            Assert.That(graphResults.Select(result => result.Value), Is.All.SameAs(graphResults[0].Value));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(1));
         });
     }
 
     [Test]
-    public async Task ProjectWorkspaceDoesNotInvokeDiscoveryProviders()
+    public async Task FinishedSnapshotIsReusedWhileInputsAreUnchanged()
     {
-        var projectPath = Path.Combine(Path.GetTempPath(), "ParcelBox.Api.csproj");
-        var folderProvider = new FakeFolderProjectProvider([]);
-        var solutionProvider = new FakeSolutionProjectProvider([]);
-        var metadataProvider = new FakeProjectMetadataProvider();
-        var referenceProvider = new FakeProjectReferenceProvider(string.Empty, string.Empty);
-        var service = new WorkspaceProjectGraphService(
-            folderProvider,
-            solutionProvider,
-            metadataProvider,
-            referenceProvider);
-        var workspace = new WorkspaceDescriptor(projectPath, "ParcelBox.Api", WorkspaceKind.Project);
+        var provider = new ControlledEvaluationProvider();
+        using var service = CreateService(provider);
 
-        var result = await service.LoadAsync(workspace);
+        var first = await service.LoadAsync(App);
+        var second = await service.LoadAsync(App);
+        var third = await service.GetProjectsAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.IsSuccess, Is.True);
+            Assert.That(second.Value, Is.SameAs(first.Value));
+            Assert.That(third.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task CatalogDoesNotResolveCompilerInputsUntilAGraphIsRequested()
+    {
+        var provider = new ControlledEvaluationProvider();
+        using var service = CreateService(provider);
+
+        var projects = await service.GetProjectsAsync(App);
+        var compilerInputsAfterCatalog = provider.CompilerInputCount;
+        var graph = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(projects.Value!.Single().Metadata.ReferencePaths, Is.Null);
+            Assert.That(compilerInputsAfterCatalog, Is.Zero);
+            Assert.That(graph.Value!.Projects.Single().Metadata.ReferencePaths, Is.Not.Null);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task CatalogIsAvailableWhileCompilerInputsAreStillResolving()
+    {
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider { OnResolve = async (_, token) => await gate.Task.WaitAsync(token) };
+        using var service = CreateService(provider);
+
+        var graph = service.LoadAsync(App);
+        var projects = await service.GetProjectsAsync(App).WaitAsync(Timeout);
+        var graphCompletedEarly = graph.IsCompleted;
+        gate.SetResult();
+        var graphResult = await graph.WaitAsync(Timeout);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(projects.IsSuccess, Is.True);
+            Assert.That(graphCompletedEarly, Is.False);
+            Assert.That(graphResult.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ChangedWorkspaceInputsTriggerReevaluation()
+    {
+        var provider = new ControlledEvaluationProvider();
+        var stamps = new FakeStampProvider();
+        using var service = CreateService(provider, stamps);
+
+        var first = await service.LoadAsync(App);
+        stamps.WorkspaceStamp = "project file edited";
+        var second = await service.LoadAsync(App);
+        var third = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.Value, Is.Not.SameAs(first.Value));
+            Assert.That(third.Value, Is.SameAs(second.Value));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task ChangedProjectInputsTriggerReevaluation()
+    {
+        var provider = new ControlledEvaluationProvider();
+        var stamps = new FakeStampProvider();
+        using var service = CreateService(provider, stamps);
+
+        var first = await service.LoadAsync(App);
+        stamps.ProjectStamp = "restored";
+        var second = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.IsSuccess, Is.True);
+            Assert.That(second.Value, Is.Not.SameAs(first.Value));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task SnapshotWhoseInputsWereWrittenDuringEvaluationIsNotReused()
+    {
+        var provider = new ControlledEvaluationProvider();
+        var stamps = new FakeStampProvider { LastWriteTimeUtc = DateTime.MaxValue };
+        using var service = CreateService(provider, stamps);
+
+        var first = await service.LoadAsync(App);
+        stamps.LastWriteTimeUtc = DateTime.MinValue;
+        var second = await service.LoadAsync(App);
+        var third = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.IsSuccess, Is.True);
+            Assert.That(second.Value, Is.Not.SameAs(first.Value));
+            Assert.That(third.Value, Is.SameAs(second.Value));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task RequestJoiningAnEvaluationThatRacedWithAWriteGetsAFreshEvaluation()
+    {
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider();
+        provider.OnEvaluate = async (call, token) =>
+        {
+            if (call == 1)
+            {
+                await gate.Task.WaitAsync(token);
+            }
+        };
+        var stamps = new FakeStampProvider { LastWriteTimeUtc = DateTime.MaxValue };
+        using var service = CreateService(provider, stamps);
+
+        var starter = service.LoadAsync(App);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        var joiner = service.LoadAsync(App);
+        gate.SetResult();
+        var starterResult = await starter.WaitAsync(Timeout);
+        var joinerResult = await joiner.WaitAsync(Timeout);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(starterResult.IsSuccess, Is.True);
+            Assert.That(joinerResult.IsSuccess, Is.True);
+            Assert.That(joinerResult.Value, Is.Not.SameAs(starterResult.Value));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task FailedEvaluationIsNotCached()
+    {
+        var error = OperationError.Create("test.evaluation.failed", "Evaluation failed.");
+        var provider = new ControlledEvaluationProvider { EvaluationFailures = { [1] = error } };
+        using var service = CreateService(provider);
+
+        var failed = await service.LoadAsync(App);
+        var catalogAfterFailure = await service.GetProjectsAsync(App);
+        var recovered = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failed.IsFailure, Is.True);
+            Assert.That(failed.Error, Is.EqualTo(error));
+            Assert.That(catalogAfterFailure.IsSuccess, Is.True);
+            Assert.That(recovered.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task FailedCompilerInputsAreNotCached()
+    {
+        var error = OperationError.Create("test.compiler-inputs.failed", "Compiler inputs failed.");
+        var provider = new ControlledEvaluationProvider { CompilerInputFailures = { [1] = error } };
+        using var service = CreateService(provider);
+
+        var failed = await service.LoadAsync(App);
+        var recovered = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failed.IsFailure, Is.True);
+            Assert.That(failed.Error, Is.EqualTo(error));
+            Assert.That(recovered.IsSuccess, Is.True);
+            Assert.That(provider.CompilerInputCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task UnexpectedEvaluationFaultPropagatesAndIsNotCached()
+    {
+        var provider = new ControlledEvaluationProvider();
+        provider.OnEvaluate = (call, _) => call == 1
+            ? throw new InvalidOperationException("Provider invariant broken.")
+            : Task.CompletedTask;
+        using var service = CreateService(provider);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.LoadAsync(App));
+        var recovered = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(recovered.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task CancellingOneConsumerDoesNotCancelTheSharedEvaluation()
+    {
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider { OnEvaluate = async (_, token) => await gate.Task.WaitAsync(token) };
+        using var service = CreateService(provider);
+        using var cancellation = new CancellationTokenSource();
+
+        var cancelled = service.LoadAsync(App, cancellation.Token);
+        var remaining = service.LoadAsync(App);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
+        var evaluationCancelled = provider.EvaluationTokens.Single().IsCancellationRequested;
+        gate.SetResult();
+        var result = await remaining.WaitAsync(Timeout);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(evaluationCancelled, Is.False);
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task EvaluationOutlivesItsOnlyCancelledConsumerAndServesTheNextRequest()
+    {
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider { OnEvaluate = async (_, token) => await gate.Task.WaitAsync(token) };
+        using var service = CreateService(provider);
+        using var cancellation = new CancellationTokenSource();
+
+        var cancelled = service.LoadAsync(App, cancellation.Token);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
+        var next = service.LoadAsync(App);
+        gate.SetResult();
+        var result = await next.WaitAsync(Timeout);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value!.Projects, Has.Count.EqualTo(1));
-            Assert.That(result.Value.Projects[0].Path, Is.EqualTo(Path.GetFullPath(projectPath)));
-            Assert.That(result.Value.Projects[0].DisplayName, Is.EqualTo("Api"));
-            Assert.That(folderProvider.CallCount, Is.Zero);
-            Assert.That(solutionProvider.CallCount, Is.Zero);
-            Assert.That(metadataProvider.CallCount, Is.EqualTo(1));
-            Assert.That(referenceProvider.CallCount, Is.EqualTo(1));
+            Assert.That(provider.EvaluationTokens.Single().IsCancellationRequested, Is.False);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
         });
     }
 
     [Test]
-    public async Task FolderWorkspaceDiscoversProjectsThroughFolderProvider()
+    public void AlreadyCancelledRequestDoesNotStartEvaluation()
     {
-        var projectPath = Path.Combine(Path.GetTempPath(), "src", "ParcelBox.Api", "ParcelBox.Api.csproj");
-        var folderProvider = new FakeFolderProjectProvider([projectPath]);
-        var solutionProvider = new FakeSolutionProjectProvider([]);
-        var metadataProvider = new FakeProjectMetadataProvider();
-        var referenceProvider = new FakeProjectReferenceProvider(string.Empty, string.Empty);
-        var service = new WorkspaceProjectGraphService(
-            folderProvider,
-            solutionProvider,
-            metadataProvider,
-            referenceProvider);
-        var workspace = new WorkspaceDescriptor(Path.GetTempPath(), "Temp", WorkspaceKind.Folder);
+        var provider = new ControlledEvaluationProvider();
+        using var service = CreateService(provider);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
 
-        var result = await service.LoadAsync(workspace);
+        Assert.CatchAsync<OperationCanceledException>(async () => await service.LoadAsync(App, cancellation.Token));
+        Assert.That(provider.EvaluationCount, Is.Zero);
+    }
+
+    [Test]
+    public async Task SwitchingWorkspaceCancelsAnEvaluationNobodyIsWaitingFor()
+    {
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider();
+        provider.OnEvaluate = async (call, token) =>
+        {
+            if (call == 1)
+            {
+                await gate.Task.WaitAsync(token);
+            }
+        };
+        using var service = CreateService(provider);
+        using var cancellation = new CancellationTokenSource();
+
+        var abandoned = service.LoadAsync(App, cancellation.Token);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await abandoned);
+        var other = await service.LoadAsync(Other).WaitAsync(Timeout);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value!.Projects, Has.Count.EqualTo(1));
-            Assert.That(result.Value.Projects[0].DisplayName, Is.EqualTo("Api"));
-            Assert.That(folderProvider.CallCount, Is.EqualTo(1));
-            Assert.That(solutionProvider.CallCount, Is.Zero);
-            Assert.That(metadataProvider.CallCount, Is.EqualTo(1));
-            Assert.That(referenceProvider.CallCount, Is.EqualTo(1));
+            Assert.That(other.IsSuccess, Is.True);
+            Assert.That(other.Value!.Projects.Single().Path, Is.EqualTo(Other.Path));
+            Assert.That(provider.EvaluationTokens[0].IsCancellationRequested, Is.True);
+            Assert.That(provider.EvaluationTokens[1].IsCancellationRequested, Is.False);
         });
     }
 
     [Test]
-    public async Task MetadataFailureStopsGraphComposition()
+    public async Task SwitchingWorkspaceLetsRemainingConsumersOfThePreviousOneFinish()
     {
-        var projectPath = Path.Combine(Path.GetTempPath(), "Broken.csproj");
-        var service = new WorkspaceProjectGraphService(
-            new FakeFolderProjectProvider([]),
-            new FakeSolutionProjectProvider([]),
-            new FailingProjectMetadataProvider(),
-            new FakeProjectReferenceProvider(string.Empty, string.Empty));
-        var workspace = new WorkspaceDescriptor(projectPath, "Broken", WorkspaceKind.Project);
+        var gate = NewGate();
+        var provider = new ControlledEvaluationProvider();
+        provider.OnEvaluate = async (call, token) =>
+        {
+            if (call == 1)
+            {
+                await gate.Task.WaitAsync(token);
+            }
+        };
+        using var service = CreateService(provider);
 
-        var result = await service.LoadAsync(workspace);
+        var previous = service.LoadAsync(App);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        var other = await service.LoadAsync(Other).WaitAsync(Timeout);
+        var previousCancelledWhileWaiting = provider.EvaluationTokens[0].IsCancellationRequested;
+        gate.SetResult();
+        var previousResult = await previous.WaitAsync(Timeout);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(other.IsSuccess, Is.True);
+            Assert.That(previousCancelledWhileWaiting, Is.False);
+            Assert.That(previousResult.IsSuccess, Is.True);
+            Assert.That(previousResult.Value!.Projects.Single().Path, Is.EqualTo(App.Path));
+            // The late consumer finishes on its own snapshot instead of displacing the new workspace.
+            Assert.That(provider.EvaluationCount, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task ReturningToAWorkspaceEvaluatesItAgain()
+    {
+        var provider = new ControlledEvaluationProvider();
+        using var service = CreateService(provider);
+
+        await service.LoadAsync(App);
+        await service.LoadAsync(Other);
+        var returned = await service.LoadAsync(App);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(returned.IsSuccess, Is.True);
+            Assert.That(provider.EvaluationCount, Is.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public async Task DisposeStopsEvaluationAndReportsItToWaitingConsumers()
+    {
+        var provider = new ControlledEvaluationProvider
+        {
+            OnEvaluate = async (_, token) => await Task.Delay(System.Threading.Timeout.Infinite, token),
+        };
+        var service = CreateService(provider);
+
+        var pending = service.LoadAsync(App);
+        await provider.EvaluationStarted.Task.WaitAsync(Timeout);
+        service.Dispose();
+        service.Dispose();
+        var result = await pending.WaitAsync(Timeout);
+        var afterDispose = await service.GetProjectsAsync(App);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsFailure, Is.True);
-            Assert.That(result.Error.Code, Is.EqualTo("test.metadata.failed"));
+            Assert.That(result.Error, Is.EqualTo(WorkspaceProjectGraphErrors.EvaluationAbandoned));
+            Assert.That(provider.EvaluationTokens.Single().IsCancellationRequested, Is.True);
+            Assert.That(afterDispose.IsFailure, Is.True);
+            Assert.That(afterDispose.Error, Is.EqualTo(WorkspaceProjectGraphErrors.EvaluationAbandoned));
+            Assert.That(provider.EvaluationCount, Is.EqualTo(1));
         });
     }
 
-    [Test]
-    public async Task LargeSolutionOverlapsEvaluationWithinABoundAndKeepsSolutionOrder()
-    {
-        var paths = Enumerable.Range(0, 12).Select(index => Path.Combine(Path.GetTempPath(), $"Project{index}.csproj")).ToArray();
-        var batchSize = Math.Clamp(Environment.ProcessorCount, 1, 4);
-        var metadata = new GatedMetadataProvider(batchSize);
-        var graph = new WorkspaceProjectGraphService(new FakeFolderProjectProvider([]),
-            new FakeSolutionProjectProvider(paths), metadata, new FakeProjectReferenceProvider("", ""));
-        var pending = graph.LoadAsync(new WorkspaceDescriptor("/work/Large.sln", "Large", WorkspaceKind.Solution));
-        await metadata.BatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.That(metadata.Started, Is.EqualTo(batchSize));
-        metadata.Release.SetResult();
-        var result = await pending;
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value!.Projects.Select(project => project.Path), Is.EqualTo(paths));
-        Assert.That(metadata.MaximumActive, Is.EqualTo(batchSize));
-        Assert.That(metadata.Active, Is.Zero);
-    }
+    private static TaskCompletionSource NewGate() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    [Test]
-    public async Task CancellingParallelGraphEvaluationDrainsAllStartedWork()
-    {
-        var paths = Enumerable.Range(0, 12).Select(index => Path.Combine(Path.GetTempPath(), $"Project{index}.csproj")).ToArray();
-        var metadata = new GatedMetadataProvider(Math.Clamp(Environment.ProcessorCount, 1, 4));
-        var graph = new WorkspaceProjectGraphService(new FakeFolderProjectProvider([]),
-            new FakeSolutionProjectProvider(paths), metadata, new FakeProjectReferenceProvider("", ""));
-        using var cancellation = new CancellationTokenSource();
-        var pending = graph.LoadAsync(new WorkspaceDescriptor("/work/Large.sln", "Large", WorkspaceKind.Solution), cancellation.Token);
-        await metadata.BatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await pending);
-        Assert.That(metadata.Active, Is.Zero);
-    }
+    private static WorkspaceDescriptor CreateWorkspace(string name) =>
+        new(Path.Combine(Path.GetTempPath(), "toren-graph-service", name, $"{name}.csproj"), name, WorkspaceKind.Project);
 
-    private sealed class GatedMetadataProvider(int batchSize) : IProjectMetadataProvider
-    {
-        private int _started;
-        private int _active;
-        private int _maximum;
-        public TaskCompletionSource BatchStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public int Started => Volatile.Read(ref _started);
-        public int Active => Volatile.Read(ref _active);
-        public int MaximumActive => Volatile.Read(ref _maximum);
-        public async Task<Result<ProjectMetadata>> GetMetadataAsync(string projectPath, CancellationToken cancellationToken = default)
-        {
-            var active = Interlocked.Increment(ref _active);
-            int previous;
-            do { previous = _maximum; } while (active > previous && Interlocked.CompareExchange(ref _maximum, active, previous) != previous);
-            if (Interlocked.Increment(ref _started) == batchSize) BatchStarted.TrySetResult();
-            try
-            {
-                await Release.Task.WaitAsync(cancellationToken);
-                return Result.Success(CreateMetadata(projectPath));
-            }
-            finally { Interlocked.Decrement(ref _active); }
-        }
-    }
-
-    private static ProjectMetadata CreateMetadata(string projectPath) =>
+    private static WorkspaceProjectGraphService CreateService(
+        ControlledEvaluationProvider provider,
+        FakeStampProvider? stamps = null) =>
         new(
-            DefaultTargetFrameworks,
-            "Library",
-            Path.GetFileNameWithoutExtension(projectPath),
-            Path.GetFileNameWithoutExtension(projectPath),
-            IsTestProject: false,
-            UsesCentralPackageManagement: true,
-            DirectoryBuildPropsPath: null,
-            DirectoryBuildTargetsPath: null,
-            DirectoryPackagesPropsPath: null);
+            new WorkspaceProjectGraphEvaluator(new UnusedProjectProvider(), new UnusedProjectProvider(), provider),
+            stamps ?? new FakeStampProvider());
 
-    private sealed class FakeFolderProjectProvider(IReadOnlyList<string> projects) : IFolderProjectProvider
+    private sealed class ControlledEvaluationProvider : IProjectEvaluationProvider
     {
-        public int CallCount { get; private set; }
+        private readonly Lock _gate = new();
+        private int _evaluationCount;
+        private int _compilerInputCount;
 
-        public Task<Result<IReadOnlyList<string>>> GetProjectPathsAsync(
-            string folderPath,
+        /// <summary>Runs before an evaluation returns; receives the 1-based call number.</summary>
+        public Func<int, CancellationToken, Task> OnEvaluate { get; set; } = static (_, _) => Task.CompletedTask;
+
+        public Func<int, CancellationToken, Task> OnResolve { get; set; } = static (_, _) => Task.CompletedTask;
+
+        public Dictionary<int, OperationError> EvaluationFailures { get; } = [];
+
+        public Dictionary<int, OperationError> CompilerInputFailures { get; } = [];
+
+        public TaskCompletionSource EvaluationStarted { get; } = NewGate();
+
+        public List<CancellationToken> EvaluationTokens { get; } = [];
+
+        public int EvaluationCount => Volatile.Read(ref _evaluationCount);
+
+        public int CompilerInputCount => Volatile.Read(ref _compilerInputCount);
+
+        public async Task<Result<IReadOnlyList<ProjectEvaluation>>> EvaluateAsync(
+            IReadOnlyList<string> projectPaths,
             CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            return Task.FromResult(Result.Success(projects));
+            var call = Interlocked.Increment(ref _evaluationCount);
+            lock (_gate)
+            {
+                EvaluationTokens.Add(cancellationToken);
+            }
+
+            EvaluationStarted.TrySetResult();
+            await OnEvaluate(call, cancellationToken);
+            return EvaluationFailures.TryGetValue(call, out var error)
+                ? Result.Failure<IReadOnlyList<ProjectEvaluation>>(error)
+                : Result.Success<IReadOnlyList<ProjectEvaluation>>(projectPaths
+                    .Select(static _ => new ProjectEvaluation(
+                        new ProjectMetadata(["net10.0"], "Exe", "App", "App", false, false, null, null, null),
+                        []))
+                    .ToArray());
+        }
+
+        public async Task<Result<IReadOnlyList<ProjectMetadata>>> ResolveCompilerInputsAsync(
+            IReadOnlyList<WorkspaceProject> projects,
+            CancellationToken cancellationToken = default)
+        {
+            var call = Interlocked.Increment(ref _compilerInputCount);
+            await OnResolve(call, cancellationToken);
+            return CompilerInputFailures.TryGetValue(call, out var error)
+                ? Result.Failure<IReadOnlyList<ProjectMetadata>>(error)
+                : Result.Success<IReadOnlyList<ProjectMetadata>>(projects
+                    .Select(static project => project.Metadata with { ReferencePaths = [] })
+                    .ToArray());
         }
     }
 
-    private sealed class FakeSolutionProjectProvider(IReadOnlyList<string> projects) : ISolutionProjectProvider
+    private sealed class FakeStampProvider : IProjectEvaluationInputStampProvider
     {
-        public int CallCount { get; private set; }
+        public string WorkspaceStamp { get; set; } = "workspace";
 
-        public Task<Result<IReadOnlyList<string>>> GetProjectPathsAsync(
-            string solutionPath,
+        public string ProjectStamp { get; set; } = "projects";
+
+        public DateTime LastWriteTimeUtc { get; set; } = DateTime.MinValue;
+
+        public Task<string> GetWorkspaceStampAsync(
+            WorkspaceDescriptor workspace,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            return Task.FromResult(Result.Success(projects));
+            return Task.FromResult(WorkspaceStamp);
         }
-    }
 
-    private sealed class FakeProjectMetadataProvider : IProjectMetadataProvider
-    {
-        public int CallCount { get; private set; }
-
-        public Task<Result<ProjectMetadata>> GetMetadataAsync(
-            string projectPath,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            return Task.FromResult(Result.Success(CreateMetadata(projectPath)));
-        }
-    }
-
-    private sealed class FailingProjectMetadataProvider : IProjectMetadataProvider
-    {
-        public Task<Result<ProjectMetadata>> GetMetadataAsync(
-            string projectPath,
+        public Task<ProjectInputStamp> GetProjectStampAsync(
+            IReadOnlyList<WorkspaceProject> projects,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Failure<ProjectMetadata>(
-                OperationError.Create("test.metadata.failed", "metadata failed")));
+            Task.FromResult(new ProjectInputStamp(ProjectStamp, LastWriteTimeUtc));
     }
 
-    private sealed class FakeProjectReferenceProvider(string referencingProject, string referencedProject)
-        : IProjectReferenceProvider
+    private sealed class UnusedProjectProvider : IFolderProjectProvider, ISolutionProjectProvider
     {
-        public int CallCount { get; private set; }
+        Task<Result<IReadOnlyList<string>>> IFolderProjectProvider.GetProjectPathsAsync(
+            string folderPath,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        public Task<Result<IReadOnlyList<ProjectReferenceInfo>>> GetReferencesAsync(
-            string projectPath,
-            CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            IReadOnlyList<ProjectReferenceInfo> references = projectPath.Equals(
-                referencingProject,
-                StringComparison.OrdinalIgnoreCase)
-                ? [new ProjectReferenceInfo("../Locker/Locker.csproj", ProjectReferenceKind.Project, referencedProject)]
-                : [];
-            return Task.FromResult(Result.Success(references));
-        }
+        Task<Result<IReadOnlyList<string>>> ISolutionProjectProvider.GetProjectPathsAsync(
+            string solutionPath,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

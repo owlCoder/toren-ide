@@ -22,7 +22,7 @@ public sealed class WorkspaceExecutionTargetServiceTests
                 CreateProject(Path.Combine(root, "Tests", "Tests.csproj"), "Tests", "Exe", true, ["net10.0"]),
                 CreateProject(desktopPath, "Desktop", "WinExe", false, ["net10.0"]),
             ]);
-        var service = new WorkspaceExecutionTargetService(new FakeProjectGraphService(Result.Success(graph)));
+        var service = new WorkspaceExecutionTargetService(new FakeProjectCatalog(Result.Success(graph.Projects)));
 
         var result = await service.GetTargetsAsync(
             new WorkspaceDescriptor(root, "Workspace", WorkspaceKind.Folder));
@@ -44,7 +44,7 @@ public sealed class WorkspaceExecutionTargetServiceTests
     {
         var error = OperationError.Create("workspace.graph.failed", "Graph failed.");
         var service = new WorkspaceExecutionTargetService(
-            new FakeProjectGraphService(Result.Failure<WorkspaceProjectGraph>(error)));
+            new FakeProjectCatalog(Result.Failure<IReadOnlyList<WorkspaceProject>>(error)));
 
         var result = await service.GetTargetsAsync(
             new WorkspaceDescriptor(Path.GetTempPath(), "Workspace", WorkspaceKind.Folder));
@@ -77,10 +77,10 @@ public sealed class WorkspaceExecutionTargetServiceTests
                 null),
             []);
 
-    private sealed class FakeProjectGraphService(Result<WorkspaceProjectGraph> result)
-        : IWorkspaceProjectGraphService
+    private sealed class FakeProjectCatalog(Result<IReadOnlyList<WorkspaceProject>> result)
+        : IWorkspaceProjectCatalog
     {
-        public Task<Result<WorkspaceProjectGraph>> LoadAsync(
+        public Task<Result<IReadOnlyList<WorkspaceProject>>> GetProjectsAsync(
             WorkspaceDescriptor workspace,
             CancellationToken cancellationToken = default)
         {

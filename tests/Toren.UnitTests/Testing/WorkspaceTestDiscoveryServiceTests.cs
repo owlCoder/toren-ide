@@ -17,9 +17,9 @@ public sealed class WorkspaceTestDiscoveryServiceTests
         var testProject = CreateProject("Tests.One", true, ["net10.0"]);
         var failingProject = CreateProject("Tests.Two", true, ["net10.0", "net9.0"]);
         var appProject = CreateProject("App", false, ["net10.0"]);
-        var graphService = new StubGraphService([testProject, failingProject, appProject]);
+        var projectCatalog = new StubProjectCatalog([testProject, failingProject, appProject]);
         var discoveryService = new StubTestDiscoveryService(failingProject.Path);
-        var service = new WorkspaceTestDiscoveryService(graphService, discoveryService);
+        var service = new WorkspaceTestDiscoveryService(projectCatalog, discoveryService);
         var workspace = new WorkspaceDescriptor("/repo", "repo", WorkspaceKind.Folder);
 
         var result = await service.DiscoverAsync(workspace);
@@ -58,13 +58,13 @@ public sealed class WorkspaceTestDiscoveryServiceTests
         return new WorkspaceProject(path, name, metadata, []);
     }
 
-    private sealed class StubGraphService(IReadOnlyList<WorkspaceProject> projects)
-        : IWorkspaceProjectGraphService
+    private sealed class StubProjectCatalog(IReadOnlyList<WorkspaceProject> projects)
+        : IWorkspaceProjectCatalog
     {
-        public Task<Result<WorkspaceProjectGraph>> LoadAsync(
+        public Task<Result<IReadOnlyList<WorkspaceProject>>> GetProjectsAsync(
             WorkspaceDescriptor workspace,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(Result.Success(new WorkspaceProjectGraph(projects)));
+            Task.FromResult(Result.Success(projects));
     }
 
     private sealed class StubTestDiscoveryService(string failingProjectPath)

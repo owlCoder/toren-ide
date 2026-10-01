@@ -55,4 +55,21 @@ public sealed class WorkspaceClassifierTests
             Assert.That(result, Is.Null);
         });
     }
+
+    [Test]
+    public void ClassifyPathHandlesFoldersWorkspaceFilesAndUnsupportedFiles()
+    {
+        var folder = Path.GetTempPath();
+
+        var folderWorkspace = _classifier.ClassifyPath(folder);
+        var solutionWorkspace = _classifier.ClassifyPath(Path.Combine(folder, "Sample.slnx"));
+        var unsupported = _classifier.ClassifyPath(Path.Combine(folder, "notes.txt"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(folderWorkspace!.Kind, Is.EqualTo(WorkspaceKind.Folder));
+            Assert.That(solutionWorkspace!.Kind, Is.EqualTo(WorkspaceKind.SolutionX));
+            Assert.That(unsupported, Is.Null);
+        });
+    }
 }

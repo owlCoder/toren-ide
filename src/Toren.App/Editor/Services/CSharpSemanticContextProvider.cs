@@ -1,6 +1,7 @@
 using Toren.App.Documents.Contracts;
 using Toren.App.Editor.Contracts;
 using Toren.App.Editor.Models;
+using Toren.Core.IO;
 using Toren.Core.Results;
 using Toren.Language.CSharp.Models;
 using Toren.Workspaces.Contracts;
@@ -13,13 +14,9 @@ public sealed class CSharpSemanticContextProvider(
     IWorkspaceClassifier workspaceClassifier,
     IWorkspaceProjectGraphService projectGraphService,
     IWorkspaceFileProvider workspaceFileProvider,
-    ITextDocumentStore documentStore,
-    IProjectCompilationReferenceProvider? projectCompilationReferenceProvider = null) : ICSharpSemanticContextProvider
+    ITextDocumentStore documentStore) : ICSharpSemanticContextProvider
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly IWorkspaceClassifier _workspaceClassifier = workspaceClassifier
         ?? throw new ArgumentNullException(nameof(workspaceClassifier));
@@ -29,8 +26,6 @@ public sealed class CSharpSemanticContextProvider(
         ?? throw new ArgumentNullException(nameof(workspaceFileProvider));
     private readonly ITextDocumentStore _documentStore = documentStore
         ?? throw new ArgumentNullException(nameof(documentStore));
-    private readonly IProjectCompilationReferenceProvider? _projectCompilationReferenceProvider =
-        projectCompilationReferenceProvider;
 
     public async Task<CSharpSemanticContext?> CreateAsync(
         string workspacePath,
@@ -48,7 +43,7 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var workspace = ClassifyWorkspace(workspacePath);
+        var workspace = _workspaceClassifier.ClassifyPath(workspacePath);
         if (workspace is null)
         {
             return null;
@@ -69,24 +64,22 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var reachableProjects = _projectCompilationReferenceProvider is null
-            ? GetReachableProjectPaths(activeProject, projects)
-            : new HashSet<string>([Path.GetFullPath(activeProject.Path)], PathComparer);
-        var referenceResults = await ResolveProjectReferencePathsAsync(projects, cancellationToken).ConfigureAwait(false);
-        var metadataReferences = CollectMetadataReferencePaths(reachableProjects, referenceResults);
+        var reachableProjects = GetContextProjectPaths(activeProject, projects);
+        var metadataReferences = ResolveMetadataReferences(activeProject);
         if (!metadataReferences.IsSuccess)
         {
             return null;
         }
 
+        var openDocumentsByPath = IndexOpenDocuments(openDocuments);
         var sourceDocuments = await LoadSourceDocumentsAsync(
             workspacePath,
-            openDocuments,
+            openDocumentsByPath,
             fullPath =>
             {
                 var owner = projectOwnership.FindOwningProject(fullPath);
                 return owner is not null && reachableProjects.Contains(Path.GetFullPath(owner.Path))
-                    && IsCompiledSource(owner, fullPath);
+                    && IsCompiledSource(projectOwnership, owner, fullPath);
             },
             cancellationToken).ConfigureAwait(false);
         if (sourceDocuments is null)
@@ -99,7 +92,14 @@ public sealed class CSharpSemanticContextProvider(
             sourceDocuments.Add(new CSharpSourceDocument(activePath, activeDocument.Text));
         }
 
-        await AddEvaluatedSourcesAsync(activeProject, sourceDocuments, openDocuments, cancellationToken).ConfigureAwait(false);
+        await AddEvaluatedSourcesAsync(
+            activeProject,
+            sourceDocuments,
+            IndexPaths(sourceDocuments),
+            openDocumentsByPath,
+            loadedDocuments: null,
+            cancellationToken).ConfigureAwait(false);
+        AddGlobalUsings(activeProject, sourceDocuments);
         return CreateProjectContext(activePath, sourceDocuments, activeProject, metadataReferences.Value);
     }
 
@@ -114,7 +114,7 @@ public sealed class CSharpSemanticContextProvider(
 
         var sourceDocuments = await LoadSourceDocumentsAsync(
             workspacePath,
-            openDocuments,
+            IndexOpenDocuments(openDocuments),
             static _ => true,
             cancellationToken).ConfigureAwait(false);
         if (sourceDocuments is null || sourceDocuments.Count == 0)
@@ -138,9 +138,10 @@ public sealed class CSharpSemanticContextProvider(
         ArgumentNullException.ThrowIfNull(openDocuments);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var openDocumentsByPath = IndexOpenDocuments(openDocuments);
         var sourceDocuments = await LoadSourceDocumentsAsync(
             workspacePath,
-            openDocuments,
+            openDocumentsByPath,
             static _ => true,
             cancellationToken).ConfigureAwait(false);
         if (sourceDocuments is null)
@@ -148,7 +149,7 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var workspace = ClassifyWorkspace(workspacePath);
+        var workspace = _workspaceClassifier.ClassifyPath(workspacePath);
         if (workspace is null)
         {
             return new CSharpWorkspaceSemanticContexts([], sourceDocuments);
@@ -166,44 +167,55 @@ public sealed class CSharpSemanticContextProvider(
         }
 
         var projects = graphResult.Value.Projects;
+        var sourcePaths = IndexPaths(sourceDocuments);
         foreach (var project in projects)
         {
-            await AddEvaluatedSourcesAsync(project, sourceDocuments, openDocuments, cancellationToken, includeGlobalUsings: false)
-                .ConfigureAwait(false);
+            await AddEvaluatedSourcesAsync(
+                project,
+                sourceDocuments,
+                sourcePaths,
+                openDocumentsByPath,
+                loadedDocuments: null,
+                cancellationToken).ConfigureAwait(false);
         }
-        var referenceResults = await ResolveProjectReferencePathsAsync(projects, cancellationToken).ConfigureAwait(false);
+
+        // Classify every document once; the per-project passes below then only touch their own files.
         var projectOwnership = new WorkspaceProjectOwnershipMap(projects);
-        var ownedDocuments = sourceDocuments
-            .Select(document => new OwnedSourceDocument(
-                document,
-                projectOwnership.FindOwningProject(Path.GetFullPath(document.Path))))
-            .ToArray();
+        var loadedDocuments = new Dictionary<string, CSharpSourceDocument>(sourceDocuments.Count, PathComparer);
+        var compiledDocuments = new Dictionary<WorkspaceProject, List<CSharpSourceDocument>>(
+            ReferenceEqualityComparer.Instance);
+        var fallbackDocuments = new List<CSharpSourceDocument>();
+        foreach (var document in sourceDocuments)
+        {
+            loadedDocuments.TryAdd(document.Path, document);
+            var owner = projectOwnership.FindOwningProject(Path.GetFullPath(document.Path));
+            if (owner is null)
+            {
+                fallbackDocuments.Add(document);
+            }
+            else if (IsCompiledSource(projectOwnership, owner, document.Path))
+            {
+                if (!compiledDocuments.TryGetValue(owner, out var ownerDocuments))
+                {
+                    compiledDocuments.Add(owner, ownerDocuments = []);
+                }
+
+                ownerDocuments.Add(document);
+            }
+        }
+
         var projectContexts = new List<CSharpWorkspaceProjectContext>(projects.Count);
-        var fallbackDocuments = ownedDocuments
-            .Where(static owned => owned.Project is null)
-            .Select(static owned => owned.Document)
-            .ToList();
         var projectSystemError = OperationError.None;
 
         foreach (var project in projects)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var projectPath = Path.GetFullPath(project.Path);
-            var targetDocuments = ownedDocuments
-                .Where(owned => owned.Project is not null
-                    && PathComparer.Equals(Path.GetFullPath(owned.Project.Path), projectPath)
-                    && IsCompiledSource(project, owned.Document.Path))
-                .Select(static owned => owned.Document)
-                .ToArray();
-            if (targetDocuments.Length == 0)
+            if (!compiledDocuments.TryGetValue(project, out var targetDocuments))
             {
                 continue;
             }
 
-            var reachableProjects = _projectCompilationReferenceProvider is null
-                ? GetReachableProjectPaths(project, projects)
-                : new HashSet<string>([projectPath], PathComparer);
-            var metadataReferences = CollectMetadataReferencePaths(reachableProjects, referenceResults);
+            var metadataReferences = ResolveMetadataReferences(project);
             if (!metadataReferences.IsSuccess)
             {
                 if (projectSystemError.IsNone)
@@ -215,18 +227,35 @@ public sealed class CSharpSemanticContextProvider(
                 continue;
             }
 
-            var contextDocuments = ownedDocuments
-                .Where(owned => owned.Project is not null
-                    && reachableProjects.Contains(Path.GetFullPath(owned.Project.Path))
-                    && IsCompiledSource(owned.Project, owned.Document.Path))
-                .Select(static owned => owned.Document)
-                .ToList();
-            await AddEvaluatedSourcesAsync(project, contextDocuments, openDocuments, cancellationToken).ConfigureAwait(false);
+            List<CSharpSourceDocument> contextDocuments;
+            if (UsesEvaluatedReferences(project))
+            {
+                contextDocuments = new List<CSharpSourceDocument>(targetDocuments);
+            }
+            else
+            {
+                // Without reference assemblies, referenced projects take part as source.
+                var reachableProjects = GetReachableProjectPaths(project, projects);
+                contextDocuments = sourceDocuments
+                    .Where(document => projectOwnership.FindOwningProject(Path.GetFullPath(document.Path)) is { } owner
+                        && reachableProjects.Contains(Path.GetFullPath(owner.Path))
+                        && IsCompiledSource(projectOwnership, owner, document.Path))
+                    .ToList();
+            }
+
+            await AddEvaluatedSourcesAsync(
+                project,
+                contextDocuments,
+                IndexPaths(contextDocuments),
+                openDocumentsByPath,
+                loadedDocuments,
+                cancellationToken).ConfigureAwait(false);
+            AddGlobalUsings(project, contextDocuments);
             var semanticContext = CreateProjectContext(targetDocuments[0].Path, contextDocuments, project, metadataReferences.Value);
             projectContexts.Add(new CSharpWorkspaceProjectContext(
                 semanticContext,
                 targetDocuments.Select(static document => document.Path).ToArray(),
-                projectPath));
+                Path.GetFullPath(project.Path)));
         }
 
         var looseDocuments = fallbackDocuments
@@ -236,29 +265,77 @@ public sealed class CSharpSemanticContextProvider(
         return new CSharpWorkspaceSemanticContexts(projectContexts, looseDocuments, projectSystemError);
     }
 
-    private static bool IsCompiledSource(WorkspaceProject project, string path) =>
-        project.Metadata.SourcePaths.Count == 0
-        || project.Metadata.SourcePaths.Any(source => PathComparer.Equals(Path.GetFullPath(source), Path.GetFullPath(path)));
+    private static bool IsCompiledSource(
+        WorkspaceProjectOwnershipMap projectOwnership,
+        WorkspaceProject project,
+        string path) =>
+        project.Metadata.SourcePaths.Count == 0 || projectOwnership.ListsSource(project, path);
 
-    private async Task AddEvaluatedSourcesAsync(WorkspaceProject project, List<CSharpSourceDocument> documents,
-        IReadOnlyList<CSharpSourceDocument> openDocuments, CancellationToken cancellationToken, bool includeGlobalUsings = true)
+    private static Dictionary<string, CSharpSourceDocument> IndexOpenDocuments(
+        IReadOnlyList<CSharpSourceDocument> openDocuments)
     {
-        foreach (var path in project.Metadata.SourcePaths.Where(path => Path.GetExtension(path).Equals(".cs", StringComparison.OrdinalIgnoreCase)))
+        var openDocumentsByPath = new Dictionary<string, CSharpSourceDocument>(openDocuments.Count, PathComparer);
+        foreach (var document in openDocuments)
         {
-            if (documents.Any(document => PathComparer.Equals(document.Path, path))) continue;
-            var open = openDocuments.FirstOrDefault(document => PathComparer.Equals(Path.GetFullPath(document.Path), path));
-            if (open is not null)
+            openDocumentsByPath.TryAdd(Path.GetFullPath(document.Path), document);
+        }
+
+        return openDocumentsByPath;
+    }
+
+    private static HashSet<string> IndexPaths(List<CSharpSourceDocument> documents)
+    {
+        var paths = new HashSet<string>(documents.Count, PathComparer);
+        foreach (var document in documents)
+        {
+            paths.Add(document.Path);
+        }
+
+        return paths;
+    }
+
+    /// <summary>
+    /// Adds the project's evaluated compile items that the workspace listing did not provide,
+    /// such as generated or linked files, preferring open editor text over the file on disk.
+    /// </summary>
+    private async Task AddEvaluatedSourcesAsync(
+        WorkspaceProject project,
+        List<CSharpSourceDocument> documents,
+        HashSet<string> documentPaths,
+        Dictionary<string, CSharpSourceDocument> openDocumentsByPath,
+        Dictionary<string, CSharpSourceDocument>? loadedDocuments,
+        CancellationToken cancellationToken)
+    {
+        foreach (var path in project.Metadata.SourcePaths)
+        {
+            if (!Path.GetExtension(path.AsSpan()).Equals(".cs", StringComparison.OrdinalIgnoreCase)
+                || !documentPaths.Add(path))
+            {
+                continue;
+            }
+
+            if (openDocumentsByPath.TryGetValue(path, out var open))
             {
                 documents.Add(open);
+            }
+            else if (loadedDocuments is not null && loadedDocuments.TryGetValue(path, out var loadedDocument))
+            {
+                documents.Add(loadedDocument);
             }
             else
             {
                 var loaded = await _documentStore.LoadAsync(path, cancellationToken).ConfigureAwait(false);
-                if (loaded.IsSuccess) documents.Add(new CSharpSourceDocument(path, loaded.Value.Text));
+                if (loaded.IsSuccess)
+                {
+                    documents.Add(new CSharpSourceDocument(path, loaded.Value.Text));
+                }
             }
         }
+    }
 
-        if (includeGlobalUsings && project.Metadata.GlobalUsings.Count > 0
+    private static void AddGlobalUsings(WorkspaceProject project, List<CSharpSourceDocument> documents)
+    {
+        if (project.Metadata.GlobalUsings.Count > 0
             && !documents.Any(document => document.Path.EndsWith(".GlobalUsings.g.cs", StringComparison.OrdinalIgnoreCase)))
         {
             documents.Add(new CSharpSourceDocument(project.Path + ".global-usings.g.cs", string.Join("\n", project.Metadata.GlobalUsings)));
@@ -279,67 +356,28 @@ public sealed class CSharpSemanticContextProvider(
         AllowUnsafe = project.Metadata.AllowUnsafe,
     };
 
-    private async Task<Dictionary<string, Result<IReadOnlyList<string>>>> ResolveProjectReferencePathsAsync(
-        IReadOnlyList<WorkspaceProject> projects,
-        CancellationToken cancellationToken)
-    {
-        var results = new Dictionary<string, Result<IReadOnlyList<string>>>(PathComparer);
-        if (_projectCompilationReferenceProvider is null)
-        {
-            return results;
-        }
+    /// <summary>
+    /// Projects evaluated by the design-time targets compile against their resolved reference
+    /// assemblies. Projects without that information fall back to referenced project sources.
+    /// </summary>
+    private static bool UsesEvaluatedReferences(WorkspaceProject project) =>
+        project.Metadata.ReferencePaths is not null || !project.Metadata.CompilerInputsError.IsNone;
 
-        foreach (var project in projects)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var projectPath = Path.GetFullPath(project.Path);
-            var targetFramework = project.Metadata.TargetFrameworks.Count > 0
-                ? project.Metadata.TargetFrameworks[0]
-                : null;
-            results[projectPath] = await _projectCompilationReferenceProvider
-                .GetReferencePathsAsync(projectPath, targetFramework, cancellationToken)
-                .ConfigureAwait(false);
-        }
+    private static Result<IReadOnlyList<string>> ResolveMetadataReferences(WorkspaceProject project) =>
+        UsesEvaluatedReferences(project)
+            ? ProjectCompilationReferenceResolver.Resolve(project.Metadata)
+            : Result.Success<IReadOnlyList<string>>([]);
 
-        return results;
-    }
-
-    private static Result<string[]> CollectMetadataReferencePaths(
-        HashSet<string> reachableProjectPaths,
-        Dictionary<string, Result<IReadOnlyList<string>>> referenceResults)
-    {
-        if (referenceResults.Count == 0)
-        {
-            return Result.Success(Array.Empty<string>());
-        }
-
-        var paths = new List<string>();
-        foreach (var projectPath in reachableProjectPaths)
-        {
-            if (!referenceResults.TryGetValue(projectPath, out var result))
-            {
-                continue;
-            }
-
-            if (!result.IsSuccess)
-            {
-                return Result.Failure<string[]>(result.Error);
-            }
-
-            paths.AddRange(result.Value);
-        }
-
-        return Result.Success(paths
-            .Where(static path => !string.IsNullOrWhiteSpace(path))
-            .Select(Path.GetFullPath)
-            .Distinct(PathComparer)
-            .OrderBy(static path => path, PathComparer)
-            .ToArray());
-    }
+    private static HashSet<string> GetContextProjectPaths(
+        WorkspaceProject project,
+        IReadOnlyList<WorkspaceProject> projects) =>
+        UsesEvaluatedReferences(project)
+            ? new HashSet<string>([Path.GetFullPath(project.Path)], PathComparer)
+            : GetReachableProjectPaths(project, projects);
 
     private async Task<List<CSharpSourceDocument>?> LoadSourceDocumentsAsync(
         string workspacePath,
-        IReadOnlyList<CSharpSourceDocument> openDocuments,
+        Dictionary<string, CSharpSourceDocument> openDocumentsByPath,
         Func<string, bool> includeFile,
         CancellationToken cancellationToken)
     {
@@ -349,10 +387,6 @@ public sealed class CSharpSemanticContextProvider(
             return null;
         }
 
-        var openDocumentText = openDocuments.ToDictionary(
-            document => Path.GetFullPath(document.Path),
-            document => document.Text,
-            PathComparer);
         var sourceDocuments = new List<CSharpSourceDocument>();
 
         foreach (var file in filesResult.Value)
@@ -369,9 +403,9 @@ public sealed class CSharpSemanticContextProvider(
                 continue;
             }
 
-            if (openDocumentText.TryGetValue(fullPath, out var openText))
+            if (openDocumentsByPath.TryGetValue(fullPath, out var open))
             {
-                sourceDocuments.Add(new CSharpSourceDocument(fullPath, openText));
+                sourceDocuments.Add(new CSharpSourceDocument(fullPath, open.Text));
                 continue;
             }
 
@@ -383,18 +417,6 @@ public sealed class CSharpSemanticContextProvider(
         }
 
         return sourceDocuments;
-    }
-
-    private WorkspaceDescriptor? ClassifyWorkspace(string workspacePath)
-    {
-        if (Directory.Exists(workspacePath))
-        {
-            return _workspaceClassifier.ClassifyDirectory(workspacePath);
-        }
-
-        return _workspaceClassifier.TryClassifyFile(workspacePath, out var workspace)
-            ? workspace
-            : null;
     }
 
     private static HashSet<string> GetReachableProjectPaths(
@@ -434,6 +456,4 @@ public sealed class CSharpSemanticContextProvider(
 
         return reachable;
     }
-
-    private sealed record OwnedSourceDocument(CSharpSourceDocument Document, WorkspaceProject? Project);
 }

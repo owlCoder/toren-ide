@@ -6,6 +6,7 @@ using Toren.App.ViewModels;
 using Toren.App.Views.Packages;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
+using Toren.Workspaces.Services;
 
 namespace Toren.App.Packages.Services;
 
@@ -14,26 +15,27 @@ internal sealed class PackageManagerController
     private readonly Window _window;
     private readonly MainWindowViewModel _shell;
     private readonly IWorkspaceClassifier _workspaceClassifier;
-    private readonly IWorkspaceProjectGraphService _projectGraphService;
+    private readonly IWorkspaceProjectCatalog _projectCatalog;
     private readonly PackageManagerViewModel _viewModel;
     private readonly Action<string> _setStatus;
     private readonly ToolDialogHost _dialog;
     private readonly Button _packagesButton;
     private CancellationTokenSource? _loadCancellation;
+    private bool _installedPackagesPending;
     private bool _detached;
 
     private PackageManagerController(
         Window window,
         MainWindowViewModel shell,
         IWorkspaceClassifier workspaceClassifier,
-        IWorkspaceProjectGraphService projectGraphService,
+        IWorkspaceProjectCatalog projectCatalog,
         PackageManagerViewModel viewModel,
         Action<string> setStatus)
     {
         _window = window;
         _shell = shell;
         _workspaceClassifier = workspaceClassifier;
-        _projectGraphService = projectGraphService;
+        _projectCatalog = projectCatalog;
         _viewModel = viewModel;
         _setStatus = setStatus;
         _dialog = new ToolDialogHost(window, "Packages", new PackageManagerPanel { DataContext = viewModel }, 960, 680, "PackageSearchBox");
@@ -51,21 +53,28 @@ internal sealed class PackageManagerController
         Window window,
         MainWindowViewModel shell,
         IWorkspaceClassifier workspaceClassifier,
-        IWorkspaceProjectGraphService projectGraphService,
+        IWorkspaceProjectCatalog projectCatalog,
         PackageManagerViewModel viewModel,
         Action<string> setStatus)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(workspaceClassifier);
-        ArgumentNullException.ThrowIfNull(projectGraphService);
+        ArgumentNullException.ThrowIfNull(projectCatalog);
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(setStatus);
 
-        _ = new PackageManagerController(window, shell, workspaceClassifier, projectGraphService, viewModel, setStatus);
+        _ = new PackageManagerController(window, shell, workspaceClassifier, projectCatalog, viewModel, setStatus);
     }
 
-    private void PackagesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) => _dialog.Open();
+    private async void PackagesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args)
+    {
+        _dialog.Open();
+        if (_installedPackagesPending && _loadCancellation is { } cancellation)
+        {
+            await RefreshInstalledAsync(cancellation).ConfigureAwait(true);
+        }
+    }
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
@@ -86,6 +95,7 @@ internal sealed class PackageManagerController
     private void SynchronizeWorkspace()
     {
         CancelLoad();
+        _installedPackagesPending = false;
         if (_detached || !_shell.Explorer.IsWorkspaceOpen)
         {
             _viewModel.SetWorkspace(null, []);
@@ -96,7 +106,7 @@ internal sealed class PackageManagerController
         var workingDirectory = Directory.Exists(workspacePath)
             ? workspacePath
             : Path.GetDirectoryName(workspacePath);
-        if (workingDirectory is null || !TryResolveDescriptor(workspacePath, out var descriptor))
+        if (workingDirectory is null || _workspaceClassifier.ClassifyPath(workspacePath) is not { } descriptor)
         {
             _viewModel.SetWorkspace(workingDirectory, []);
             return;
@@ -106,18 +116,7 @@ internal sealed class PackageManagerController
         _loadCancellation = cancellation;
         _viewModel.SetWorkspace(workingDirectory, []);
         _viewModel.StatusText = "Loading workspace projects…";
-        _ = LoadProjectsAsync(descriptor!, workingDirectory, cancellation);
-    }
-
-    private bool TryResolveDescriptor(string workspacePath, out WorkspaceDescriptor? descriptor)
-    {
-        if (Directory.Exists(workspacePath))
-        {
-            descriptor = _workspaceClassifier.ClassifyDirectory(workspacePath);
-            return true;
-        }
-
-        return _workspaceClassifier.TryClassifyFile(workspacePath, out descriptor);
+        _ = LoadProjectsAsync(descriptor, workingDirectory, cancellation);
     }
 
     private async Task LoadProjectsAsync(
@@ -127,8 +126,8 @@ internal sealed class PackageManagerController
     {
         try
         {
-            var result = await _projectGraphService
-                .LoadAsync(workspace, cancellation.Token)
+            var result = await _projectCatalog
+                .GetProjectsAsync(workspace, cancellation.Token)
                 .ConfigureAwait(true);
             if (_detached || cancellation.IsCancellationRequested || !ReferenceEquals(_loadCancellation, cancellation))
             {
@@ -143,7 +142,24 @@ internal sealed class PackageManagerController
                 return;
             }
 
-            _viewModel.SetWorkspace(workingDirectory, result.Value!.Projects);
+            _viewModel.SetWorkspace(workingDirectory, result.Value!);
+            // Listing installed packages starts an SDK process; wait until the dialog is in use.
+            _installedPackagesPending = true;
+            if (_dialog.IsOpen)
+            {
+                await RefreshInstalledAsync(cancellation).ConfigureAwait(true);
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+    }
+
+    private async Task RefreshInstalledAsync(CancellationTokenSource cancellation)
+    {
+        _installedPackagesPending = false;
+        try
+        {
             await _viewModel.RefreshInstalledAsync(cancellation.Token).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)

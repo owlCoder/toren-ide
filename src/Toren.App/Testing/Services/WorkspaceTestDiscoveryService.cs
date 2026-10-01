@@ -9,11 +9,11 @@ using Toren.Workspaces.Models;
 namespace Toren.App.Testing.Services;
 
 public sealed class WorkspaceTestDiscoveryService(
-    IWorkspaceProjectGraphService projectGraphService,
+    IWorkspaceProjectCatalog projectCatalog,
     IDotNetTestDiscoveryService testDiscoveryService) : IWorkspaceTestDiscoveryService
 {
-    private readonly IWorkspaceProjectGraphService _projectGraphService = projectGraphService
-        ?? throw new ArgumentNullException(nameof(projectGraphService));
+    private readonly IWorkspaceProjectCatalog _projectCatalog = projectCatalog
+        ?? throw new ArgumentNullException(nameof(projectCatalog));
     private readonly IDotNetTestDiscoveryService _testDiscoveryService = testDiscoveryService
         ?? throw new ArgumentNullException(nameof(testDiscoveryService));
 
@@ -23,16 +23,16 @@ public sealed class WorkspaceTestDiscoveryService(
     {
         ArgumentNullException.ThrowIfNull(workspace);
 
-        var graph = await _projectGraphService
-            .LoadAsync(workspace, cancellationToken)
+        var projects = await _projectCatalog
+            .GetProjectsAsync(workspace, cancellationToken)
             .ConfigureAwait(false);
-        if (!graph.IsSuccess)
+        if (!projects.IsSuccess)
         {
-            return Result.Failure<IReadOnlyList<WorkspaceTestProjectDiscovery>>(graph.Error);
+            return Result.Failure<IReadOnlyList<WorkspaceTestProjectDiscovery>>(projects.Error);
         }
 
         var discoveredProjects = new List<WorkspaceTestProjectDiscovery>();
-        foreach (var project in graph.Value.Projects
+        foreach (var project in projects.Value
                      .Where(static project => project.Metadata.IsTestProject)
                      .OrderBy(static project => project.DisplayName, StringComparer.OrdinalIgnoreCase))
         {

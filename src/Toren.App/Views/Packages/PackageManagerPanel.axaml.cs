@@ -16,7 +16,9 @@ internal sealed partial class PackageManagerPanel : UserControl
 
     private async void Project_OnSelectionChanged(object? sender, SelectionChangedEventArgs eventArgs)
     {
-        if (ViewModel is { } viewModel)
+        // Bindings stay live while the dialog is closed; only a panel on screen starts the
+        // SDK query. The controller runs it when the dialog is opened.
+        if (ViewModel is { } viewModel && TopLevel.GetTopLevel(this) is not null)
         {
             await viewModel.RefreshInstalledAsync().ConfigureAwait(true);
         }

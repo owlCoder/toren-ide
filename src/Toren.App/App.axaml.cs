@@ -33,6 +33,7 @@ using Toren.App.Views;
 using Toren.Containers.Contracts;
 using Toren.Containers.Services;
 using Toren.Core.Execution.Contracts;
+using Toren.Core.IO;
 using Toren.Core.Navigation.Contracts;
 using Toren.Debugging.Adapters;
 using Toren.Debugging.Contracts;
@@ -67,10 +68,7 @@ namespace Toren.App;
 
 public sealed partial class App : Application
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
     private static readonly System.Net.Http.HttpClient SharedHttpClient = new();
 
     public override void Initialize()
@@ -127,23 +125,26 @@ public sealed partial class App : Application
         ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
         IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
         var evaluationRunner = new MsBuildEvaluationProcessRunner(processRunner);
-        IProjectMetadataProvider projectMetadataProvider = new MsBuildProjectMetadataProvider(evaluationRunner);
         IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(evaluationRunner);
-        IProjectCompilationReferenceProvider projectCompilationReferenceProvider =
-            new MsBuildProjectCompilationReferenceProvider(evaluationRunner);
         IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
             solutionProjectProvider,
             projectReferenceProvider);
-        IWorkspaceProjectGraphService projectGraphService = new WorkspaceProjectGraphService(
-            folderProjectProvider,
-            solutionProjectProvider,
-            projectMetadataProvider,
-            projectReferenceProvider);
-        IWorkspaceTestDiscoveryService workspaceTestDiscoveryService = new WorkspaceTestDiscoveryService(
-            projectGraphService,
-            dotNetTestDiscoveryService);
-        var workspaceExecutionTargetService = new WorkspaceExecutionTargetService(projectGraphService);
         IWorkspaceFileProvider workspaceFileProvider = new FileSystemWorkspaceFileProvider();
+        // One evaluated snapshot per open workspace, shared by every tool that needs projects.
+        var workspaceProjects = new WorkspaceProjectGraphService(
+            new WorkspaceProjectGraphEvaluator(
+                folderProjectProvider,
+                solutionProjectProvider,
+                new MsBuildBatchProjectEvaluationProvider(
+                    processRunner,
+                    new MsBuildProjectEvaluationProvider(evaluationRunner))),
+            new FileSystemProjectEvaluationInputStampProvider(workspaceFileProvider));
+        IWorkspaceProjectGraphService projectGraphService = workspaceProjects;
+        IWorkspaceProjectCatalog projectCatalog = workspaceProjects;
+        IWorkspaceTestDiscoveryService workspaceTestDiscoveryService = new WorkspaceTestDiscoveryService(
+            projectCatalog,
+            dotNetTestDiscoveryService);
+        var workspaceExecutionTargetService = new WorkspaceExecutionTargetService(projectCatalog);
         IWorkspaceFileSearchService workspaceFileSearchService = new WorkspaceFileSearchService();
         applicationDataDirectory ??= Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -183,8 +184,7 @@ public sealed partial class App : Application
             workspaceClassifier,
             projectGraphService,
             workspaceFileProvider,
-            textDocumentStore,
-            projectCompilationReferenceProvider);
+            textDocumentStore);
         IWorkspaceDiagnosticsCoordinator workspaceDiagnosticsCoordinator = new WorkspaceDiagnosticsCoordinator(
             cSharpSemanticContextProvider,
             cSharpWorkspaceDiagnosticService,
@@ -281,7 +281,10 @@ public sealed partial class App : Application
             new FileApplicationSettingsStore(Path.Combine(applicationDataDirectory, "settings.json")),
             documentSessionStore);
         mainWindow.Closed += async (_, _) =>
+        {
+            workspaceProjects.Dispose();
             await debugSessionCoordinator.DisposeAsync().ConfigureAwait(true);
+        };
         var workspaceExecution = new WorkspaceExecutionViewModel(dotNetCommandService);
         WorkspaceExecutionController.Attach(
             mainWindow,
@@ -353,7 +356,7 @@ public sealed partial class App : Application
             mainWindow,
             viewModel,
             workspaceClassifier,
-            projectGraphService,
+            projectCatalog,
             new PackageManagerViewModel(dotNetPackageService),
             viewModel.SetStatus);
         HttpClientController.Attach(

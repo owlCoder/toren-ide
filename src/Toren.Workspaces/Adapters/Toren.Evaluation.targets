@@ -1,0 +1,85 @@
+<!--
+  Imported into every project of a batch evaluation through the documented
+  CustomBeforeMicrosoftCommonTargets / CustomBeforeMicrosoftCommonCrossTargetingTargets hooks.
+  Each project writes its evaluated properties and items to its own file, one tab-separated
+  record per line, which MsBuildEvaluationText reads. Nothing is added to the project itself.
+
+  Building any target first runs a project's initial targets, and packages use those to change
+  items (the test SDK adds a generated Program file, for example). The evaluation stage must
+  report the project as evaluated, so it writes its records from an initial target of its own.
+  Importing this file before the common targets places that target ahead of the initial targets
+  that packages and Directory.Build.targets contribute.
+-->
+<Project InitialTargets="_TorenWriteEvaluatedProject">
+  <!-- Setting the hook property replaces its default; keep honoring a machine-wide customization. -->
+  <PropertyGroup>
+    <_TorenDefaultCustomBeforeTargets Condition="'$(IsCrossTargetingBuild)' != 'true'">$(MSBuildExtensionsPath)\v$(MSBuildToolsVersion)\Custom.Before.Microsoft.Common.targets</_TorenDefaultCustomBeforeTargets>
+    <_TorenDefaultCustomBeforeTargets Condition="'$(IsCrossTargetingBuild)' == 'true'">$(MSBuildExtensionsPath)\v$(MSBuildToolsVersion)\Custom.Before.Microsoft.Common.CrossTargeting.targets</_TorenDefaultCustomBeforeTargets>
+  </PropertyGroup>
+  <Import Project="$(_TorenDefaultCustomBeforeTargets)" Condition="Exists('$(_TorenDefaultCustomBeforeTargets)')" />
+
+  <Target Name="_TorenWriteEvaluation">
+    <ItemGroup>
+      <_TorenRecord Remove="@(_TorenRecord)" />
+      <_TorenRecord Include="Project%09$([MSBuild]::Escape('$(MSBuildProjectFullPath)'))" />
+      <_TorenRecord Include="Property%09TargetFramework%09$([MSBuild]::Escape('$(TargetFramework)'))" />
+      <_TorenRecord Include="Property%09TargetFrameworks%09$([MSBuild]::Escape('$(TargetFrameworks)'))" />
+      <_TorenRecord Include="Property%09OutputType%09$([MSBuild]::Escape('$(OutputType)'))" />
+      <_TorenRecord Include="Property%09AssemblyName%09$([MSBuild]::Escape('$(AssemblyName)'))" />
+      <_TorenRecord Include="Property%09RootNamespace%09$([MSBuild]::Escape('$(RootNamespace)'))" />
+      <_TorenRecord Include="Property%09IsTestProject%09$([MSBuild]::Escape('$(IsTestProject)'))" />
+      <_TorenRecord Include="Property%09ManagePackageVersionsCentrally%09$([MSBuild]::Escape('$(ManagePackageVersionsCentrally)'))" />
+      <_TorenRecord Include="Property%09DirectoryBuildPropsPath%09$([MSBuild]::Escape('$(DirectoryBuildPropsPath)'))" />
+      <_TorenRecord Include="Property%09DirectoryBuildTargetsPath%09$([MSBuild]::Escape('$(DirectoryBuildTargetsPath)'))" />
+      <_TorenRecord Include="Property%09DirectoryPackagesPropsPath%09$([MSBuild]::Escape('$(DirectoryPackagesPropsPath)'))" />
+      <_TorenRecord Include="Property%09Nullable%09$([MSBuild]::Escape('$(Nullable)'))" />
+      <_TorenRecord Include="Property%09LangVersion%09$([MSBuild]::Escape('$(LangVersion)'))" />
+      <_TorenRecord Include="Property%09DefineConstants%09$([MSBuild]::Escape('$(DefineConstants)'))" />
+      <_TorenRecord Include="Property%09AllowUnsafeBlocks%09$([MSBuild]::Escape('$(AllowUnsafeBlocks)'))" />
+      <_TorenRecord Include="Property%09GeneratedMSBuildEditorConfigFile%09$([MSBuild]::Escape('$(GeneratedMSBuildEditorConfigFile)'))" />
+      <_TorenRecord Include="Property%09ProjectAssetsFile%09$([MSBuild]::Escape('$(ProjectAssetsFile)'))" />
+      <_TorenRecord Include="@(Analyzer->'Analyzer%09%(FullPath)')" />
+      <_TorenRecord Include="@(Compile->'Compile%09%(FullPath)')" />
+      <_TorenRecord Include="@(Using->'Using%09%(Identity)%09%(Static)%09%(Alias)')" />
+      <_TorenRecord Include="@(ProjectReference->'ProjectReference%09%(Identity)')" />
+      <_TorenRecord Include="@(PackageReference->'PackageReference%09%(Identity)')" />
+      <_TorenRecord Include="@(FrameworkReference->'FrameworkReference%09%(Identity)')" />
+    </ItemGroup>
+    <!--
+      Reported only for the design-time stage, exactly as the per-project query requests them.
+      The marker records that the reference group was resolved even when it is empty.
+    -->
+    <ItemGroup Condition="'$(_TorenCompilerInputs)' == 'true'">
+      <_TorenRecord Include="@(AdditionalFiles->'AdditionalFiles%09%(FullPath)')" />
+      <_TorenRecord Include="@(EditorConfigFiles->'EditorConfigFiles%09%(FullPath)')" />
+      <_TorenRecord Include="Items%09ReferencePath" />
+      <_TorenRecord Include="@(ReferencePath->'ReferencePath%09%(FullPath)')" />
+    </ItemGroup>
+    <ItemGroup>
+      <!-- A file without this marker was cut short and is ignored. -->
+      <_TorenRecord Include="End" />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(_TorenOutputDirectory)$([System.Guid]::NewGuid().ToString('N')).txt"
+      Lines="@(_TorenRecord)"
+      Overwrite="true"
+      Encoding="utf-8" />
+  </Target>
+
+  <!-- Evaluation stage: the records are written before other initial targets can alter the project. -->
+  <Target
+    Name="_TorenWriteEvaluatedProject"
+    Condition="'$(_TorenOutputDirectory)' != '' and '$(_TorenCompilerInputs)' != 'true'"
+    DependsOnTargets="_TorenWriteEvaluation" />
+
+  <!-- The entry target of the evaluation stage; the initial target above has done the work. -->
+  <Target Name="_TorenCollectEvaluation" />
+
+  <!--
+    Design-time targets that resolve compiler inputs without compiling. Keep this list identical
+    to MsBuildEvaluationTargets.CompilerInputTargets, which the per-project query uses.
+  -->
+  <Target
+    Name="_TorenCollectCompilerInputs"
+    DependsOnTargets="PrepareForBuild;GenerateGlobalUsings;ResolveReferences;GenerateMSBuildEditorConfigFile;_TorenWriteEvaluation" />
+</Project>

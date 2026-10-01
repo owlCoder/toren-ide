@@ -32,6 +32,8 @@ internal sealed class ToolDialogHost
         };
     }
 
+    public bool IsOpen => _dialog is not null;
+
     public void Open()
     {
         if (_dialog is not null)

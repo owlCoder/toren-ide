@@ -6,11 +6,11 @@ using Toren.Workspaces.Models;
 
 namespace Toren.App.Execution.Services;
 
-public sealed class WorkspaceExecutionTargetService(IWorkspaceProjectGraphService projectGraphService)
+public sealed class WorkspaceExecutionTargetService(IWorkspaceProjectCatalog projectCatalog)
     : IWorkspaceExecutionTargetService
 {
-    private readonly IWorkspaceProjectGraphService _projectGraphService = projectGraphService
-        ?? throw new ArgumentNullException(nameof(projectGraphService));
+    private readonly IWorkspaceProjectCatalog _projectCatalog = projectCatalog
+        ?? throw new ArgumentNullException(nameof(projectCatalog));
 
     public async Task<Result<IReadOnlyList<WorkspaceExecutionTarget>>> GetTargetsAsync(
         WorkspaceDescriptor workspace,
@@ -19,15 +19,16 @@ public sealed class WorkspaceExecutionTargetService(IWorkspaceProjectGraphServic
         ArgumentNullException.ThrowIfNull(workspace);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var graphResult = await _projectGraphService
-            .LoadAsync(workspace, cancellationToken)
+        // Runnable projects are known from evaluation alone; compiler inputs are not awaited.
+        var projects = await _projectCatalog
+            .GetProjectsAsync(workspace, cancellationToken)
             .ConfigureAwait(false);
-        if (!graphResult.IsSuccess)
+        if (!projects.IsSuccess)
         {
-            return Result.Failure<IReadOnlyList<WorkspaceExecutionTarget>>(graphResult.Error);
+            return Result.Failure<IReadOnlyList<WorkspaceExecutionTarget>>(projects.Error);
         }
 
-        IReadOnlyList<WorkspaceExecutionTarget> targets = graphResult.Value.Projects
+        IReadOnlyList<WorkspaceExecutionTarget> targets = projects.Value
             .Where(static project => IsRunnable(project.Metadata))
             .Select(static project => new WorkspaceExecutionTarget(
                 Path.GetFullPath(project.Path),

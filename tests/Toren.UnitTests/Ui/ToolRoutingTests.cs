@@ -24,6 +24,7 @@ using Toren.DotNet.Packages.Services;
 using Toren.Platform.Execution.Adapters;
 using Toren.Workspaces.Services;
 using Toren.Workspaces.Contracts;
+using Toren.DotNet.Packages.Contracts;
 using Toren.DotNet.Packages.Models;
 using Toren.Core.Results;
 using Toren.DotNet.Execution.Contracts;
@@ -388,32 +389,99 @@ public sealed class ToolRoutingTests
         scope.Register(button.Name, button);
         NameScope.SetNameScope(window, scope);
         window.Show();
-        var graph = new DelayedProjectGraphService();
+        var catalog = new DelayedProjectCatalog();
         try
         {
-            PackageManagerController.Attach(window, model, new WorkspaceClassifier(), graph, packages, _ => { });
-            Assert.That(graph.Request!.Path, Is.EqualTo(profile));
+            PackageManagerController.Attach(window, model, new WorkspaceClassifier(), catalog, packages, _ => { });
+            Assert.That(catalog.Request!.Path, Is.EqualTo(profile));
             Assert.That(packages.Projects, Is.Empty);
             Assert.That(packages.SelectedProject, Is.Null);
             Assert.That(packages.CanInstallSelected, Is.False);
             Assert.That(packages.StatusText, Is.EqualTo("Loading workspace projects…"));
-            graph.Complete();
+            catalog.Complete();
             for (var attempt = 0; attempt < 30 && packages.StatusText.StartsWith("Loading", StringComparison.Ordinal); attempt++) await Task.Delay(10);
             Assert.That(packages.StatusText, Is.EqualTo("No .NET projects were found in this workspace."));
         }
         finally { window.Close(); model.Dispose(); }
     }
 
-    private sealed class DelayedProjectGraphService : IWorkspaceProjectGraphService
+    [AvaloniaTest]
+    public async Task InstalledPackagesAreQueriedWhenThePackagesDialogIsFirstOpened()
     {
-        private readonly TaskCompletionSource<Result<WorkspaceProjectGraph>> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var profile = Profile();
+        Directory.CreateDirectory(profile);
+        var shell = Toren.App.App.CreateMainWindow(profile, new UiInteractiveProcessRunner());
+        var model = (MainWindowViewModel)shell.DataContext!;
+        model.WorkspacePath = profile;
+        model.Explorer.IsWorkspaceOpen = true;
+        var service = new CountingPackageService();
+        var packages = new PackageManagerViewModel(service);
+        var button = new Button { Name = "PackagesActivityButton" };
+        var window = new Window { Content = button };
+        var scope = new NameScope();
+        scope.Register(button.Name, button);
+        NameScope.SetNameScope(window, scope);
+        window.Show();
+        ToolDialog? dialog = null;
+        using var opened = Window.WindowOpenedEvent.AddClassHandler<Window>((candidate, _) =>
+        {
+            if (candidate is ToolDialog tool && tool.Title == "Packages") dialog = tool;
+        });
+        var catalog = new DelayedProjectCatalog();
+        try
+        {
+            PackageManagerController.Attach(window, model, new WorkspaceClassifier(), catalog, packages, _ => { });
+            catalog.Complete(new WorkspaceProject(Path.Combine(profile, "App.csproj"), "App",
+                new ProjectMetadata(["net10.0"], "Exe", "App", "App", false, false, null, null, null), []));
+            for (var attempt = 0; attempt < 30 && packages.Projects.Count == 0; attempt++) await Task.Delay(10);
+            Assert.That(packages.Projects, Has.Count.EqualTo(1));
+            Assert.That(service.InstalledRequests, Is.Zero);
+
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            for (var attempt = 0; attempt < 30 && service.InstalledRequests == 0; attempt++) await Task.Delay(10);
+            Assert.That(service.InstalledRequests, Is.EqualTo(1));
+
+            // Reopening the dialog does not repeat the query on its own.
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Task.Delay(30);
+            Assert.That(service.InstalledRequests, Is.EqualTo(1));
+        }
+        finally { dialog?.Close(); window.Close(); model.Dispose(); }
+    }
+
+    private sealed class CountingPackageService : IDotNetPackageService
+    {
+        public int InstalledRequests { get; private set; }
+
+        public Task<Result<IReadOnlyList<NuGetPackageSearchResult>>> SearchAsync(string workingDirectory, string query, IReadOnlyList<string>? sources = null, int skip = 0, int take = 20, bool includePrerelease = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success<IReadOnlyList<NuGetPackageSearchResult>>([]));
+
+        public Task<Result<IReadOnlyList<NuGetInstalledPackage>>> GetInstalledAsync(string projectPath, CancellationToken cancellationToken = default)
+        {
+            InstalledRequests++;
+            return Task.FromResult(Result.Success<IReadOnlyList<NuGetInstalledPackage>>([]));
+        }
+
+        public Task<Result<bool>> AddAsync(string projectPath, string packageId, string? version = null, string? source = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> UpdateAsync(string projectPath, string packageId, string? version = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+
+        public Task<Result<bool>> RemoveAsync(string projectPath, string packageId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(true));
+    }
+
+    private sealed class DelayedProjectCatalog : IWorkspaceProjectCatalog
+    {
+        private readonly TaskCompletionSource<Result<IReadOnlyList<WorkspaceProject>>> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public WorkspaceDescriptor? Request { get; private set; }
-        public Task<Result<WorkspaceProjectGraph>> LoadAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken = default)
+        public Task<Result<IReadOnlyList<WorkspaceProject>>> GetProjectsAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken = default)
         {
             Request = workspace;
             return _completion.Task.WaitAsync(cancellationToken);
         }
-        public void Complete() => _completion.SetResult(Result.Success(new WorkspaceProjectGraph([])));
+        public void Complete(params WorkspaceProject[] projects) => _completion.SetResult(Result.Success<IReadOnlyList<WorkspaceProject>>(projects));
     }
 
     private sealed class ControlledCommandService : IDotNetCommandService

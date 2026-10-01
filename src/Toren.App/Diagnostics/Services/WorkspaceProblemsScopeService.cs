@@ -1,5 +1,6 @@
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.Models;
+using Toren.Core.IO;
 using Toren.Core.Results;
 using Toren.Workspaces.Contracts;
 using Toren.Workspaces.Models;
@@ -12,10 +13,7 @@ public sealed class WorkspaceProblemsScopeService(
     IWorkspaceProjectGraphService projectGraphService,
     IWorkspaceFileProvider workspaceFileProvider) : IProblemsWorkspaceScopeService
 {
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = FileSystemPath.Comparer;
 
     private readonly IWorkspaceClassifier _workspaceClassifier = workspaceClassifier
         ?? throw new ArgumentNullException(nameof(workspaceClassifier));
@@ -31,7 +29,7 @@ public sealed class WorkspaceProblemsScopeService(
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var workspace = ClassifyWorkspace(workspacePath);
+        var workspace = _workspaceClassifier.ClassifyPath(workspacePath);
         if (workspace is null)
         {
             return Result.Success(ProblemsWorkspaceScopeIndex.Empty);
@@ -84,17 +82,5 @@ public sealed class WorkspaceProblemsScopeService(
                     .ToArray()))
             .ToArray();
         return Result.Success(new ProblemsWorkspaceScopeIndex(scopes));
-    }
-
-    private WorkspaceDescriptor? ClassifyWorkspace(string workspacePath)
-    {
-        if (Directory.Exists(workspacePath))
-        {
-            return _workspaceClassifier.ClassifyDirectory(workspacePath);
-        }
-
-        return _workspaceClassifier.TryClassifyFile(workspacePath, out var workspace)
-            ? workspace
-            : null;
     }
 }

@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../Toren.Core/Toren.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Adapters/Toren.Evaluation.targets" LogicalName="Toren.Evaluation.targets" />
+  </ItemGroup>
 </Project>

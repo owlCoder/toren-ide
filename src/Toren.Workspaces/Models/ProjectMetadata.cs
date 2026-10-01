@@ -1,3 +1,5 @@
+using Toren.Core.Results;
+
 namespace Toren.Workspaces.Models;
 
 public sealed record ProjectMetadata(
@@ -28,4 +30,19 @@ public sealed record ProjectMetadata(
     public IReadOnlyList<string> AnalyzerConfigPaths { get; init; } = [];
 
     public IReadOnlyList<string> AnalyzerPaths { get; init; } = [];
+
+    /// <summary>The NuGet assets file whose content determines restored package inputs.</summary>
+    public string? ProjectAssetsFilePath { get; init; }
+
+    /// <summary>
+    /// Compiler reference assemblies resolved by the design-time targets, or <see langword="null"/>
+    /// when those targets have not produced them.
+    /// </summary>
+    public IReadOnlyList<string>? ReferencePaths { get; init; }
+
+    /// <summary>
+    /// Why design-time compiler inputs are unavailable, for example because the project is not
+    /// restored. The remaining metadata then comes from evaluation alone.
+    /// </summary>
+    public OperationError CompilerInputsError { get; init; } = OperationError.None;
 }
