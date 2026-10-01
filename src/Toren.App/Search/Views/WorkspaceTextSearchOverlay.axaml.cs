@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Toren.App.Search.Models;
+using Toren.App.Editor.Views;
 
 namespace Toren.App.Search.Views;
 
@@ -40,8 +41,7 @@ internal sealed partial class WorkspaceTextSearchOverlay : UserControl
     public void ShowOverlay()
     {
         IsVisible = true;
-        QueryBox.Focus();
-        QueryBox.SelectAll();
+        OverlayFocus.Schedule(this, QueryBox, selectAll: true);
     }
 
     public void HideOverlay()

@@ -94,6 +94,39 @@ public sealed class ToolRoutingTests
     }
 
     [AvaloniaTest]
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task AboutDialogClosesWithEscapeAndPreservesItsOwner(bool light)
+    {
+        Application.Current!.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+        var owner = new Window { Width = 1080, Height = 700 };
+        AboutWindow? dialog = null;
+        using var opened = Window.WindowOpenedEvent.AddClassHandler<Window>((window, _) =>
+        {
+            if (window is AboutWindow about) dialog = about;
+        });
+        owner.Show();
+        try
+        {
+            var closed = AboutWindow.ShowAsync(owner);
+            Assert.That(dialog, Is.Not.Null);
+            dialog!.UpdateLayout();
+            foreach (var label in dialog.GetVisualDescendants().OfType<TextBlock>().Where(label => label.IsEffectivelyVisible))
+            {
+                var origin = label.TranslatePoint(default, dialog)!.Value;
+                Assert.That(origin.X + label.Bounds.Width, Is.LessThanOrEqualTo(dialog.Bounds.Width + 1));
+                Assert.That(origin.Y + label.Bounds.Height, Is.LessThanOrEqualTo(dialog.Bounds.Height + 1));
+            }
+            Capture(dialog, $"About-{(light ? "light" : "dark")}");
+            dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            await closed;
+            Assert.That(owner.IsVisible, Is.True);
+            Assert.That(dialog.IsVisible, Is.False);
+        }
+        finally { dialog?.Close(); owner.Close(); }
+    }
+
+    [AvaloniaTest]
     public async Task TerminalStartsOnSelectionKeepsSessionsAndCanKillAndRestart()
     {
         var runner = new UiInteractiveProcessRunner();

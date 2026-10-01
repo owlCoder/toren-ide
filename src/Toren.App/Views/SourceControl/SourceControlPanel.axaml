@@ -5,106 +5,78 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:scvm="clr-namespace:Toren.App.SourceControl.ViewModels"
              xmlns:git="clr-namespace:Toren.Git.Models;assembly=Toren.Git">
-  <Grid RowDefinitions="Auto,Auto,Auto,*">
-    <Border Grid.Row="0" Padding="10,7"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <StackPanel Grid.Column="0" Spacing="2">
-          <TextBlock Text="SOURCE CONTROL" FontSize="11" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding BranchText}" FontSize="11" TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11"
-                     TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
-        </StackPanel>
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
-                Click="Refresh_OnClick" IsEnabled="{Binding !IsBusy}" />
+  <Grid RowDefinitions="Auto,Auto,*">
+    <Border Classes="panel-header">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="5">
+        <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconSourceControl}" /><TextBlock Classes="panel-heading" Text="Source Control" /></StackPanel>
+        <Button Classes="toolbar-button compact-action icon-refresh icon-only" Content="Refresh" ToolTip.Tip="Refresh" AutomationProperties.Name="Refresh" Grid.Column="1" Click="Refresh_OnClick" IsEnabled="{Binding !IsBusy}" />
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding BranchText}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding BranchText}" />
+        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Classes="muted" Text="{Binding StatusText}" FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
       </Grid>
     </Border>
-
-    <Border Grid.Row="1" Padding="8,7"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <WrapPanel Classes="tool-actions">
-        <ComboBox Width="170" PlaceholderText="Local branch" ItemsSource="{Binding Branches}"
-                  SelectedIndex="{Binding SelectedBranchIndex, Mode=TwoWay}"
-                  ToolTip.Tip="Local branch">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="git:GitBranchInfo">
-              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <Button Classes="toolbar-button" Content="Switch"
-                Click="SwitchBranch_OnClick" IsEnabled="{Binding CanSwitchBranch}" />
-        <Button Classes="toolbar-button" Content="Merge"
-                Click="MergeBranch_OnClick" IsEnabled="{Binding CanMerge}"
-                ToolTip.Tip="Merge selected branch into the current branch" />
-        <Button Classes="toolbar-button" Content="Abort Merge"
-                Click="AbortMerge_OnClick" IsEnabled="{Binding CanAbortMerge}" />
-        <Grid Width="210" ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,0,6,4">
-          <TextBox Text="{Binding NewBranchName, Mode=TwoWay}"
-                   PlaceholderText="New branch" AutomationProperties.Name="New branch name" />
-          <Button Grid.Column="1" Classes="toolbar-button" Content="New"
-                  Click="CreateBranch_OnClick" IsEnabled="{Binding CanCreateBranch}" />
-        </Grid>
-        <Button Classes="toolbar-button" Content="Fetch"
-                Click="Fetch_OnClick" IsEnabled="{Binding CanSync}" />
-        <Button Classes="toolbar-button" Content="Pull"
-                Click="Pull_OnClick" IsEnabled="{Binding CanSync}" />
-        <Button Classes="toolbar-button" Content="Push"
-                Click="Push_OnClick" IsEnabled="{Binding CanSync}" />
-        <Button Classes="toolbar-button" Content="Stash"
-                Click="Stash_OnClick" IsEnabled="{Binding CanStash}" />
-        <Button Classes="toolbar-button" Content="Pop Stash"
-                Click="PopStash_OnClick" IsEnabled="{Binding CanPopStash}" />
-      </WrapPanel>
-    </Border>
-
-    <Border Grid.Row="2" Padding="8,7"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
-        <TextBox Grid.Column="0" Text="{Binding CommitMessage, Mode=TwoWay}"
-                 PlaceholderText="Commit message" FontSize="11" />
-        <WrapPanel Grid.Row="1" Classes="tool-actions">
-        <Button Classes="toolbar-button" Content="Stage"
-                Click="Stage_OnClick" IsEnabled="{Binding CanStageSelected}"
-                ToolTip.Tip="Stage selected change; conflicted files are marked resolved after you edit them" />
-        <Button Classes="toolbar-button" Content="Unstage"
-                Click="Unstage_OnClick" IsEnabled="{Binding CanUnstageSelected}"
-                ToolTip.Tip="Unstage selected change" />
-        <Button Classes="toolbar-button" Content="Commit"
-                Click="Commit_OnClick" IsEnabled="{Binding CanCommit}"
-                ToolTip.Tip="Commit staged changes" />
-        </WrapPanel>
-      </Grid>
-    </Border>
-
-    <TabControl Grid.Row="3" Classes="tool-tabs">
-      <TabItem Header="Changes">
-      <Border>
-        <ListBox ItemsSource="{Binding Changes}"
-                 SelectedIndex="{Binding SelectedChangeIndex, Mode=TwoWay}"
-                 SelectionChanged="Changes_OnSelectionChanged">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="scvm:SourceControlChangeViewModel">
-              <Grid Margin="8,4" ColumnDefinitions="30,*" ColumnSpacing="7">
-                <TextBlock Grid.Column="0" Text="{Binding StatusText}" FontSize="11"
-                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
-                           VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" FontSize="11"
-                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayPath}" />
+    <ScrollViewer Grid.Row="1" MaxHeight="300" HorizontalScrollBarVisibility="Disabled" Margin="10,8">
+      <StackPanel Spacing="8">
+        <Border Classes="panel-card">
+          <StackPanel Spacing="7">
+            <TextBlock Classes="field-label" Text="Commit changes" />
+            <TextBox Text="{Binding CommitMessage, Mode=TwoWay}" PlaceholderText="Commit message" AcceptsReturn="True" MinHeight="56" MaxHeight="88" TextWrapping="Wrap" FontSize="12" AutomationProperties.Name="Commit message" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+              <Button Classes="toolbar-button compact-action icon-add" Content="Stage" ToolTip.Tip="Stage" AutomationProperties.Name="Stage" Click="Stage_OnClick" IsEnabled="{Binding CanStageSelected}" />
+              <Button Classes="toolbar-button compact-action icon-history" Content="Unstage" ToolTip.Tip="Unstage" AutomationProperties.Name="Unstage" Grid.Column="1" Click="Unstage_OnClick" IsEnabled="{Binding CanUnstageSelected}" />
+            </Grid>
+            <Button Classes="primary-action compact-action icon-check" Content="Commit" ToolTip.Tip="Commit" AutomationProperties.Name="Commit" Click="Commit_OnClick" IsEnabled="{Binding CanCommit}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Expander x:Name="BranchActions" Classes="panel-expander" IsExpanded="False" AutomationProperties.Name="Branches and sync">
+          <Expander.Header><StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconSourceControl}" /><TextBlock Classes="panel-heading" Text="Branches &amp; sync" /></StackPanel></Expander.Header>
+          <StackPanel Spacing="8" Margin="10,0,10,10">
+            <TextBlock Classes="field-label" Text="Local branch" />
+            <ComboBox HorizontalAlignment="Stretch" PlaceholderText="Select branch" ItemsSource="{Binding Branches}" SelectedIndex="{Binding SelectedBranchIndex, Mode=TwoWay}" AutomationProperties.Name="Local branch">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="git:GitBranchInfo"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+              <Button Classes="toolbar-button compact-action icon-branch" Content="Switch" ToolTip.Tip="Switch" AutomationProperties.Name="Switch" Click="SwitchBranch_OnClick" IsEnabled="{Binding CanSwitchBranch}" />
+              <Button Classes="toolbar-button compact-action icon-branch" Content="Merge" ToolTip.Tip="Merge" AutomationProperties.Name="Merge" Grid.Column="1" Click="MergeBranch_OnClick" IsEnabled="{Binding CanMerge}" />
+            </Grid>
+            <Button Classes="toolbar-button compact-action icon-stop" Content="Abort Merge" ToolTip.Tip="Abort Merge" AutomationProperties.Name="Abort Merge" Click="AbortMerge_OnClick" IsEnabled="{Binding CanAbortMerge}" IsVisible="{Binding HasConflicts}" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBox Text="{Binding NewBranchName, Mode=TwoWay}" PlaceholderText="New branch name" AutomationProperties.Name="New branch name" />
+              <Button Classes="toolbar-button compact-action icon-add icon-only" Content="New" ToolTip.Tip="New" AutomationProperties.Name="New" Grid.Column="1" Click="CreateBranch_OnClick" IsEnabled="{Binding CanCreateBranch}" />
+            </Grid>
+            <TextBlock Classes="field-label" Text="Remote" />
+            <WrapPanel Classes="tool-actions">
+              <Button Classes="toolbar-button compact-action icon-fetch" Content="Fetch" ToolTip.Tip="Fetch" AutomationProperties.Name="Fetch" Click="Fetch_OnClick" IsEnabled="{Binding CanSync}" />
+              <Button Classes="toolbar-button compact-action icon-pull" Content="Pull" ToolTip.Tip="Pull" AutomationProperties.Name="Pull" Click="Pull_OnClick" IsEnabled="{Binding CanSync}" />
+              <Button Classes="toolbar-button compact-action icon-push" Content="Push" ToolTip.Tip="Push" AutomationProperties.Name="Push" Click="Push_OnClick" IsEnabled="{Binding CanSync}" />
+            </WrapPanel>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+              <Button Classes="toolbar-button compact-action icon-package" Content="Stash" ToolTip.Tip="Stash" AutomationProperties.Name="Stash" Click="Stash_OnClick" IsEnabled="{Binding CanStash}" />
+              <Button Classes="toolbar-button compact-action icon-history" Content="Pop Stash" ToolTip.Tip="Pop Stash" AutomationProperties.Name="Pop Stash" Grid.Column="1" Click="PopStash_OnClick" IsEnabled="{Binding CanPopStash}" />
+            </Grid>
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+    <TabControl Grid.Row="2" Classes="tool-tabs" Margin="6,0,6,6">
+      <TabItem Header="Changes" Classes="tab-changes">
+        <Grid>
+          <StackPanel x:Name="NoChangesPlaceholder" Margin="12" Spacing="6" IsVisible="{Binding !Changes.Count}">
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconCheck}" Fill="{DynamicResource TorenSuccessBrush}" Width="24" Height="24" HorizontalAlignment="Left" />
+            <TextBlock Text="No changed files" FontSize="12" FontWeight="SemiBold" />
+            <TextBlock Classes="muted" Text="Open a Git workspace or refresh its changes." FontSize="11" TextWrapping="Wrap" />
+          </StackPanel>
+          <ListBox ItemsSource="{Binding Changes}" SelectedIndex="{Binding SelectedChangeIndex, Mode=TwoWay}" SelectionChanged="Changes_OnSelectionChanged">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="scvm:SourceControlChangeViewModel">
+              <Grid Margin="2,3" ColumnDefinitions="26,*" ColumnSpacing="8">
+                <Border Classes="status-badge" Padding="4,3"><TextBlock Text="{Binding StatusText}" FontSize="11" FontFamily="Cascadia Code, Menlo, Consolas, monospace" Foreground="{DynamicResource TorenAccentBrush}" HorizontalAlignment="Center" /></Border>
+                <TextBlock Grid.Column="1" Text="{Binding DisplayPath}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayPath}" />
               </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Border>
-
+            </DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
       </TabItem>
-      <TabItem Header="Diff">
-      <TextBox Text="{Binding DiffText}" IsReadOnly="True"
-               AcceptsReturn="True" TextWrapping="NoWrap"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto"
-               ScrollViewer.VerticalScrollBarVisibility="Auto"
-               BorderThickness="0" Padding="10"
-               FontSize="11" FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
+      <TabItem Header="Diff" Classes="tab-diff">
+        <TextBox Text="{Binding DiffText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="10" FontSize="11" FontFamily="Cascadia Code, Menlo, Consolas, monospace" PlaceholderText="Select a changed file to inspect its diff." />
       </TabItem>
     </TabControl>
   </Grid>

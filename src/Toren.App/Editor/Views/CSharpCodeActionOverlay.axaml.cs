@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Toren.Language.CSharp.Models;
 
 namespace Toren.App.Editor.Views;
@@ -9,6 +10,7 @@ internal sealed partial class CSharpCodeActionOverlay : UserControl
     public CSharpCodeActionOverlay()
     {
         InitializeComponent();
+        ResultsList.AddHandler(KeyDownEvent, ResultsList_OnKeyDown, RoutingStrategies.Tunnel);
     }
 
     public event EventHandler? ActionRequested;
@@ -26,7 +28,7 @@ internal sealed partial class CSharpCodeActionOverlay : UserControl
         IsVisible = actions.Count > 0;
         if (IsVisible)
         {
-            ResultsList.Focus();
+            OverlayFocus.Schedule(this, ResultsList);
         }
     }
 

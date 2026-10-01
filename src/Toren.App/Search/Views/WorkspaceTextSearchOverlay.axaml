@@ -73,8 +73,9 @@
   </UserControl.Styles>
 
   <Border Classes="workspace-search-card">
-    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="7">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="7">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="7">
+      <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Data="{StaticResource TorenIconSearch}" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" /><TextBlock Classes="panel-heading" Text="Find in Files" /></StackPanel>
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="7">
         <TextBox x:Name="QueryBox"
                  Classes="workspace-search-input"
                  PlaceholderText="Search in workspace"
@@ -100,7 +101,7 @@
                       Click="SearchOptionButton_OnClick" />
       </Grid>
 
-      <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="7">
+      <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="7">
         <TextBox x:Name="IncludePatternsBox"
                  Classes="workspace-search-filter"
                  PlaceholderText="Files to include · *.cs;src/*"
@@ -116,13 +117,13 @@
                  KeyDown="FilterBox_OnKeyDown" />
       </Grid>
 
-      <TextBlock Grid.Row="2" x:Name="StatusText"
+      <TextBlock Grid.Row="3" x:Name="StatusText"
                  Text="Type to search workspace text"
                  FontSize="10.5"
                  Foreground="{DynamicResource TorenTextSubtleBrush}"
                  Margin="2,0" />
 
-      <ListBox Grid.Row="3" x:Name="ResultsList"
+      <ListBox Grid.Row="4" x:Name="ResultsList"
                Classes="workspace-search-results"
                DoubleTapped="ResultsList_OnDoubleTapped">
         <ListBox.ItemTemplate>

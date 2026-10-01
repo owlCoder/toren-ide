@@ -4,11 +4,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              IsHitTestVisible="False">
   <Border MaxWidth="620"
-          Padding="10,8"
+          Padding="12,10"
           Background="{DynamicResource TorenSurfaceRaisedBrush}"
           BorderBrush="{DynamicResource TorenBorderStrongBrush}"
           BorderThickness="1"
-          CornerRadius="{StaticResource TorenControlRadius}"
+          CornerRadius="{StaticResource TorenCardRadius}"
           BoxShadow="0 4 14 0 #55000000">
     <StackPanel Spacing="5">
       <TextBlock x:Name="DisplayText"

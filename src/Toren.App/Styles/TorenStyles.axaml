@@ -32,6 +32,23 @@
     <SolidColorBrush x:Key="TorenIconConfigBrush">#A6B2C7</SolidColorBrush>
     <SolidColorBrush x:Key="TorenIconContainerBrush">#8CBCEC</SolidColorBrush>
     <SolidColorBrush x:Key="TorenIconImageBrush">#CAB0E5</SolidColorBrush>
+    <StreamGeometry x:Key="TorenIconRun">M8,5V19L19,12Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconPause">M6,5H10V19H6Z M14,5H18V19H14Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconStop">M6,6H18V18H6Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconRefresh">M17.65,6.35A8,8 0 1,0 20,12H18A6,6 0 1,1 16.24,7.76L13,11H21V3Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconSearch">M10,3A7,7 0 1,0 14.9,14.9L20,20L21.4,18.6L16.3,13.5A7,7 0 0,0 10,3M10,5A5,5 0 1,1 10,15A5,5 0 1,1 10,5Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconCheck">M9,16.2L4.8,12L3.4,13.4L9,19L21,7L19.6,5.6Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconDelete">M7,4H10V2H14V4H17V6H7Z M5,7H19V9H18V20A2,2 0 0,1 16,22H8A2,2 0 0,1 6,20V9H5Z M8,9V20H10V9Z M14,9V20H16V9Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconDownload">M11,3H13V13L17,9L18.4,10.4L12,16.8L5.6,10.4L7,9L11,13Z M4,18H20V21H4Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconUpload">M11,17H13V7L17,11L18.4,9.6L12,3.2L5.6,9.6L7,11L11,7Z M4,19H20V22H4Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconStepOver">M4,6H13A6,6 0 0,1 19,12V14H17V12A4,4 0 0,0 13,8H4Z M14,12L18,16L22,12V15L18,19L14,15Z M4,19H12V21H4Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconStepInto">M11,3H13V13L17,9L18.4,10.4L12,16.8L5.6,10.4L7,9L11,13Z M5,20H19V22H5Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconStepOut">M11,19H13V9L17,13L18.4,11.6L12,5.2L5.6,11.6L7,13L11,9Z M5,2H19V4H5Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconCursor">M5,3V20L10,15L14,22L17,20L13,13L20,12Z</StreamGeometry>
+    <StreamGeometry x:Key="TorenIconPalette">M12,2A10,10 0 0,0 12,22H14A3,3 0 0,0 17,19C17,17 14,16 16,14H19A3,3 0 0,0 22,11A10,10 0 0,0 12,2M7,6A1.5,1.5 0 1,1 7,9A1.5,1.5 0 1,1 7,6M12,4A1.5,1.5 0 1,1 12,7A1.5,1.5 0 1,1 12,4M17,6A1.5,1.5 0 1,1 17,9A1.5,1.5 0 1,1 17,6M5,11A1.5,1.5 0 1,1 5,14A1.5,1.5 0 1,1 5,11Z</StreamGeometry>
+    <Thickness x:Key="ExpanderHeaderPadding">10,0,0,0</Thickness>
+    <Thickness x:Key="ExpanderChevronMargin">6,0,6,0</Thickness>
+    <x:Double x:Key="ExpanderChevronButtonSize">28</x:Double>
     <CornerRadius x:Key="TorenControlRadius">8</CornerRadius>
     <CornerRadius x:Key="TorenCardRadius">12</CornerRadius>
     <x:Double x:Key="TorenTitleBarHeight">46</x:Double>
@@ -439,6 +456,7 @@
                 CornerRadius="{TemplateBinding CornerRadius}"
                 Padding="{TemplateBinding Padding}">
           <ContentPresenter Content="{TemplateBinding Header}"
+                            ContentTemplate="{TemplateBinding HeaderTemplate}"
                             HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
       </ControlTemplate>
@@ -467,5 +485,370 @@
   </Style>
   <Style Selector="TextBlock.subtle">
     <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
+  </Style>
+  <Style Selector="Border.panel-header">
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.panel-card">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenCardRadius}" />
+    <Setter Property="Padding" Value="10" />
+  </Style>
+  <Style Selector="Border.icon-badge">
+    <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+  </Style>
+  <Style Selector="Border.icon-badge Path.shell-icon">
+    <Setter Property="Fill" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.status-badge">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.panel-heading">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.field-label">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.compact-action">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="MinHeight" Value="30" />
+  </Style>
+  <Style Selector="StackPanel.icon-action-content">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="6" />
+  </Style>
+  <Style Selector="StackPanel.icon-action-content Path.shell-icon">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="StackPanel.icon-action-content TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Expander.panel-expander">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenCardRadius}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="Button.icon-refresh">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconRefresh}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-run">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconRun}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-stop">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconStop}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-pause">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconPause}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-add">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconNew}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-check">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconCheck}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-delete">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconDelete}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-search">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconSearch}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-fetch">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconDownload}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-pull">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconDownload}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-push">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconUpload}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-branch">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconSourceControl}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-debug">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconDebug}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-step-over">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconStepOver}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-step-into">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconStepInto}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-step-out">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconStepOut}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-cursor">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconCursor}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-history">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconRecent}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-package">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconProject}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-settings">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconSettings}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-code">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconCodeFile}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-data">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconData}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-terminal">
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content">
+          <Path Classes="shell-icon" Data="{StaticResource TorenIconTerminal}" />
+          <TextBlock Text="{Binding}" />
+        </StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.icon-only">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="Padding" Value="5" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.icon-only StackPanel.icon-action-content TextBlock">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="TabItem.tab-changes">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconFile}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.tab-diff">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconCodeFile}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.tab-history">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconRecent}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.tab-response">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconCodeFile}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.tab-ef">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconData}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.tab-docker">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate x:DataType="x:String">
+        <StackPanel Classes="icon-action-content"><Path Classes="shell-icon" Data="{StaticResource TorenIconContainerFile}" /><TextBlock Text="{Binding}" /></StackPanel>
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Expander.panel-expander /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+  </Style>
+  <Style Selector="Expander.panel-expander /template/ ToggleButton#ExpanderHeader:pointerover /template/ Border#ToggleButtonBackground, Expander.panel-expander /template/ ToggleButton#ExpanderHeader:pressed /template/ Border#ToggleButtonBackground">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Expander.panel-expander /template/ ToggleButton#ExpanderHeader /template/ Border#ExpandCollapseChevronBorder">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.panel-expander /template/ ToggleButton#ExpanderHeader /template/ Path#ExpandCollapseChevron">
+    <Setter Property="Stroke" Value="{DynamicResource TorenTextMutedBrush}" />
   </Style>
 </Styles>

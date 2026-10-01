@@ -25,7 +25,7 @@ internal sealed partial class WorkspaceQuickOpenOverlay : UserControl
     {
         IsVisible = true;
         QueryBox.Text = string.Empty;
-        QueryBox.Focus();
+        OverlayFocus.Schedule(this, QueryBox);
     }
 
     public void HideOverlay()

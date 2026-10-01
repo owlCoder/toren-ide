@@ -56,8 +56,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         ReplacementRow.IsVisible = false;
         IsVisible = true;
         InputBox.Text = currentLine.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        InputBox.Focus();
-        InputBox.SelectAll();
+        OverlayFocus.Schedule(this, InputBox, selectAll: true);
     }
 
     public void HideOverlay()
@@ -89,8 +88,7 @@ internal sealed partial class EditorNavigationOverlay : UserControl
         ReplacementRow.IsVisible = showReplacement;
         IsVisible = true;
         InputBox.Text = initialQuery;
-        InputBox.Focus();
-        InputBox.SelectAll();
+        OverlayFocus.Schedule(this, InputBox, selectAll: true);
     }
 
     private void InputBox_OnTextChanged(object? sender, TextChangedEventArgs eventArgs)

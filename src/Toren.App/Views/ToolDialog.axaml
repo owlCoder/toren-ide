@@ -8,7 +8,7 @@
       <Border Classes="title-bar" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="*,Auto">
           <Border Padding="16,0" Background="Transparent" PointerPressed="TitleBar_OnPointerPressed">
-            <TextBlock x:Name="DialogTitle" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center"><Path x:Name="DialogIcon" Classes="shell-icon" Data="{StaticResource TorenIconSettings}" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" /><TextBlock x:Name="DialogTitle" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" /></StackPanel>
           </Border>
           <Button Grid.Column="1" Classes="window-control close" Width="34" Height="34" Margin="6"
                   Click="Close_OnClick" ToolTip.Tip="Close" AutomationProperties.Name="Close dialog">

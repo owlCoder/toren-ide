@@ -5,93 +5,72 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:datavm="clr-namespace:Toren.App.DataTools.ViewModels"
              xmlns:ef="clr-namespace:Toren.DotNet.EntityFramework.Models;assembly=Toren.DotNet">
-  <TabControl Classes="tool-tabs">
-    <TabItem Header="EF Core">
-    <Border Padding="10,8"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="7">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <StackPanel Grid.Column="0" Spacing="3">
-            <TextBlock Text="EF Core" FontSize="11" FontWeight="SemiBold" />
-            <TextBlock Classes="muted" Text="{Binding EfStatusText}" FontSize="11"
-                       TextWrapping="Wrap" />
-          </StackPanel>
-          <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
-                  Click="RefreshEf_OnClick" IsEnabled="{Binding CanUseEf}" />
-        </Grid>
-
-        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-          <TextBox Grid.Column="0" Text="{Binding NewMigrationName, Mode=TwoWay}"
-                   PlaceholderText="Migration name" />
-          <TextBox Grid.Row="1" Text="{Binding MigrationOutputDirectory, Mode=TwoWay}"
-                   PlaceholderText="Output folder" AutomationProperties.Name="Migration output directory"
-                   ToolTip.Tip="Optional migration output directory" />
-          <Button Grid.Row="2" HorizontalAlignment="Right" Classes="toolbar-button" Content="Add"
-                  Click="AddMigration_OnClick" IsEnabled="{Binding CanAddMigration}" />
-        </Grid>
-
-        <ListBox Grid.Row="2" ItemsSource="{Binding Migrations}"
-                 SelectedIndex="{Binding SelectedMigrationIndex, Mode=TwoWay}">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="ef:EfCoreMigrationInfo">
-              <Grid Margin="6,4" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11"
-                           TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="1" Classes="subtle" FontSize="11"
-                           Text="{Binding Applied}" />
+  <Grid RowDefinitions="Auto,*">
+    <Border Classes="panel-header"><StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconData}" /><TextBlock Classes="panel-heading" Text="Data &amp; Containers" /></StackPanel></Border>
+    <TabControl Grid.Row="1" Classes="tool-tabs" Margin="6,3,6,6">
+      <TabItem Header="EF Core" Classes="tab-ef">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8" Margin="4,8,4,4">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBlock Classes="muted" Text="{Binding EfStatusText}" FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding EfStatusText}" />
+            <Button Classes="toolbar-button compact-action icon-refresh icon-only" Content="Refresh" ToolTip.Tip="Refresh" AutomationProperties.Name="Refresh" Grid.Column="1" Click="RefreshEf_OnClick" IsEnabled="{Binding CanUseEf}" />
+          </Grid>
+          <Border Grid.Row="1" Classes="panel-card">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="field-label" Text="New migration" />
+              <TextBox Text="{Binding NewMigrationName, Mode=TwoWay}" PlaceholderText="Migration name" AutomationProperties.Name="Migration name" />
+              <TextBox Text="{Binding MigrationOutputDirectory, Mode=TwoWay}" PlaceholderText="Output folder (optional)" AutomationProperties.Name="Migration output directory" />
+              <Button Classes="primary-action compact-action icon-add" Content="Add migration" ToolTip.Tip="Add migration" AutomationProperties.Name="Add migration" Click="AddMigration_OnClick" IsEnabled="{Binding CanAddMigration}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Row="2" Classes="panel-card" Padding="0">
+            <Grid RowDefinitions="Auto,*">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="8,6">
+                <TextBlock Text="Migrations" Classes="field-label" VerticalAlignment="Center" />
+                <Button Classes="toolbar-button compact-action icon-delete icon-only" Content="Remove Latest Migration" ToolTip.Tip="Remove Latest Migration" AutomationProperties.Name="Remove Latest Migration" Grid.Column="1" Click="RemoveMigration_OnClick" IsEnabled="{Binding CanUseEf}" />
               </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-
-        <Button Grid.Row="3" Classes="toolbar-button" Content="Remove Latest Migration"
-                HorizontalAlignment="Right" Click="RemoveMigration_OnClick"
-                IsEnabled="{Binding CanUseEf}" />
-
-        <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="6">
-          <TextBox Grid.Column="0" Text="{Binding DatabaseTarget, Mode=TwoWay}"
-                   PlaceholderText="Target migration" AutomationProperties.Name="Database target migration"
-                   ToolTip.Tip="Leave empty to update to the latest migration" />
-          <Button Grid.Row="1" HorizontalAlignment="Right" Classes="toolbar-button" Content="Update Database"
-                  Click="UpdateDatabase_OnClick" IsEnabled="{Binding CanUseEf}" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Migrations}" SelectedIndex="{Binding SelectedMigrationIndex, Mode=TwoWay}">
+                <ListBox.ItemTemplate><DataTemplate x:DataType="ef:EfCoreMigrationInfo">
+                  <Grid Margin="2,4" RowDefinitions="Auto,Auto" RowSpacing="3">
+                    <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                    <TextBlock Grid.Row="1" Classes="subtle" FontSize="10" Text="{Binding Applied, StringFormat='Applied: {0}'}" />
+                  </Grid>
+                </DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Border>
+          <Border Grid.Row="3" Classes="panel-card">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="field-label" Text="Update database" />
+              <TextBox Text="{Binding DatabaseTarget, Mode=TwoWay}" PlaceholderText="Target migration" AutomationProperties.Name="Database target migration" ToolTip.Tip="Leave empty to update to the latest migration" />
+              <Button Classes="toolbar-button compact-action icon-data" Content="Update Database" ToolTip.Tip="Update Database" AutomationProperties.Name="Update Database" Click="UpdateDatabase_OnClick" IsEnabled="{Binding CanUseEf}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            </StackPanel>
+          </Border>
         </Grid>
-      </Grid>
-    </Border>
-
-    </TabItem>
-    <TabItem Header="Docker">
-    <Grid Margin="10,8" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="7">
-      <StackPanel Grid.Row="0" Spacing="3">
-        <TextBlock Text="Docker Compose" FontSize="11" FontWeight="SemiBold" />
-        <TextBlock Classes="muted" Text="{Binding DockerStatusText}" FontSize="11"
-                   TextWrapping="Wrap" />
-      </StackPanel>
-
-      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-        <TextBox Grid.Column="0" Text="{Binding ComposeFilePath, Mode=TwoWay}"
-                 PlaceholderText="Compose file path" />
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Detect"
-                Click="RefreshDocker_OnClick" />
-      </Grid>
-
-      <WrapPanel Grid.Row="2" Classes="tool-actions">
-        <Button Classes="toolbar-button" Content="Up" Click="Up_OnClick"
-                IsEnabled="{Binding CanUseDocker}" />
-        <Button Classes="toolbar-button" Content="Down" Click="Down_OnClick"
-                IsEnabled="{Binding CanUseDocker}" />
-        <Button Classes="toolbar-button" Content="Build" Click="Build_OnClick"
-                IsEnabled="{Binding CanUseDocker}" />
-        <Button Classes="toolbar-button" Content="Logs" Click="Logs_OnClick"
-                IsEnabled="{Binding CanUseDocker}" />
-      </WrapPanel>
-
-      <TextBox Grid.Row="3" Text="{Binding DockerLogs}" IsReadOnly="True"
-               AcceptsReturn="True" TextWrapping="NoWrap"
-               ScrollViewer.VerticalScrollBarVisibility="Auto"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto"
-               FontFamily="Cascadia Mono, Menlo, Consolas, monospace"
-               FontSize="11" />
-    </Grid>
-    </TabItem>
-  </TabControl>
+      </TabItem>
+      <TabItem Header="Docker" Classes="tab-docker">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8" Margin="4,8,4,4">
+          <TextBlock Classes="muted" Text="{Binding DockerStatusText}" FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DockerStatusText}" />
+          <Border Grid.Row="1" Classes="panel-card">
+            <StackPanel Spacing="7">
+              <TextBlock Classes="field-label" Text="Compose file" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <TextBox Text="{Binding ComposeFilePath, Mode=TwoWay}" PlaceholderText="docker-compose.yml" AutomationProperties.Name="Compose file path" />
+                <Button Classes="toolbar-button compact-action icon-search icon-only" Content="Detect" ToolTip.Tip="Detect" AutomationProperties.Name="Detect" Grid.Column="1" Click="RefreshDocker_OnClick" />
+              </Grid>
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+                <Button Classes="primary-action compact-action icon-run" Content="Up" ToolTip.Tip="Up" AutomationProperties.Name="Up" Click="Up_OnClick" IsEnabled="{Binding CanUseDocker}" />
+                <Button Classes="toolbar-button compact-action icon-stop" Content="Down" ToolTip.Tip="Down" AutomationProperties.Name="Down" Grid.Column="1" Click="Down_OnClick" IsEnabled="{Binding CanUseDocker}" />
+                <Button Classes="toolbar-button compact-action icon-package" Content="Build" ToolTip.Tip="Build" AutomationProperties.Name="Build" Grid.Row="1" Click="Build_OnClick" IsEnabled="{Binding CanUseDocker}" />
+                <Button Classes="toolbar-button compact-action icon-terminal" Content="Logs" ToolTip.Tip="Logs" AutomationProperties.Name="Logs" Grid.Row="1" Grid.Column="1" Click="Logs_OnClick" IsEnabled="{Binding CanUseDocker}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+          <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="6">
+            <TextBlock Classes="field-label" Text="Container output" Margin="4,0" />
+            <TextBox Grid.Row="1" Text="{Binding DockerLogs}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Menlo, Consolas, monospace" FontSize="11" PlaceholderText="Compose logs appear here." />
+          </Grid>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </Grid>
 </UserControl>

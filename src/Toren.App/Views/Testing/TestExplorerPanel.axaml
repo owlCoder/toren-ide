@@ -7,36 +7,26 @@
              xmlns:testmodels="clr-namespace:Toren.App.Testing.Models"
              xmlns:dotnettests="clr-namespace:Toren.DotNet.Testing.Models;assembly=Toren.DotNet">
   <Grid RowDefinitions="Auto,Auto,*">
-    <Border Grid.Row="0"
-            BorderBrush="{DynamicResource TorenBorderBrush}"
-            BorderThickness="0,0,0,1"
-            Padding="10,7">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <StackPanel Grid.Column="0" Spacing="2">
-          <TextBlock Text="TEST EXPLORER" FontSize="11" FontWeight="SemiBold" />
-          <TextBlock Classes="muted" Text="{Binding StatusText}"
-                     FontSize="11" TextWrapping="Wrap" MaxLines="3"
-                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
-        </StackPanel>
-        <Button x:Name="RefreshTestsButton" Grid.Column="1"
-                Classes="toolbar-button" Content="Refresh"
-                IsEnabled="{Binding !IsRunning}"
-                VerticalAlignment="Center" />
+    <Border Classes="panel-header">
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="6" RowSpacing="6">
+        <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconTests}" /><TextBlock Classes="panel-heading" Text="Tests" /></StackPanel>
+        <Button Classes="toolbar-button compact-action icon-refresh icon-only" Content="Refresh" ToolTip.Tip="Refresh" AutomationProperties.Name="Refresh" x:Name="RefreshTestsButton" Grid.Column="1" IsEnabled="{Binding !IsRunning}" />
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" Text="{Binding StatusText}" FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
       </Grid>
     </Border>
 
-    <Border Grid.Row="1" Padding="10,5"
+    <Border Grid.Row="1" Padding="10,8"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1">
       <WrapPanel Classes="tool-actions">
-        <Button Classes="toolbar-button" Content="Run All"
+        <Button Classes="primary-action compact-action icon-run" Content="Run All"
                 Click="RunAll_OnClick" IsEnabled="{Binding CanRunAll}" />
-        <Button Classes="toolbar-button" Content="Rerun Failed" ToolTip.Tip="Rerun failed projects"
+        <Button Classes="toolbar-button compact-action icon-refresh" Content="Rerun Failed" ToolTip.Tip="Rerun failed projects"
                 Click="RerunFailedProjects_OnClick"
                 IsEnabled="{Binding CanRerunFailedProjects}" />
-        <Button Classes="toolbar-button" Content="Stop"
+        <Button Classes="toolbar-button compact-action icon-stop" Content="Stop"
                 Click="Stop_OnClick" IsEnabled="{Binding CanStop}" />
-        <Button Classes="toolbar-button" Content="Clear Output"
+        <Button Classes="toolbar-button compact-action icon-delete" Content="Clear Output"
                 Click="ClearOutput_OnClick" IsEnabled="{Binding HasOutput}" />
       </WrapPanel>
     </Border>
@@ -58,16 +48,16 @@
           <ItemsControl ItemsSource="{Binding Projects}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="testmodels:WorkspaceTestProjectDiscovery">
-                <StackPanel Margin="10,7" Spacing="4">
+                <Border Classes="panel-card" Margin="10,6">
+                <StackPanel Spacing="6">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
                                FontWeight="SemiBold" FontSize="11"
                                TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                                ToolTip.Tip="{Binding ProjectPath}" />
-                    <TextBlock Grid.Column="1" Classes="muted"
-                               Text="{Binding Tests.Count}" FontSize="11" />
+                    <Border Grid.Column="1" Classes="status-badge"><TextBlock Text="{Binding Tests.Count}" Foreground="{DynamicResource TorenAccentBrush}" FontSize="11" /></Border>
                   </Grid>
-                  <TextBlock Text="{Binding ErrorMessage}"
+                  <TextBlock IsVisible="{Binding ErrorMessage}" Text="{Binding ErrorMessage}"
                              Foreground="{DynamicResource TorenErrorBrush}"
                              FontSize="11" TextWrapping="Wrap" />
                   <ItemsControl ItemsSource="{Binding Tests}">
@@ -78,13 +68,13 @@
                                      FontSize="11" TextWrapping="Wrap" MaxLines="2"
                                      TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding FullyQualifiedName}" />
-                          <Button Grid.Row="1" Grid.Column="0" Classes="toolbar-button"
+                          <Button Grid.Row="1" Grid.Column="0"
                                   IsEnabled="{ReflectionBinding $parent[UserControl].DataContext.CanRunAll}"
-                                  Content="Run" Click="RunTest_OnClick"
+                                  Content="Run" Classes="toolbar-button compact-action icon-run" Click="RunTest_OnClick"
                                   Padding="6,1" FontSize="11" />
-                          <Button Grid.Row="1" Grid.Column="1" Classes="toolbar-button"
+                          <Button Grid.Row="1" Grid.Column="1"
                                   IsEnabled="{ReflectionBinding $parent[UserControl].DataContext.CanDebug}"
-                                  Content="Debug" Click="DebugTest_OnClick"
+                                  Content="Debug" Classes="toolbar-button compact-action icon-debug" Click="DebugTest_OnClick"
                                   ToolTip.Tip="Start the selected test and wait for debugger attach"
                                   Padding="6,1" FontSize="11" />
                         </Grid>
@@ -92,6 +82,7 @@
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </StackPanel>
+                </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

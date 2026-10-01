@@ -6,10 +6,11 @@
              xmlns:httpvm="clr-namespace:Toren.App.Http.ViewModels"
              xmlns:http="clr-namespace:Toren.DotNet.Http.Models;assembly=Toren.DotNet">
   <Grid RowDefinitions="Auto,*,Auto">
-    <Border Grid.Row="0" Padding="9,7"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="7">
-        <TextBlock Grid.Row="0" Text="HTTP CLIENT" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+    <StackPanel Grid.Row="0">
+      <Border Classes="panel-header"><StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconHttp}" /><TextBlock Classes="panel-heading" Text="HTTP Client" /></StackPanel></Border>
+      <Border Classes="panel-card" Margin="10,8">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+          <TextBlock Classes="field-label" Text="Request" />
         <ComboBox Grid.Row="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Requests}" PlaceholderText="Open a .http file"
                   SelectedIndex="{Binding SelectedRequestIndex, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
@@ -25,7 +26,8 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <ComboBox Grid.Row="2" HorizontalAlignment="Stretch" ItemsSource="{Binding Environments}"
+          <TextBlock Grid.Row="2" Classes="field-label" Text="Environment" />
+        <ComboBox Grid.Row="3" HorizontalAlignment="Stretch" ItemsSource="{Binding Environments}"
                   SelectedIndex="{Binding SelectedEnvironmentIndex, Mode=TwoWay}"
                   PlaceholderText="No environment">
           <ComboBox.ItemTemplate>
@@ -34,22 +36,21 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <WrapPanel Grid.Row="3" Classes="tool-actions">
-        <Button Classes="toolbar-button" Content="Send"
-                Click="Send_OnClick" IsEnabled="{Binding CanSend}" />
-        <Button Classes="toolbar-button" Content="Cancel"
-                Click="Cancel_OnClick" IsEnabled="{Binding CanCancel}" />
-        </WrapPanel>
-      </Grid>
-    </Border>
+          <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Classes="primary-action compact-action icon-run" Content="Send" ToolTip.Tip="Send" AutomationProperties.Name="Send" Click="Send_OnClick" IsEnabled="{Binding CanSend}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Button Classes="toolbar-button compact-action icon-stop icon-only" Content="Cancel" ToolTip.Tip="Cancel" AutomationProperties.Name="Cancel" Grid.Column="1" Click="Cancel_OnClick" IsEnabled="{Binding CanCancel}" />
+          </Grid>
+        </Grid>
+      </Border>
+    </StackPanel>
 
-    <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
-      <TabItem Header="History">
+    <TabControl Grid.Row="1" Classes="tool-tabs" SelectedIndex="1" Margin="6,0,6,6">
+      <TabItem Header="History" Classes="tab-history">
       <Border>
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <TextBlock Grid.Column="0" Text="History" FontSize="11" FontWeight="SemiBold" />
-            <Button Grid.Column="1" Classes="toolbar-button" Content="Clear"
+            <Button Grid.Column="1" Classes="toolbar-button compact-action icon-delete icon-only" Content="Clear" ToolTip.Tip="Clear history" AutomationProperties.Name="Clear history"
                     Click="ClearHistory_OnClick" />
           </Grid>
           <ListBox Grid.Row="1" ItemsSource="{Binding History}">
@@ -58,7 +59,7 @@
                 <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="7">
                   <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontSize="11"
                              FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding StatusCode}" FontSize="11" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding StatusCode}" FontSize="11" Foreground="{DynamicResource TorenAccentBrush}" />
                   <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="11"
                              Text="{Binding RequestTarget}" TextTrimming="CharacterEllipsis" />
                 </Grid>
@@ -69,17 +70,16 @@
       </Border>
 
       </TabItem>
-      <TabItem Header="Response">
+      <TabItem Header="Response" Classes="tab-response">
       <Grid RowDefinitions="Auto,Auto,*">
-        <Border Grid.Row="0" Padding="9,7"
-                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Classes="panel-card" Margin="4,6" Padding="9,7">
           <TextBlock Text="{Binding ResponseStatus}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" />
         </Border>
-        <TextBox Grid.Row="1" Margin="8,7,8,0" MinHeight="54" MaxHeight="110"
+        <TextBox Grid.Row="1" Margin="4,2,4,0" MinHeight="54" MaxHeight="110"
                  Text="{Binding ResponseHeaders}" IsReadOnly="True" AcceptsReturn="True"
                  TextWrapping="Wrap" FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                  PlaceholderText="Response headers" />
-        <TextBox Grid.Row="2" Margin="8" Text="{Binding ResponseBody}" IsReadOnly="True"
+        <TextBox Grid.Row="2" Margin="4,6,4,4" Text="{Binding ResponseBody}" IsReadOnly="True"
                  AcceptsReturn="True" TextWrapping="NoWrap"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
                  ScrollViewer.VerticalScrollBarVisibility="Auto"

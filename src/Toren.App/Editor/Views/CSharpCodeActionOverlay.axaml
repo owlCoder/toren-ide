@@ -32,10 +32,7 @@
   <Border Classes="code-action-card">
     <Grid RowDefinitions="Auto,*" RowSpacing="5">
       <Grid ColumnDefinitions="*,Auto" Margin="4,2,4,0">
-        <TextBlock Text="Quick Fix"
-                   FontSize="11"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource TorenTextMutedBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconDoctor}" /><TextBlock Classes="panel-heading" Text="Quick Fix" /></StackPanel>
         <TextBlock Grid.Column="1"
                    Text="Ctrl+."
                    FontSize="9.5"
@@ -44,7 +41,6 @@
 
       <ListBox Grid.Row="1" x:Name="ResultsList"
                Classes="code-action-results"
-               KeyDown="ResultsList_OnKeyDown"
                DoubleTapped="ResultsList_OnDoubleTapped">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="languageModels:CSharpCodeActionInfo">

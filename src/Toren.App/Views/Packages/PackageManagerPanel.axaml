@@ -9,7 +9,7 @@
     <Border Grid.Row="0" Padding="10,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" RowSpacing="6">
-        <TextBlock Grid.Column="0" Text="Project" FontSize="11" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="0" Text="Project target" FontSize="11" VerticalAlignment="Center" />
         <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" IsEnabled="{Binding !IsBusy}"
                   PlaceholderText="Select project" ItemsSource="{Binding Projects}"
                   SelectedIndex="{Binding SelectedProjectIndex, Mode=TwoWay}"
@@ -23,7 +23,7 @@
         <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Classes="muted" Text="{Binding StatusText}"
                    FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                    ToolTip.Tip="{Binding StatusText}" />
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Refresh Installed"
+        <Button Grid.Column="2" Classes="toolbar-button compact-action icon-refresh icon-only" Content="Refresh Installed" ToolTip.Tip="Refresh installed packages" AutomationProperties.Name="Refresh installed packages"
                 Click="RefreshInstalled_OnClick" IsEnabled="{Binding CanManagePackages}" />
       </Grid>
     </Border>
@@ -39,7 +39,7 @@
                  ToolTip.Tip="Leave empty to use configured NuGet sources" />
         <CheckBox Grid.Row="1" Grid.Column="1" Content="Prerelease" IsChecked="{Binding IncludePrerelease}" IsEnabled="{Binding !IsBusy}"
                   VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Search"
+        <Button Grid.Column="1" Classes="primary-action compact-action icon-search" Content="Search"
                 Click="Search_OnClick" IsEnabled="{Binding CanSearch}" />
         <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding IsBusy}" IsIndeterminate="True"
                      Height="3" MinHeight="0" Foreground="{DynamicResource TorenAccentBrush}"
@@ -48,11 +48,11 @@
     </Border>
 
     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10" Margin="10,8">
-      <Border Grid.Column="0" Classes="card">
+      <Border Grid.Column="0" Classes="panel-card" Padding="0">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <TextBlock Grid.Column="0" Text="Search Results" FontSize="11" FontWeight="SemiBold" />
-            <Button Grid.Column="1" Classes="toolbar-button" Content="Install"
+            <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconSearch}" /><TextBlock FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Text="Search Results" /></StackPanel>
+            <Button Grid.Column="1" Classes="toolbar-button compact-action icon-add" Content="Install"
                     Click="Install_OnClick" IsEnabled="{Binding CanInstallSelected}" />
           </Grid>
           <TextBlock Grid.Row="1" Margin="16,12" Classes="muted" FontSize="11" TextWrapping="Wrap"
@@ -63,7 +63,7 @@
                    SelectedIndex="{Binding SelectedSearchResultIndex, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="pkg:NuGetPackageSearchResult">
-                <StackPanel Margin="8,5" Spacing="3">
+                <StackPanel Margin="4,5" Spacing="4">
                   <TextBlock Text="{Binding Id}" ToolTip.Tip="{Binding Id}" FontSize="11"
                              FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding LatestVersion}" ToolTip.Tip="{Binding LatestVersion}" FontSize="11" TextTrimming="CharacterEllipsis" />
@@ -76,13 +76,13 @@
         </Grid>
       </Border>
 
-      <Border Grid.Column="1" Classes="card">
+      <Border Grid.Column="1" Classes="panel-card" Padding="0">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" Margin="8,7" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBlock Grid.Column="0" Text="Installed" FontSize="11" FontWeight="SemiBold" />
-            <Button Grid.Column="1" Classes="toolbar-button" Content="Update"
+            <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconProject}" /><TextBlock FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Text="Installed" /></StackPanel>
+            <Button Grid.Column="1" Classes="toolbar-button compact-action icon-refresh" Content="Update"
                     Click="Update_OnClick" IsEnabled="{Binding CanUpdateSelected}" />
-            <Button Grid.Column="2" Classes="toolbar-button" Content="Remove"
+            <Button Grid.Column="2" Classes="toolbar-button compact-action icon-delete" Content="Remove"
                     Click="Remove_OnClick" IsEnabled="{Binding CanRemoveSelected}" />
           </Grid>
           <TextBlock Grid.Row="1" Margin="16,12" Classes="muted" FontSize="11" TextWrapping="Wrap"
@@ -93,7 +93,7 @@
                    SelectedIndex="{Binding SelectedInstalledPackageIndex, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="pkg:NuGetInstalledPackage">
-                <StackPanel Margin="8,5" Spacing="3">
+                <StackPanel Margin="4,5" Spacing="4">
                   <TextBlock Text="{Binding Id}" ToolTip.Tip="{Binding Id}" FontSize="11"
                              FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding ResolvedVersion}" ToolTip.Tip="{Binding ResolvedVersion}" FontSize="11" TextTrimming="CharacterEllipsis" />
@@ -108,6 +108,6 @@
     </Grid>
 
     <TextBlock Grid.Row="3" Classes="subtle" Margin="9,5" FontSize="11" TextWrapping="Wrap"
-               Text="Package changes use the .NET CLI and preserve standard project / Central Package Management files." />
+               Text="Install, update or remove packages for the selected project." />
   </Grid>
 </UserControl>

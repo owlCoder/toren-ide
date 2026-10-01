@@ -72,7 +72,9 @@ internal sealed class EditorSearchController
         var commandModifier = eventArgs.KeyModifiers.HasFlag(KeyModifiers.Control)
             || eventArgs.KeyModifiers.HasFlag(KeyModifiers.Meta);
 
-        if (commandModifier && eventArgs.Key == Key.F && !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        if (commandModifier && eventArgs.Key == Key.F
+            && !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Alt)
+            && !eventArgs.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
             ShowFind();
             eventArgs.Handled = true;

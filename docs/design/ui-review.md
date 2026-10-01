@@ -16,7 +16,7 @@ Source-build review performed on macOS arm64 on 2026-09-30 and 2026-10-01. This 
 
 ## Automated coverage
 
-`tests/Toren.UnitTests/Ui` contains 36 UI cases: eight shell configurations, six editor-overlay interaction cases, one theme synchronization case, two document-editor theme cases, eight Settings/Packages window configurations, one terminal lifecycle case, three solution-command/progress cases one problem-click navigation case and six panel visibility/expansion cases. Rendering uses Skia with isolated temporary application profiles, without launching workspace commands or changing the user's saved preferences/session.
+`tests/Toren.UnitTests/Ui` contains 40 UI cases: eight shell configurations, eight editor-overlay interaction cases, one theme synchronization case, two document-editor theme cases, eight Settings/Packages window configurations, two About dialog cases, one terminal lifecycle case, three solution-command/progress cases, one problem-click navigation case and six panel visibility/expansion cases. Rendering uses Skia with isolated temporary application profiles, without launching workspace commands or changing the user's saved preferences/session.
 
 | Window size | Theme | Sidebar width |
 | --- | --- | --- |
@@ -48,6 +48,16 @@ Produce PNGs for visual review (optional):
 ```bash
 TOREN_UI_CAPTURE_DIR=/absolute/path/to/captures dotnet test tests/Toren.UnitTests/Toren.UnitTests.csproj --configuration Release --filter FullyQualifiedName~Toren.UnitTests.Ui
 ```
+
+## Dialog and sidebar layout polish
+
+Shared header, card, field-label, status-badge and icon-action styles make each tool follow the same hierarchy. Settings category badges, Packages search/installed cards and the About details card use the rounded shell surfaces. Dialog titles and editor search/rename/code-action headers carry icons without replacing their accessible labels.
+
+Source Control separates the commit card from collapsible branch/sync actions in a bounded scroll region; the change list and diff retain their own viewport. The empty-state indicator follows the observable change count. Debug uses named icon commands, a labelled attach card and a view selector so its inspection area stays useful at 240 px. HTTP groups request/environment/send controls, EF Core separates migration and database cards, Docker uses a two-column command group, and Test Explorer groups projects with count badges and compact Run/Debug actions. Explorer keeps the workspace summary in an inset card.
+
+Editor overlays defer keyboard focus until the shown control has completed layout. Go to File, symbols, workspace search, Find/Replace/Go to Line, rename and quick fixes focus their primary input or selected result automatically. Ctrl/Cmd+Shift+F is reserved for workspace search; document Find no longer consumes that chord. Interaction checks verify this focus without a compensating click and verify quick-fix activation with Enter. About closes with Escape without closing its owner.
+
+The final pass passed 469 Release tests with warnings treated as errors, including 40 UI cases and 249 Skia captures. Expanded Git commands are checked in every shell configuration, along with the populated change-list empty state and the retained diff height. Native macOS checks used the isolated ParcelBox QA workspace: Settings filtering and focus, Packages installed references, Source Control expansion and scrolling, Debug command names, HTTP, EF/Docker layouts, discovery of 14 tests, About/Escape, theme switching and successful Build with progress. The final package also verifies native Go to File typing without a click, four Find in Files results, distinct Find shortcuts and Escape closure. EF Core command execution is not verified because dotnet-ef is unavailable; Docker execution and a live debug attachment were outside this visual pass.
 
 ## Project diagnostics and source navigation
 

@@ -4,53 +4,34 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
-        Width="480" Height="280" CanResize="False"
+        Width="500" Height="340" CanResize="False"
         WindowDecorations="None" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Title="About Toren IDE">
-  <Grid RowDefinitions="46,*">
-    <Border Grid.Row="0" Classes="title-bar"
-            BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto">
-        <Border Padding="16,0" Background="Transparent"
-                PointerPressed="TitleBar_OnPointerPressed">
-          <TextBlock Text="About Toren IDE" Classes="muted chrome-label"
-                     FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+  <Border BorderBrush="{DynamicResource TorenBorderStrongBrush}" BorderThickness="1" CornerRadius="{StaticResource TorenCardRadius}" Margin="4" ClipToBounds="True">
+    <Grid RowDefinitions="46,*">
+      <Border Classes="title-bar" BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="*,Auto">
+          <Border Padding="16,0" Background="Transparent" PointerPressed="TitleBar_OnPointerPressed">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><Path Classes="shell-icon" Data="{StaticResource TorenIconWelcome}" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" /><TextBlock Text="About Toren IDE" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" /></StackPanel>
+          </Border>
+          <Button Grid.Column="1" Classes="window-control close" Width="34" Height="34" Margin="6" Click="CloseWindow_OnClick" ToolTip.Tip="Close" AutomationProperties.Name="Close About window"><Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="14" Height="14" /></Button>
+        </Grid>
+      </Border>
+      <Grid Grid.Row="1" Margin="20,18" RowDefinitions="Auto,Auto,*" RowSpacing="16">
+        <Grid ColumnDefinitions="48,*" ColumnSpacing="14">
+          <Border Width="48" Height="48" CornerRadius="12" Background="{DynamicResource TorenAccentMutedBrush}" BorderBrush="{DynamicResource TorenBorderStrongBrush}" BorderThickness="1"><TextBlock Text="T" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TorenAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="5"><TextBlock Text="{Binding ProductName}" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{Binding Version, StringFormat='Version {0}'}" Classes="muted" FontSize="12" /></StackPanel>
+        </Grid>
+        <TextBlock Grid.Row="1" Text="{Binding Description}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+        <Border Grid.Row="2" Classes="panel-card" Padding="12" VerticalAlignment="Top">
+          <Grid ColumnDefinitions="18,66,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="12">
+            <Path Classes="shell-icon" Data="{StaticResource TorenIconCheck}" Width="14" Height="14" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="License" Classes="field-label" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding License}" FontSize="12" />
+            <Path Grid.Row="1" Classes="shell-icon" Data="{StaticResource TorenIconSourceControl}" Width="14" Height="14" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="Source" Classes="field-label" VerticalAlignment="Center" /><TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Repository}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          </Grid>
         </Border>
-        <Button Grid.Column="1" Classes="window-control close" Width="44" Height="46"
-                Click="CloseWindow_OnClick" ToolTip.Tip="Close"
-                AutomationProperties.Name="Close About window">
-          <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}"
-                Width="14" Height="14" />
-        </Button>
       </Grid>
-    </Border>
-
-    <StackPanel Grid.Row="1" Margin="22,20" Spacing="15">
-      <StackPanel Orientation="Horizontal" Spacing="14">
-        <Border Width="44" Height="44" CornerRadius="9"
-                Background="{DynamicResource TorenAccentMutedBrush}"
-                BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="1">
-          <TextBlock Text="T" FontSize="22" FontWeight="Bold"
-                     Foreground="{DynamicResource TorenAccentBrush}"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </Border>
-        <StackPanel VerticalAlignment="Center" Spacing="2">
-          <TextBlock Text="{Binding ProductName}" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding Version, StringFormat='Version {0}'}"
-                     Classes="muted" FontSize="12" />
-        </StackPanel>
-      </StackPanel>
-      <TextBlock Text="{Binding Description}" Classes="muted"
-                 FontSize="13" TextWrapping="Wrap" />
-      <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />
-      <Grid ColumnDefinitions="76,*" RowDefinitions="Auto,Auto" RowSpacing="11">
-        <TextBlock Text="License" Classes="section-label" />
-        <TextBlock Grid.Column="1" Text="{Binding License}" FontSize="12" />
-        <TextBlock Grid.Row="1" Text="Source" Classes="section-label" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Repository}"
-                   Classes="muted" FontSize="12" />
-      </Grid>
-    </StackPanel>
-
-  </Grid>
+    </Grid>
+  </Border>
 </Window>

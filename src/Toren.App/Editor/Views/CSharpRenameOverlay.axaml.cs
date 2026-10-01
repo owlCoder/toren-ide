@@ -23,8 +23,7 @@ internal sealed partial class CSharpRenameOverlay : UserControl
         NameBox.Text = currentName;
         HintText.Text = "Enter to rename · Esc to cancel";
         IsVisible = true;
-        NameBox.Focus();
-        NameBox.SelectAll();
+        OverlayFocus.Schedule(this, NameBox, selectAll: true);
     }
 
     public void SetError(string message)

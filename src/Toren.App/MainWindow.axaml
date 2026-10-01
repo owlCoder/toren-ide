@@ -205,13 +205,12 @@
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-          <TextBlock Classes="tool-title" Text="EXPLORER" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconExplorer}" /><TextBlock Classes="panel-heading" Text="Explorer" /></StackPanel>
         </Border>
-        <StackPanel Grid.Row="1" Margin="14,16,14,12" Spacing="5">
+        <Border Grid.Row="1" Classes="panel-card" Margin="10,10,10,8"><StackPanel Spacing="5">
           <TextBlock Text="{Binding WorkspaceTitle}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11"
-                     TextWrapping="Wrap" MaxLines="3" />
-        </StackPanel>
+          <TextBlock Classes="muted" Text="{Binding WorkspacePath}" FontSize="11" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding WorkspacePath}" />
+        </StackPanel></Border>
         <StackPanel Grid.Row="2" Margin="14,8" Spacing="9" VerticalAlignment="Top"
                     IsVisible="{Binding Explorer.IsEmpty}">
           <Border Height="1" Background="{DynamicResource TorenBorderBrush}" />

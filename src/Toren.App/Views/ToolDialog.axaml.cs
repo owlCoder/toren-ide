@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 
 namespace Toren.App.Views;
 
@@ -11,6 +12,11 @@ internal sealed partial class ToolDialog : Window
         InitializeComponent();
         Title = title;
         DialogTitle.Text = title;
+        var iconKey = title == "Packages" ? "TorenIconProject" : "TorenIconSettings";
+        if (this.TryFindResource(iconKey, out var icon) && icon is Geometry geometry)
+        {
+            DialogIcon.Data = geometry;
+        }
         DialogContent.Content = content;
         Width = width;
         Height = height;

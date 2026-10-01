@@ -37,4 +37,14 @@ internal sealed partial class AboutWindow : Window
     {
         Close();
     }
+
+    protected override void OnKeyDown(KeyEventArgs args)
+    {
+        base.OnKeyDown(args);
+        if (args.Key == Key.Escape && !args.Handled)
+        {
+            Close();
+            args.Handled = true;
+        }
+    }
 }

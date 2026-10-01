@@ -141,6 +141,20 @@ public sealed class ShellLayoutTests
 
                 VerifyPanelControls(panel);
                 Capture(host, width, height, light, $"sidebar{sidebarWidth}-{panel.GetType().Name}");
+                if (panel is Toren.App.Views.SourceControl.SourceControlPanel gitPanel)
+                {
+                    Assert.That(gitPanel.FindControl<StackPanel>("NoChangesPlaceholder")!.IsVisible, Is.False,
+                        "A populated change list must not show an empty-state message.");
+                    var branches = gitPanel.FindControl<Expander>("BranchActions")!;
+                    branches.IsExpanded = true;
+                    host.UpdateLayout();
+                    VerifyPanelControls(panel);
+                    var diff = (TextBox)gitPanel.GetLogicalDescendants().OfType<TabItem>()
+                        .Single(tab => Equals(tab.Header, "Diff")).Content!;
+                    Assert.That(diff.Bounds.Height, Is.GreaterThan(100), "Expanded branch commands must retain a useful diff viewport.");
+                    Capture(host, width, height, light, $"sidebar{sidebarWidth}-SourceControlPanel-expanded");
+                    branches.IsExpanded = false;
+                }
             }
 
             // Search popovers must fit the remaining editor region even when the sidebar is wide.

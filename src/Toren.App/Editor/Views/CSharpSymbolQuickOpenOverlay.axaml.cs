@@ -25,7 +25,7 @@ internal sealed partial class CSharpSymbolQuickOpenOverlay : UserControl
     {
         IsVisible = true;
         QueryBox.Text = string.Empty;
-        QueryBox.Focus();
+        OverlayFocus.Schedule(this, QueryBox);
     }
 
     public void HideOverlay()
