@@ -14,6 +14,7 @@ using TextMateSharp.Grammars;
 using Toren.App.Diagnostics.ViewModels;
 using Toren.App.Settings.Contracts;
 using Toren.App.Settings.Models;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.Problems;
 using Toren.App.Views.Theme;
@@ -59,6 +60,7 @@ internal sealed partial class MainWindow : Window
 
         InitializeComponent();
         InstallProblemsPanel();
+        _ = ToolPanelController.For(this);
         ToolTabs.SelectionChanged += ToolTabs_OnSelectionChanged;
         _themeToggleIcon = new ThemeToggleIcon();
         ThemeToggleButton.Content = _themeToggleIcon;
@@ -504,7 +506,7 @@ internal sealed partial class MainWindow : Window
             return;
         }
 
-        await _viewModel.ActivateDocumentAsync(opened.Value).ConfigureAwait(true);
+        var diagnosticsRefresh = _viewModel.ActivateDocumentAsync(opened.Value);
         var line = Math.Clamp(problem.StartLine, 1, DocumentEditor.Document.LineCount);
         var documentLine = DocumentEditor.Document.GetLineByNumber(line);
         var column = Math.Clamp(problem.StartColumn, 1, documentLine.Length + 1);
@@ -512,6 +514,7 @@ internal sealed partial class MainWindow : Window
         DocumentEditor.ScrollTo(line, column);
         DocumentEditor.Focus();
         _viewModel.SetStatus($"Opened {opened.Value.Title}:{line}");
+        await diagnosticsRefresh.ConfigureAwait(true);
     }
 
     private async void MainWindow_OnKeyDown(object? sender, KeyEventArgs eventArgs)

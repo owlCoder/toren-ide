@@ -23,7 +23,7 @@
           <Grid RowDefinitions="Auto,Auto" RowSpacing="7">
             <StackPanel Grid.Row="0" Spacing="2">
               <TextBlock Text="Appearance" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="11" />
+              <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
               <TextBlock Text="Color theme" VerticalAlignment="Center" FontSize="11" />
@@ -44,12 +44,14 @@
               <TextBlock Text="Editor" FontSize="11" FontWeight="SemiBold" />
               <TextBlock Classes="muted" Text="Changes apply to the active editor immediately." FontSize="11" />
             </StackPanel>
-            <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
+            <Grid Grid.Row="1" ColumnDefinitions="150,260,Auto" ColumnSpacing="10" HorizontalAlignment="Left">
               <TextBlock Text="Font size" VerticalAlignment="Center" FontSize="11" />
-              <Slider Grid.Column="1" Minimum="8" Maximum="40" TickFrequency="1"
+              <Slider Grid.Column="1" Minimum="8" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
                       Value="{Binding EditorFontSize, Mode=TwoWay}"
                       AutomationProperties.Name="Editor font size"
                       AutomationProperties.HelpText="Editor font size from 8 to 40" />
+              <TextBlock Grid.Column="2" Classes="muted" Text="{Binding EditorFontSize, StringFormat={}{0:0} px}"
+                         FontSize="11" MinWidth="34" VerticalAlignment="Center" />
             </Grid>
             <CheckBox Grid.Row="2" Content="Show line numbers"
                       IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}"
@@ -65,7 +67,7 @@
           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
             <StackPanel Grid.Row="0" Spacing="2">
               <TextBlock Text="Keyboard" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" Text="Core shell shortcuts can be changed without restarting Toren IDE." FontSize="11" />
+              <TextBlock Classes="muted" Text="Core shell shortcuts can be changed without restarting Toren IDE." FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
               <TextBlock Text="Save active document" VerticalAlignment="Center" FontSize="11" />

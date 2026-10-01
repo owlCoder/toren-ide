@@ -20,19 +20,19 @@
     <Border Grid.Row="1" Padding="10,6"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="180,*,Auto,Auto,Auto" ColumnSpacing="6">
-        <ComboBox Grid.Column="0" ItemsSource="{Binding Sessions}"
+        <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" ItemsSource="{Binding Sessions}"
                   SelectedIndex="{Binding SelectedSessionIndex, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="terminalvm:TerminalViewModel">
-              <TextBlock Text="{Binding Title}" />
+              <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
           <TextBlock Classes="muted" Text="{Binding SelectedSession.StatusText}" FontSize="11"
-                     TextTrimming="CharacterEllipsis" />
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SelectedSession.StatusText}" />
           <TextBlock Classes="muted" Text="{Binding SelectedSession.WorkingDirectory}" FontSize="11"
-                     TextTrimming="CharacterEllipsis" />
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SelectedSession.WorkingDirectory}" />
         </StackPanel>
         <Button Grid.Column="2" Classes="toolbar-button" Content="Start"
                 IsEnabled="{Binding SelectedSession.CanStart}" Click="Start_OnClick" />
@@ -59,7 +59,7 @@
       <TextBlock Grid.Column="0" Text=">" FontSize="11"
                  FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                  VerticalAlignment="Center" />
-      <TextBox Grid.Column="1" PlaceholderText="Enter command"
+      <TextBox x:Name="TerminalInput" Grid.Column="1" PlaceholderText="Enter command"
                Text="{Binding SelectedSession.InputText, Mode=TwoWay}"
                IsEnabled="{Binding SelectedSession.IsRunning}" KeyDown="Command_OnKeyDown"
                FontFamily="Cascadia Code, Menlo, Consolas, monospace" />

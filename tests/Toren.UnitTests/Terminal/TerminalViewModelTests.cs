@@ -39,6 +39,17 @@ public sealed class TerminalViewModelTests
     }
 
     [Test]
+    public async Task KillKeepsStoppedStatusWhenExitArrivesBeforeTerminationCompletes()
+    {
+        var session = new StubInteractiveProcessSession { DelayTermination = true };
+        await using var viewModel = new TerminalViewModel(new StubInteractiveProcessRunner(session), new StubNativeShellProvider());
+        await viewModel.StartAsync();
+        await viewModel.StopAsync();
+        Assert.That(viewModel.IsRunning, Is.False);
+        Assert.That(viewModel.StatusText, Is.EqualTo("Terminal session stopped."));
+    }
+
+    [Test]
     public async Task ConcurrentStartsLaunchOnlyOneProcess()
     {
         var runner = new DelayedInteractiveProcessRunner();
@@ -124,6 +135,7 @@ public sealed class TerminalViewModelTests
         public bool Terminated { get; private set; }
 
         public bool Disposed { get; private set; }
+        public bool DelayTermination { get; init; }
 
         public Task<Result<bool>> WriteLineAsync(
             string text,
@@ -134,12 +146,13 @@ public sealed class TerminalViewModelTests
             return Task.FromResult(Result.Success(true));
         }
 
-        public Task<Result<bool>> TerminateAsync(CancellationToken cancellationToken = default)
+        public async Task<Result<bool>> TerminateAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Terminated = true;
             _completion.TrySetResult(Result.Success(new ProcessResult(0, string.Empty, string.Empty)));
-            return Task.FromResult(Result.Success(true));
+            if (DelayTermination) await Task.Delay(20, cancellationToken);
+            return Result.Success(true);
         }
 
         public ValueTask DisposeAsync()

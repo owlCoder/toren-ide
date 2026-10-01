@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Toren.App.Terminal.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views.Terminal;
@@ -96,9 +97,22 @@ internal sealed class TerminalController : IAsyncDisposable
         }
     }
 
-    private Task StartSelectedSessionAsync() => _viewModel.SelectedSession is { CanStart: true } session
-        ? session.StartAsync()
-        : Task.CompletedTask;
+    private async Task StartSelectedSessionAsync()
+    {
+        if (_viewModel.SelectedSession is { CanStart: true } session)
+        {
+            await session.StartAsync().ConfigureAwait(true);
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_detached && ReferenceEquals(_toolTabs.SelectedItem, _terminalTab)
+                && _terminalTab.Content is TerminalPanel { IsEffectivelyVisible: true } panel)
+            {
+                panel.FindControl<TextBox>("TerminalInput")?.Focus();
+            }
+        }, DispatcherPriority.Loaded);
+    }
 
     private void Shell_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {

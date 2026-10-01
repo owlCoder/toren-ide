@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Toren.App.Execution.Contracts;
 using Toren.App.Execution.ViewModels;
+using Toren.App.Shell;
 using Toren.App.ViewModels;
 using Toren.App.Views.Output;
 using Toren.DotNet.Execution.Contracts;
@@ -162,6 +163,12 @@ internal sealed class WorkspaceExecutionController
 
     private void Execution_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
+        if (eventArgs.PropertyName == nameof(WorkspaceExecutionViewModel.IsRunning) && _execution.IsRunning)
+        {
+            ToolPanelController.For(_window).Show();
+            _window.FindControl<TabControl>("ToolTabs")!.SelectedIndex = 1;
+        }
+
         if (eventArgs.PropertyName == nameof(WorkspaceExecutionViewModel.SelectedRunTargetIndex))
         {
             SynchronizeLaunchProfiles();

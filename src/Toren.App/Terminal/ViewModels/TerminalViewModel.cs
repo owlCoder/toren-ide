@@ -15,6 +15,7 @@ public sealed partial class TerminalViewModel(
     private readonly INativeShellProvider _shellProvider = shellProvider
         ?? throw new ArgumentNullException(nameof(shellProvider));
     private IInteractiveProcessSession? _session;
+    private IInteractiveProcessSession? _stoppingSession;
     private bool _disposed;
 
     public string Title { get; } = string.IsNullOrWhiteSpace(title) ? "Terminal" : title;
@@ -127,27 +128,35 @@ public sealed partial class TerminalViewModel(
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_session is null)
+        if (_session is null || _stoppingSession is not null)
         {
             return;
         }
 
         var session = _session;
-        var stopped = await session.TerminateAsync(cancellationToken).ConfigureAwait(true);
-        if (stopped.IsFailure)
+        _stoppingSession = session;
+        try
         {
-            StatusText = stopped.Error.Message;
-            return;
-        }
+            var stopped = await session.TerminateAsync(cancellationToken).ConfigureAwait(true);
+            if (stopped.IsFailure)
+            {
+                StatusText = stopped.Error.Message;
+                return;
+            }
 
-        if (ReferenceEquals(_session, session))
+            if (ReferenceEquals(_session, session))
+            {
+                _session = null;
+                IsRunning = false;
+                StatusText = "Terminal session stopped.";
+            }
+
+            await session.DisposeAsync().ConfigureAwait(true);
+        }
+        finally
         {
-            _session = null;
-            IsRunning = false;
-            StatusText = "Terminal session stopped.";
+            _stoppingSession = null;
         }
-
-        await session.DisposeAsync().ConfigureAwait(true);
     }
 
     public void Clear()
@@ -183,9 +192,11 @@ public sealed partial class TerminalViewModel(
 
         _session = null;
         IsRunning = false;
-        StatusText = completion.IsSuccess
-            ? $"Terminal exited with code {completion.Value!.ExitCode}."
-            : completion.Error.Message;
+        StatusText = ReferenceEquals(_stoppingSession, session)
+            ? "Terminal session stopped."
+            : completion.IsSuccess
+                ? $"Terminal exited with code {completion.Value!.ExitCode}."
+                : completion.Error.Message;
         await session.DisposeAsync().ConfigureAwait(true);
     }
 

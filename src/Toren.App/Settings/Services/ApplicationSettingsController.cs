@@ -43,7 +43,7 @@ internal sealed class ApplicationSettingsController
         _applyTheme = applyTheme;
         _saveActiveDocument = saveActiveDocument;
         _settingsPanel = new ApplicationSettingsPanel { DataContext = viewModel };
-        _dialog = new ToolDialogHost(window, "Settings", _settingsPanel, 760, 640);
+        _dialog = new ToolDialogHost(window, "Settings", _settingsPanel, 760, 640, "SettingsSearchBox");
 
         _settingsButton = window.FindControl<Button>("SettingsActivityButton");
         if (_settingsButton is not null)

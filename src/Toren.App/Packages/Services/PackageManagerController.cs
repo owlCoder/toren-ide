@@ -36,7 +36,7 @@ internal sealed class PackageManagerController
         _projectGraphService = projectGraphService;
         _viewModel = viewModel;
         _setStatus = setStatus;
-        _dialog = new ToolDialogHost(window, "Packages", new PackageManagerPanel { DataContext = viewModel }, 960, 680);
+        _dialog = new ToolDialogHost(window, "Packages", new PackageManagerPanel { DataContext = viewModel }, 960, 680, "PackageSearchBox");
         _packagesButton = window.FindControl<Button>("PackagesActivityButton")!;
         _packagesButton.IsEnabled = true;
         _packagesButton.Click += PackagesButton_OnClick;
@@ -104,6 +104,8 @@ internal sealed class PackageManagerController
 
         var cancellation = new CancellationTokenSource();
         _loadCancellation = cancellation;
+        _viewModel.SetWorkspace(workingDirectory, []);
+        _viewModel.StatusText = "Loading workspace projects…";
         _ = LoadProjectsAsync(descriptor!, workingDirectory, cancellation);
     }
 

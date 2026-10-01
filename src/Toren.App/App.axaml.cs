@@ -325,7 +325,7 @@ public sealed partial class App : Application
             mainWindow,
             workspaceExecution,
             dotNetCommandDiagnosticParser,
-            viewModel.Problems);
+            viewModel);
         TestExplorerController.Attach(
             mainWindow,
             viewModel,

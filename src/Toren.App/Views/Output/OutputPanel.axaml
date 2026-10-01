@@ -21,6 +21,7 @@
             <ComboBoxItem Content="Release" />
           </ComboBox>
           <ComboBox Width="170"
+                    PlaceholderText="Startup project"
                     ItemsSource="{Binding RunTargets}"
                     SelectedIndex="{Binding SelectedRunTargetIndex}"
                     IsEnabled="{Binding CanExecute}"
@@ -31,12 +32,14 @@
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
-          <ComboBox Width="105"
+          <ComboBox Width="125"
+                    PlaceholderText="Framework"
                     ItemsSource="{Binding TargetFrameworks}"
                     SelectedIndex="{Binding SelectedTargetFrameworkIndex}"
                     IsEnabled="{Binding CanExecute}"
                     ToolTip.Tip="Target framework" />
           <ComboBox Width="130"
+                    PlaceholderText="Launch profile"
                     ItemsSource="{Binding LaunchProfiles}"
                     SelectedIndex="{Binding SelectedLaunchProfileIndex}"
                     IsEnabled="{Binding CanExecute}"

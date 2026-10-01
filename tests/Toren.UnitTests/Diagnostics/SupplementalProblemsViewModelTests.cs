@@ -9,6 +9,26 @@ namespace Toren.UnitTests.Diagnostics;
 public sealed class SupplementalProblemsViewModelTests
 {
     [Test]
+    public void BuildAndLanguageServiceReportTheSameErrorOnlyOnce()
+    {
+        var path = Path.GetFullPath("Program.cs");
+        var project = Path.GetFullPath("App.csproj");
+        var problems = new ProblemsViewModel();
+        problems.ReplaceSupplemental("dotnet.command", [new ProblemDiagnostic("CS0103", "Unknown symbol",
+            ProblemSeverity.Error, "MSBuild", path, project, 36, 1)]);
+        problems.ReplaceFile(path, [
+            new CSharpDiagnostic("CS0103", "Unknown symbol", CSharpDiagnosticSeverity.Error, 36, 1, 36, 10),
+            new CSharpDiagnostic("CS0103", "Unknown symbol", CSharpDiagnosticSeverity.Error, 40, 1, 40, 10)]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(problems.ErrorCount, Is.EqualTo(2));
+            Assert.That(problems.Items.Count(item => item.StartLine == 36), Is.EqualTo(1));
+            Assert.That(problems.Items.Single(item => item.StartLine == 36).ProjectPath, Is.EqualTo(project));
+        });
+    }
+
+    [Test]
     public void SupplementalDiagnosticsCoexistWithWorkspaceAndLiveDocumentProblems()
     {
         var documentPath = Path.GetFullPath("Program.cs");

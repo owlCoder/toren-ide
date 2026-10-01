@@ -31,7 +31,7 @@
       <WrapPanel Classes="tool-actions">
         <Button Classes="toolbar-button" Content="Run All"
                 Click="RunAll_OnClick" IsEnabled="{Binding CanRunAll}" />
-        <Button Classes="toolbar-button" Content="Rerun Failed Projects"
+        <Button Classes="toolbar-button" Content="Rerun Failed" ToolTip.Tip="Rerun failed projects"
                 Click="RerunFailedProjects_OnClick"
                 IsEnabled="{Binding CanRerunFailedProjects}" />
         <Button Classes="toolbar-button" Content="Stop"
@@ -62,7 +62,8 @@
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
                                FontWeight="SemiBold" FontSize="11"
-                               TextTrimming="CharacterEllipsis" />
+                               TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding ProjectPath}" />
                     <TextBlock Grid.Column="1" Classes="muted"
                                Text="{Binding Tests.Count}" FontSize="11" />
                   </Grid>
@@ -72,15 +73,17 @@
                   <ItemsControl ItemsSource="{Binding Tests}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="dotnettests:DotNetTestCase">
-                        <Grid Margin="12,2,0,2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                          <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
-                                     FontSize="11"
+                        <Grid Margin="6,4,0,6" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" RowSpacing="3">
+                          <TextBlock Grid.ColumnSpan="3" Text="{Binding DisplayName}"
+                                     FontSize="11" TextWrapping="Wrap" MaxLines="2"
                                      TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding FullyQualifiedName}" />
-                          <Button Grid.Column="1" Classes="toolbar-button"
+                          <Button Grid.Row="1" Grid.Column="0" Classes="toolbar-button"
+                                  IsEnabled="{ReflectionBinding $parent[UserControl].DataContext.CanRunAll}"
                                   Content="Run" Click="RunTest_OnClick"
                                   Padding="6,1" FontSize="11" />
-                          <Button Grid.Column="2" Classes="toolbar-button"
+                          <Button Grid.Row="1" Grid.Column="1" Classes="toolbar-button"
+                                  IsEnabled="{ReflectionBinding $parent[UserControl].DataContext.CanDebug}"
                                   Content="Debug" Click="DebugTest_OnClick"
                                   ToolTip.Tip="Start the selected test and wait for debugger attach"
                                   Padding="6,1" FontSize="11" />

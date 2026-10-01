@@ -44,11 +44,7 @@
           </StackPanel>
         </Border>
         <Border Grid.Column="1" Margin="8,0" Background="Transparent"
-                PointerPressed="TitleBar_OnPointerPressed">
-          <TextBlock Classes="subtle chrome-label" Text="{Binding WorkspaceTitle}"
-                     FontSize="11" TextTrimming="CharacterEllipsis"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </Border>
+                PointerPressed="TitleBar_OnPointerPressed" />
         <StackPanel Grid.Column="2" Orientation="Horizontal">
           <Button Classes="window-control" Click="MinimizeWindow_OnClick" ToolTip.Tip="Minimize"
                   AutomationProperties.Name="Minimize window">
@@ -151,7 +147,7 @@
           </Button>
           <Button x:Name="CancelExecutionButton" Classes="command-button" IsEnabled="False"
                   ToolTip.Tip="Stop current command (Shift+F5)" AutomationProperties.Name="Stop current command">
-            <Path Width="13" Height="13" Fill="{DynamicResource TorenErrorBrush}" Data="M4,4H20V20H4Z" />
+            <Path Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource TorenErrorBrush}" Data="M4,4H20V20H4Z" />
           </Button>
         </StackPanel>
         <TextBlock x:Name="ExecutionStatusText" Grid.Column="1" HorizontalAlignment="Right" Classes="subtle"
@@ -260,7 +256,7 @@
                   ToolTip.Tip="Drag or use arrow keys to resize the sidebar" />
 
     <!-- Document host: real files open as tabs and are edited with AvaloniaEdit. -->
-    <Grid Grid.Row="2" Grid.Column="2" RowDefinitions="Auto,*">
+    <Grid x:Name="DocumentHost" Grid.Row="2" Grid.Column="2" RowDefinitions="Auto,*">
       <Border Grid.Row="0" Height="{StaticResource TorenPanelHeaderHeight}"
               Background="{DynamicResource TorenSurfaceBrush}"
               BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
@@ -461,10 +457,10 @@
     </Grid>
 
     <!-- Tool window: TabControl supplies keyboard selection and runtime tool content. -->
-    <Border Grid.Row="3" Grid.Column="2"
+    <Border x:Name="ToolPanel" Grid.Row="3" Grid.Column="2"
             Classes="shell-surface" BorderThickness="0,1,0,0">
       <Grid RowDefinitions="6,*">
-        <TabControl x:Name="ToolTabs" Grid.Row="1" Classes="tool-tabs" SelectedIndex="1">
+        <TabControl x:Name="ToolTabs" Grid.Row="1" Classes="tool-tabs bottom-tool-tabs" SelectedIndex="1">
           <TabItem>
             <TabItem.Header>
               <StackPanel Orientation="Horizontal" Spacing="6">
@@ -490,10 +486,21 @@
             </StackPanel>
           </TabItem>
         </TabControl>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                    VerticalAlignment="Top" Margin="0,3,6,0" Spacing="2">
+          <Button x:Name="ExpandToolPanelButton" Classes="panel-control" ToolTip.Tip="Maximize panel"
+                  AutomationProperties.Name="Maximize panel">
+            <Path Classes="shell-icon" Width="14" Height="14" Data="{StaticResource TorenIconChevronUp}" />
+          </Button>
+          <Button x:Name="HideToolPanelButton" Classes="panel-control" ToolTip.Tip="Hide panel (Ctrl/Cmd+J)"
+                  AutomationProperties.Name="Hide panel">
+            <Path Classes="shell-icon" Width="14" Height="14" Data="{StaticResource TorenIconClose}" />
+          </Button>
+        </StackPanel>
       </Grid>
     </Border>
 
-    <GridSplitter Grid.Row="3" Grid.Column="2" Height="6"
+    <GridSplitter x:Name="ToolPanelSplitter" Grid.Row="3" Grid.Column="2" Height="6"
                   HorizontalAlignment="Stretch" VerticalAlignment="Top"
                   ResizeDirection="Rows" ResizeBehavior="PreviousAndCurrent"
                   Classes="shell-splitter" AutomationProperties.Name="Resize tool panel"
@@ -503,7 +510,7 @@
     <Border Grid.Row="4" Grid.ColumnSpan="3" Height="{StaticResource TorenStatusBarHeight}"
             Background="{DynamicResource TorenSurfaceRaisedBrush}"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="12,0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+      <Grid Margin="12,0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" VerticalAlignment="Center">
           <Ellipse Width="6" Height="6" Fill="{DynamicResource TorenSuccessBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontSize="11"
@@ -513,7 +520,11 @@
                      Foreground="{DynamicResource TorenAccentBrush}"
                      VerticalAlignment="Center" IsIndeterminate="True" IsVisible="False"
                      AutomationProperties.Name="Command progress" />
-        <Button Grid.Column="2" x:Name="ThemeToggleButton" Classes="theme-toggle"
+        <Button Grid.Column="2" x:Name="ToggleToolPanelButton" Classes="theme-toggle"
+                ToolTip.Tip="Toggle panel (Ctrl/Cmd+J)" AutomationProperties.Name="Toggle panel">
+          <Path Classes="shell-icon" Width="14" Height="14" Data="{StaticResource TorenIconPanel}" />
+        </Button>
+        <Button Grid.Column="3" x:Name="ThemeToggleButton" Classes="theme-toggle"
                 Click="ToggleTheme_OnClick" ToolTip.Tip="Switch theme"
                 AutomationProperties.Name="Toggle light and dark theme">
           <Grid Width="14" Height="14">
@@ -525,7 +536,8 @@
                   Data="M12.1,2C7.07,2 3,6.07 3,11.1C3,16.13 7.07,20.2 12.1,20.2C16.04,20.2 19.4,17.7 20.67,14.2C19.33,15.04 17.75,15.53 16.05,15.53C11.74,15.53 8.25,12.04 8.25,7.73C8.25,5.62 9.09,3.71 10.45,2.3C11,2.1 11.54,2 12.1,2Z" />
           </Grid>
         </Button>
-        <TextBlock Grid.Column="3" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+        <TextBlock Grid.Column="4" Classes="subtle" Text="{Binding SdkSummary}" FontSize="11"
+                   MaxWidth="220" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SdkSummary}"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>

@@ -18,6 +18,11 @@ using Toren.App.Views;
 using Toren.App.Debugging.ViewModels;
 using Toren.App.SourceControl.ViewModels;
 using Toren.App.Http.ViewModels;
+using Toren.App.Testing.ViewModels;
+using Toren.App.Testing.Models;
+using Toren.DotNet.Testing.Models;
+using Toren.App.EnvironmentDoctor.ViewModels;
+using Toren.App.EnvironmentDoctor.Models;
 using Toren.Debugging.Models;
 using Toren.Git.Models;
 using Toren.DotNet.Http.Models;
@@ -73,6 +78,12 @@ public sealed class ShellLayoutTests
                 host.UpdateLayout();
                 Assert.That(tab.Content, Is.InstanceOf<UserControl>(), $"{tab.Header}: placeholder tab");
                 var panel = (Control)tab.Content!;
+                if (panel.DataContext is EnvironmentDoctorViewModel doctor)
+                {
+                    doctor.Checks.Add(new EnvironmentDoctorCheck("sdk", "Installed .NET SDK and workspace version requirements",
+                        EnvironmentDoctorStatus.Warning, "SDK 10.0.100 is available for this workspace.",
+                        "Select an SDK compatible with the workspace global.json before running a build."));
+                }
                 Assert.That(panel.Bounds.Height, Is.GreaterThan(170), $"{tab.Header}: no usable content area");
                 AssertContained(panel, host);
                 AssertContained(tab, tab.GetVisualAncestors().OfType<ScrollViewer>().First());
@@ -171,7 +182,14 @@ public sealed class ShellLayoutTests
 
     private static void PopulateSidebar(Control panel)
     {
-        if (panel.DataContext is DebugSessionViewModel debug)
+        if (panel.DataContext is TestExplorerViewModel tests)
+        {
+            tests.Replace([new WorkspaceTestProjectDiscovery("/work/tests/Workspace.Integration.Tests.csproj",
+                "Workspace.Integration.Tests.With.A.Long.Project.Name",
+                Enumerable.Range(1, 12).Select(index => new DotNetTestCase($"Workspace.Tests.LoadingCase{index}",
+                    $"LoadWorkspace_WithMultipleProjectsAndALongDisplayName_ReturnsExpectedResult_{index}")).ToArray())]);
+        }
+        else if (panel.DataContext is DebugSessionViewModel debug)
         {
             debug.StackFrames.Add(new DebugStackFrame(1, "ParcelBox.Service.LoadWorkspaceAsync", "/work/src/Service.cs", 42, 9));
             debug.Locals.Add(new DebugLocalItemViewModel("Locals", "workspace", "{ DisplayName = \"ParcelBox\", Projects = 8 }", "WorkspaceDescriptor", 0));

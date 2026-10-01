@@ -16,6 +16,15 @@ using Toren.App.Terminal.ViewModels;
 using Toren.App.ViewModels;
 using Toren.App.Views;
 using Toren.App.Views.Problems;
+using Toren.App.Shell;
+using Toren.App.Settings.ViewModels;
+using Toren.App.Packages.ViewModels;
+using Toren.App.Packages.Services;
+using Toren.DotNet.Packages.Services;
+using Toren.Platform.Execution.Adapters;
+using Toren.Workspaces.Services;
+using Toren.Workspaces.Contracts;
+using Toren.DotNet.Packages.Models;
 using Toren.Core.Results;
 using Toren.DotNet.Execution.Contracts;
 using Toren.DotNet.Execution.Models;
@@ -56,6 +65,9 @@ public sealed class ToolRoutingTests
             Assert.That(dialog, Is.SameAs(first), "Repeated clicks should activate the existing window.");
             if (minimumSize) { first.Width = 640; first.Height = 480; }
             first.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.That(first.FocusManager!.GetFocusedElement(), Is.SameAs(((Control)panel!).FindControl<TextBox>(
+                title == "Settings" ? "SettingsSearchBox" : "PackageSearchBox")));
             foreach (var control in first.GetVisualDescendants().OfType<Control>()
                          .Where(control => control is Button or TextBox or ComboBox))
             {
@@ -70,6 +82,8 @@ public sealed class ToolRoutingTests
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.That(dialog, Is.Not.SameAs(first));
             Assert.That(dialog!.FindControl<ContentControl>("DialogContent")!.Content, Is.SameAs(panel));
+            Assert.That(dialog.Width, Is.EqualTo(first.Width));
+            Assert.That(dialog.Height, Is.EqualTo(first.Height));
             Assert.That(shell.FindControl<TabControl>("ToolTabs")!.Items.Count, Is.EqualTo(5));
         }
         finally
@@ -122,6 +136,7 @@ public sealed class ToolRoutingTests
         var path = Path.GetFullPath("Sample.slnx");
         execution.SetWorkspace(new WorkspaceDescriptor(path, "Sample", WorkspaceKind.SolutionX));
         execution.ConfigurationIndex = 1;
+        ToolPanelController.For(shell).Hide();
         shell.FindControl<Button>(name)!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         var content = shell.Content;
         shell.Content = null;
@@ -131,6 +146,7 @@ public sealed class ToolRoutingTests
         Capture(host, $"{kind}-progress");
         host.Close();
         Assert.That(service.Request!.Kind, Is.EqualTo(kind));
+        Assert.That(ToolPanelController.For(shell).IsVisible, Is.True);
         Assert.That(service.Request.TargetPath, Is.EqualTo(path));
         Assert.That(service.Request.Configuration, Is.EqualTo("Release"));
         Assert.That(tabs.SelectedIndex, Is.EqualTo(1));
@@ -161,7 +177,10 @@ public sealed class ToolRoutingTests
         try
         {
             window.UpdateLayout();
-            var list = ((Control)content!).GetLogicalDescendants().OfType<ProblemsPanel>().Distinct().Single().FindControl<ListBox>("ProblemsList")!;
+            var problems = ((Control)content!).GetLogicalDescendants().OfType<ProblemsPanel>().Distinct().Single();
+            var activations = 0;
+            problems.ProblemActivated += _ => activations++;
+            var list = problems.FindControl<ListBox>("ProblemsList")!;
             var row = list.GetVisualDescendants().OfType<ListBoxItem>().First();
             var point = row.TranslatePoint(new Point(40, 15), window)!.Value;
             window.MouseDown(point, MouseButton.Left);
@@ -171,11 +190,139 @@ public sealed class ToolRoutingTests
             var editor = ((Control)content!).GetLogicalDescendants().OfType<TextEditor>().Distinct().Single(editor => editor.Name == "DocumentEditor");
             Assert.That(editor.Document.GetLocation(editor.CaretOffset).Line, Is.EqualTo(3));
             Assert.That(editor.Document.GetLocation(editor.CaretOffset).Column, Is.EqualTo(5));
+            var emptyArea = list.TranslatePoint(new Point(40, list.Bounds.Height - 20), window)!.Value;
+            window.MouseDown(emptyArea, MouseButton.Left);
+            window.MouseUp(emptyArea, MouseButton.Left);
+            Assert.That(activations, Is.EqualTo(1), "Clicking the list background should not reopen the previously selected problem.");
         }
         finally { window.Close(); model.Dispose(); }
     }
 
     private static string Profile() => Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", $"tools-{Guid.NewGuid():N}");
+
+    [AvaloniaTest]
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ToolPanelCanHideExpandAndRestoreWithoutStoppingTheTerminal(bool light)
+    {
+        Application.Current!.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+        var runner = new UiInteractiveProcessRunner();
+        var shell = Toren.App.App.CreateMainWindow(Profile(), runner);
+        var model = (MainWindowViewModel)shell.DataContext!;
+        var tabs = shell.FindControl<TabControl>("ToolTabs")!;
+        tabs.SelectedItem = tabs.Items.OfType<TabItem>().Single(tab => tab.Content is Toren.App.Views.Terminal.TerminalPanel);
+        var controller = ToolPanelController.For(shell);
+        var grid = shell.FindControl<Grid>("ShellGrid")!;
+        grid.RowDefinitions[3].Height = new GridLength(350);
+        var content = shell.Content;
+        shell.Content = null;
+        var host = new Window { Content = content, DataContext = model, Width = 1080, Height = 700 };
+        host.Show();
+        try
+        {
+            controller.Hide();
+            host.UpdateLayout();
+            Assert.That(grid.RowDefinitions[3].ActualHeight, Is.Zero);
+            Assert.That(runner.Sessions.Single().Killed, Is.False);
+            Capture(host, $"panel-hidden-{(light ? "light" : "dark")}");
+            shell.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.J, KeyModifiers = KeyModifiers.Meta });
+            host.UpdateLayout();
+            Assert.That(controller.IsVisible, Is.True);
+            Assert.That(grid.RowDefinitions[3].Height.Value, Is.EqualTo(350));
+            controller.ToggleExpanded();
+            host.UpdateLayout();
+            Assert.That(grid.RowDefinitions[2].ActualHeight, Is.Zero);
+            Assert.That(grid.RowDefinitions[3].ActualHeight, Is.GreaterThan(550));
+            Capture(host, $"panel-expanded-{(light ? "light" : "dark")}");
+            controller.ToggleExpanded();
+            host.UpdateLayout();
+            Assert.That(grid.RowDefinitions[2].ActualHeight, Is.GreaterThanOrEqualTo(240));
+            Assert.That(grid.RowDefinitions[3].Height.Value, Is.EqualTo(350));
+            controller.ToggleExpanded();
+            controller.Hide();
+            controller.Show();
+            host.UpdateLayout();
+            Assert.That(controller.IsExpanded, Is.False);
+            Assert.That(runner.Sessions.Single().Killed, Is.False);
+            Capture(host, $"panel-restored-{(light ? "light" : "dark")}");
+        }
+        finally { host.Close(); model.Dispose(); }
+    }
+
+    [AvaloniaTest]
+    [TestCase(false)]
+    [TestCase(true)]
+    public void LongPackageNamesAndBusyStateFitTheMinimumDialog(bool light)
+    {
+        var shell = Toren.App.App.CreateMainWindow(Profile(), new UiInteractiveProcessRunner());
+        Application.Current!.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
+        ToolDialog? dialog = null;
+        using var opened = Window.WindowOpenedEvent.AddClassHandler<Window>((window, _) =>
+        {
+            if (window is ToolDialog tool && tool.Title == "Packages") dialog = tool;
+        });
+        shell.FindControl<Button>("PackagesActivityButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        try
+        {
+            var panel = (Control)dialog!.FindControl<ContentControl>("DialogContent")!.Content!;
+            var model = (PackageManagerViewModel)panel.DataContext!;
+            model.SearchResults.Add(new NuGetPackageSearchResult("Example.Extremely.Long.Package.Name.For.Responsive.Layout", "10.0.0-preview.123456789", 12345, "Example", "https://packages.example.test/v3/index.json"));
+            model.InstalledPackages.Add(new NuGetInstalledPackage("/work/Web.csproj", "net10.0", "Example.Extremely.Long.Installed.Package.Name", "10.0.0-*", "10.0.0-preview.123456789"));
+            model.StatusText = "A long package status must leave both the project selector and refresh action accessible at the minimum dialog size.";
+            dialog!.Width = 640; dialog.Height = 480;
+            dialog.UpdateLayout();
+            foreach (var list in panel.GetLogicalDescendants().OfType<ListBox>())
+            {
+                Assert.That(list.IsVisible, Is.True);
+                foreach (var label in list.GetVisualDescendants().OfType<TextBlock>().Where(label => label.Bounds.Width > 0))
+                {
+                    var origin = label.TranslatePoint(default, list)!.Value;
+                    Assert.That(origin.X + label.Bounds.Width, Is.LessThanOrEqualTo(list.Bounds.Width));
+                    Assert.That(label.Bounds.Width, Is.GreaterThan(100));
+                }
+            }
+            Capture(dialog, $"packages-populated-{(light ? "light" : "dark")}");
+            model.IsBusy = true;
+            dialog.UpdateLayout();
+            Assert.That(panel.GetLogicalDescendants().OfType<ComboBox>().Single().IsEnabled, Is.False);
+            Assert.That(panel.FindControl<TextBox>("PackageSearchBox")!.IsEnabled, Is.False);
+            Assert.That(panel.GetLogicalDescendants().OfType<ProgressBar>().Single().IsVisible, Is.True);
+            Capture(dialog, $"packages-busy-{(light ? "light" : "dark")}");
+        }
+        finally { dialog?.Close(); ((MainWindowViewModel)shell.DataContext!).Dispose(); }
+    }
+
+    [AvaloniaTest]
+    public async Task RemappedSaveShortcutReplacesTheDefaultShortcut()
+    {
+        var profile = Profile();
+        Directory.CreateDirectory(profile);
+        var file = Path.Combine(profile, "Shortcut.cs");
+        await File.WriteAllTextAsync(file, "class Original {}\n");
+        var shell = Toren.App.App.CreateMainWindow(profile, new UiInteractiveProcessRunner());
+        var model = (MainWindowViewModel)shell.DataContext!;
+        await model.Documents.OpenAsync(file);
+        ToolDialog? dialog = null;
+        using var opened = Window.WindowOpenedEvent.AddClassHandler<Window>((window, _) =>
+        {
+            if (window is ToolDialog tool && tool.Title == "Settings") dialog = tool;
+        });
+        shell.FindControl<Button>("SettingsActivityButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        try
+        {
+            var settings = (ApplicationSettingsViewModel)((Control)dialog!.FindControl<ContentControl>("DialogContent")!.Content!).DataContext!;
+            settings.SaveKeybindingIndex = 2;
+            model.Documents.ActiveDocument!.Text = "class Modified {}\n";
+            shell.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Control });
+            Assert.That(model.Documents.ActiveDocument.IsDirty, Is.True);
+            Assert.That(await File.ReadAllTextAsync(file), Is.EqualTo("class Original {}\n"));
+            shell.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Alt });
+            for (var attempt = 0; attempt < 30 && model.Documents.ActiveDocument.IsDirty; attempt++) await Task.Delay(10);
+            Assert.That(model.Documents.ActiveDocument.IsDirty, Is.False);
+            Assert.That(await File.ReadAllTextAsync(file), Is.EqualTo("class Modified {}\n"));
+        }
+        finally { dialog?.Close(); model.Dispose(); }
+    }
 
     private static void Capture(Window window, string name)
     {
@@ -185,6 +332,55 @@ public sealed class ToolRoutingTests
         Dispatcher.UIThread.RunJobs();
         using var frame = window.CaptureRenderedFrame();
         frame!.Save(Path.Combine(directory, $"dialog-{name}.png"), PngBitmapEncoderOptions.Default);
+    }
+
+    [AvaloniaTest]
+    public async Task PackageTargetsAreClearedWhileTheNewWorkspaceIsLoading()
+    {
+        var profile = Profile();
+        Directory.CreateDirectory(profile);
+        var shell = Toren.App.App.CreateMainWindow(profile, new UiInteractiveProcessRunner());
+        var model = (MainWindowViewModel)shell.DataContext!;
+        model.WorkspacePath = profile;
+        model.Explorer.IsWorkspaceOpen = true;
+        var packages = new PackageManagerViewModel(new DotNetPackageService(new SystemProcessRunner()));
+        packages.SetWorkspace(profile, [new WorkspaceProject(Path.Combine(profile, "Old.csproj"), "Old workspace project",
+            new ProjectMetadata(["net10.0"], "Library", "Old", "Old", false, false, null, null, null), [])]);
+        packages.SearchResults.Add(new NuGetPackageSearchResult("Example", "1.0.0", null, null, "nuget.org"));
+        packages.SelectedSearchResultIndex = 0;
+        Assert.That(packages.CanInstallSelected, Is.True);
+        var button = new Button { Name = "PackagesActivityButton" };
+        var window = new Window { Content = button };
+        var scope = new NameScope();
+        scope.Register(button.Name, button);
+        NameScope.SetNameScope(window, scope);
+        window.Show();
+        var graph = new DelayedProjectGraphService();
+        try
+        {
+            PackageManagerController.Attach(window, model, new WorkspaceClassifier(), graph, packages, _ => { });
+            Assert.That(graph.Request!.Path, Is.EqualTo(profile));
+            Assert.That(packages.Projects, Is.Empty);
+            Assert.That(packages.SelectedProject, Is.Null);
+            Assert.That(packages.CanInstallSelected, Is.False);
+            Assert.That(packages.StatusText, Is.EqualTo("Loading workspace projects…"));
+            graph.Complete();
+            for (var attempt = 0; attempt < 30 && packages.StatusText.StartsWith("Loading", StringComparison.Ordinal); attempt++) await Task.Delay(10);
+            Assert.That(packages.StatusText, Is.EqualTo("No .NET projects were found in this workspace."));
+        }
+        finally { window.Close(); model.Dispose(); }
+    }
+
+    private sealed class DelayedProjectGraphService : IWorkspaceProjectGraphService
+    {
+        private readonly TaskCompletionSource<Result<WorkspaceProjectGraph>> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public WorkspaceDescriptor? Request { get; private set; }
+        public Task<Result<WorkspaceProjectGraph>> LoadAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken = default)
+        {
+            Request = workspace;
+            return _completion.Task.WaitAsync(cancellationToken);
+        }
+        public void Complete() => _completion.SetResult(Result.Success(new WorkspaceProjectGraph([])));
     }
 
     private sealed class ControlledCommandService : IDotNetCommandService

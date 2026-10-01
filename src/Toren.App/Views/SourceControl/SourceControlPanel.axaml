@@ -13,7 +13,7 @@
           <TextBlock Text="SOURCE CONTROL" FontSize="11" FontWeight="SemiBold" />
           <TextBlock Text="{Binding BranchText}" FontSize="11" TextTrimming="CharacterEllipsis" />
           <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11"
-                     TextWrapping="Wrap" ToolTip.Tip="{Binding StatusText}" />
+                     TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" />
         </StackPanel>
         <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
                 Click="Refresh_OnClick" IsEnabled="{Binding !IsBusy}" />

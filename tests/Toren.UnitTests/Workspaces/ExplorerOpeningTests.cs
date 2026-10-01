@@ -1,4 +1,11 @@
 using NUnit.Framework;
+using Avalonia.Controls;
+using Avalonia.Headless.NUnit;
+using Toren.App.Diagnostics.Contracts;
+using Toren.App.Diagnostics.Models;
+using Toren.App.Execution.ViewModels;
+using Toren.DotNet.Execution.Contracts;
+using Toren.DotNet.Execution.Models;
 using Toren.App.Diagnostics.Services;
 using Toren.App.Documents.Contracts;
 using Toren.App.Documents.Models;
@@ -87,7 +94,8 @@ public sealed class ExplorerOpeningTests
         IWorkspaceTreeService tree,
         IRecentWorkspaceStore recent,
         IDotNetSdkResolver sdkResolver,
-        IDocumentSessionStore? documentSessionStore = null)
+        IDocumentSessionStore? documentSessionStore = null,
+        IWorkspaceDiagnosticsCoordinator? workspaceDiagnostics = null)
     {
         var syntaxService = new FakeCSharpSyntaxService();
         return new MainWindowViewModel(
@@ -98,7 +106,83 @@ public sealed class ExplorerOpeningTests
             recent,
             documentSessionStore ?? new FakeDocumentSessionStore(new DocumentSessionState([], null)),
             new DocumentDiagnosticsCoordinator(syntaxService, TimeSpan.Zero),
-            new DocumentHostViewModel(new FakeTextDocumentStore()));
+            new DocumentHostViewModel(new FakeTextDocumentStore()),
+            workspaceDiagnostics);
+    }
+
+    [AvaloniaTest]
+    [TestCase(DotNetCommandKind.Restore)]
+    [TestCase(DotNetCommandKind.Build)]
+    [TestCase(DotNetCommandKind.Rebuild)]
+    [TestCase(DotNetCommandKind.Clean)]
+    [TestCase(DotNetCommandKind.Publish)]
+    public async Task WorkspaceCommandsReplaceStaleLanguageDiagnostics(DotNetCommandKind kind)
+    {
+        var coordinator = new EmptyWorkspaceDiagnostics();
+        using var shell = CreateViewModel(new FakeWorkspaceTreeService(), new FakeRecentWorkspaceStore([]),
+            new FakeDotNetSdkResolver(), workspaceDiagnostics: coordinator);
+        var path = Path.Combine(Path.GetTempPath(), "ParcelBox.sln");
+        shell.WorkspacePath = path;
+        shell.Explorer.IsWorkspaceOpen = true;
+        shell.Problems.Replace(path + ".cs", [new CSharpDiagnostic("CS0246", "Old missing reference",
+            CSharpDiagnosticSeverity.Error, 1, 1, 1, 2)]);
+        using var execution = new WorkspaceExecutionViewModel(new SuccessfulCommandService());
+        execution.SetWorkspace(new WorkspaceDescriptor(path, "ParcelBox", WorkspaceKind.Solution));
+        var window = new Window();
+        window.Show();
+        try
+        {
+            WorkspaceExecutionDiagnosticsController.Attach(window, execution, new DotNetCommandDiagnosticParser(), shell);
+            await execution.ExecuteAsync(kind);
+            Assert.That(coordinator.CallCount, Is.EqualTo(1));
+            Assert.That(shell.Problems.HasAnyProblems, Is.False);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaTest]
+    public async Task CompletionFromPreviousWorkspaceCannotReplaceCurrentProblems()
+    {
+        var coordinator = new EmptyWorkspaceDiagnostics();
+        using var shell = CreateViewModel(new FakeWorkspaceTreeService(), new FakeRecentWorkspaceStore([]),
+            new FakeDotNetSdkResolver(), workspaceDiagnostics: coordinator);
+        shell.WorkspacePath = Path.Combine(Path.GetTempPath(), "Current.sln");
+        shell.Explorer.IsWorkspaceOpen = true;
+        shell.Problems.Replace(shell.WorkspacePath + ".cs", [new CSharpDiagnostic("CS0103", "Current error",
+            CSharpDiagnosticSeverity.Error, 1, 1, 1, 2)]);
+        using var execution = new WorkspaceExecutionViewModel(new SuccessfulCommandService());
+        execution.SetWorkspace(new WorkspaceDescriptor(Path.Combine(Path.GetTempPath(), "Previous.sln"),
+            "Previous", WorkspaceKind.Solution));
+        var window = new Window();
+        window.Show();
+        try
+        {
+            WorkspaceExecutionDiagnosticsController.Attach(window, execution, new DotNetCommandDiagnosticParser(), shell);
+            await execution.ExecuteAsync(DotNetCommandKind.Build);
+            Assert.That(coordinator.CallCount, Is.Zero);
+            Assert.That(shell.Problems.Items.Single().Code, Is.EqualTo("CS0103"));
+        }
+        finally { window.Close(); }
+    }
+
+    private sealed class EmptyWorkspaceDiagnostics : IWorkspaceDiagnosticsCoordinator
+    {
+        public int CallCount { get; private set; }
+        public Task<WorkspaceDiagnosticsSnapshot?> AnalyzeLatestAsync(string workspacePath,
+            IReadOnlyList<CSharpSourceDocument> openDocuments, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            return Task.FromResult<WorkspaceDiagnosticsSnapshot?>(new WorkspaceDiagnosticsSnapshot([], []));
+        }
+        public void CancelPending() { }
+        public void Dispose() { }
+    }
+
+    private sealed class SuccessfulCommandService : IDotNetCommandService
+    {
+        public Task<Result<DotNetCommandResult>> ExecuteAsync(DotNetCommandRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result.Success(new DotNetCommandResult(request.Kind, 0, "Build succeeded", "")));
     }
 
     private sealed class FakeWorkspaceTreeService : IWorkspaceTreeService

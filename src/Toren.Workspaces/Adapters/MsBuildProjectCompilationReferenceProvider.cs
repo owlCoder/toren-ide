@@ -79,6 +79,14 @@ public sealed class MsBuildProjectCompilationReferenceProvider(IProcessRunner pr
                 .Distinct(PathComparer)
                 .OrderBy(static path => path, PathComparer)
                 .ToArray();
+            var missingReference = paths.FirstOrDefault(path => !File.Exists(path));
+            if (missingReference is not null)
+            {
+                return Result.Failure<IReadOnlyList<string>>(
+                    ProjectCompilationReferenceErrors.ResolutionFailed(
+                        $"Reference '{missingReference}' is unavailable. Build the solution to generate project references."));
+            }
+
             return Result.Success<IReadOnlyList<string>>(paths);
         }
         catch (JsonException exception)

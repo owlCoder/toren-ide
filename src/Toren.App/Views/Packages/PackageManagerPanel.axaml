@@ -8,36 +8,42 @@
   <Grid RowDefinitions="Auto,Auto,*,Auto">
     <Border Grid.Row="0" Padding="10,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,220,*,Auto" ColumnSpacing="8">
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" RowSpacing="6">
         <TextBlock Grid.Column="0" Text="Project" FontSize="11" VerticalAlignment="Center" />
-        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Select project" ItemsSource="{Binding Projects}"
+        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" IsEnabled="{Binding !IsBusy}"
+                  PlaceholderText="Select project" ItemsSource="{Binding Projects}"
                   SelectedIndex="{Binding SelectedProjectIndex, Mode=TwoWay}"
                   SelectionChanged="Project_OnSelectionChanged">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="pkgvm:PackageProjectTarget">
-              <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding DisplayName}" ToolTip.Tip="{Binding Path}" TextTrimming="CharacterEllipsis" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <TextBlock Grid.Column="2" Classes="muted" Text="{Binding StatusText}"
-                   FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Refresh Installed"
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Classes="muted" Text="{Binding StatusText}"
+                   FontSize="11" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                   ToolTip.Tip="{Binding StatusText}" />
+        <Button Grid.Column="2" Classes="toolbar-button" Content="Refresh Installed"
                 Click="RefreshInstalled_OnClick" IsEnabled="{Binding CanManagePackages}" />
       </Grid>
     </Border>
 
     <Border Grid.Row="1" Padding="8,7"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,220,Auto,Auto" ColumnSpacing="7">
-        <TextBox Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
+      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="7" RowSpacing="6">
+        <TextBox x:Name="PackageSearchBox" Grid.Column="0" Text="{Binding SearchQuery, Mode=TwoWay}"
+                 IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="Search NuGet packages"
                  PlaceholderText="Search NuGet packages" KeyDown="SearchBox_OnKeyDown" />
-        <TextBox Grid.Column="1" Text="{Binding CustomSource, Mode=TwoWay}"
+        <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding CustomSource, Mode=TwoWay}" IsEnabled="{Binding !IsBusy}"
                  PlaceholderText="Custom feed URL (optional)"
                  ToolTip.Tip="Leave empty to use configured NuGet sources" />
-        <CheckBox Grid.Column="2" Content="Prerelease" IsChecked="{Binding IncludePrerelease}"
+        <CheckBox Grid.Row="1" Grid.Column="1" Content="Prerelease" IsChecked="{Binding IncludePrerelease}" IsEnabled="{Binding !IsBusy}"
                   VerticalAlignment="Center" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Search"
+        <Button Grid.Column="1" Classes="toolbar-button" Content="Search"
                 Click="Search_OnClick" IsEnabled="{Binding CanSearch}" />
+        <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding IsBusy}" IsIndeterminate="True"
+                     Height="3" MinHeight="0" Foreground="{DynamicResource TorenAccentBrush}"
+                     AutomationProperties.Name="Package operation progress" />
       </Grid>
     </Border>
 
@@ -49,17 +55,21 @@
             <Button Grid.Column="1" Classes="toolbar-button" Content="Install"
                     Click="Install_OnClick" IsEnabled="{Binding CanInstallSelected}" />
           </Grid>
-          <ListBox Grid.Row="1" ItemsSource="{Binding SearchResults}"
+          <TextBlock Grid.Row="1" Margin="16,12" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                     Text="Search for a package to see available versions."
+                     IsVisible="{Binding !SearchResults.Count}" />
+          <ListBox Grid.Row="1" ItemsSource="{Binding SearchResults}" IsVisible="{Binding SearchResults.Count}"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                    SelectedIndex="{Binding SelectedSearchResultIndex, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="pkg:NuGetPackageSearchResult">
-                <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Id}" FontSize="11"
+                <StackPanel Margin="8,5" Spacing="3">
+                  <TextBlock Text="{Binding Id}" ToolTip.Tip="{Binding Id}" FontSize="11"
                              FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding LatestVersion}" FontSize="11" />
-                  <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="11"
-                             Text="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
-                </Grid>
+                  <TextBlock Text="{Binding LatestVersion}" ToolTip.Tip="{Binding LatestVersion}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="11"
+                             Text="{Binding SourceName}" ToolTip.Tip="{Binding SourceName}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
@@ -74,17 +84,21 @@
           <Button Grid.Column="2" Classes="toolbar-button" Content="Remove"
                   Click="Remove_OnClick" IsEnabled="{Binding CanRemoveSelected}" />
         </Grid>
-        <ListBox Grid.Row="1" ItemsSource="{Binding InstalledPackages}"
+        <TextBlock Grid.Row="1" Margin="16,12" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                   Text="Select a project to inspect its package references."
+                   IsVisible="{Binding !InstalledPackages.Count}" />
+        <ListBox Grid.Row="1" ItemsSource="{Binding InstalledPackages}" IsVisible="{Binding InstalledPackages.Count}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  SelectedIndex="{Binding SelectedInstalledPackageIndex, Mode=TwoWay}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="pkg:NuGetInstalledPackage">
-              <Grid Margin="8,5" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Id}" FontSize="11"
+              <StackPanel Margin="8,5" Spacing="3">
+                <TextBlock Text="{Binding Id}" ToolTip.Tip="{Binding Id}" FontSize="11"
                            FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ResolvedVersion}" FontSize="11" />
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted" FontSize="11"
-                           Text="{Binding TargetFramework}" />
-              </Grid>
+                <TextBlock Text="{Binding ResolvedVersion}" ToolTip.Tip="{Binding ResolvedVersion}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted" FontSize="11"
+                           Text="{Binding TargetFramework}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>

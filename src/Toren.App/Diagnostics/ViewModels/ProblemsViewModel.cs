@@ -250,9 +250,14 @@ public sealed partial class ProblemsViewModel : ObservableObject
     private void Rebuild()
     {
         _allItems.Clear();
-        _allItems.AddRange(_workspaceItems);
-        _allItems.AddRange(_supplementalItemsBySource.Values.SelectMany(static items => items));
-        _allItems.AddRange(_itemsByFile.Values.SelectMany(static items => items));
+        var diagnostics = _workspaceItems
+            .Concat(_supplementalItemsBySource.Values.SelectMany(static items => items))
+            .Concat(_itemsByFile.Values.SelectMany(static items => items));
+        _allItems.AddRange(diagnostics
+            .GroupBy(item => string.IsNullOrEmpty(item.FilePath) ? item.ProjectPath ?? string.Empty : item.FilePath, PathComparer)
+            .SelectMany(group => group.DistinctBy(item => (
+                Source: string.IsNullOrEmpty(item.FilePath) ? item.FileName : string.Empty,
+                item.Code, item.Message, item.Severity, item.StartLine, item.StartColumn))));
         _allItems.Sort(CompareItems);
         OnPropertyChanged(nameof(HasAnyProblems));
         ApplyFilters();
