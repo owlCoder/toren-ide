@@ -11,7 +11,7 @@
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="CornerRadius" Value="{StaticResource TorenCardRadius}" />
       <Setter Property="Padding" Value="7" />
       <Setter Property="BoxShadow" Value="0 4 14 0 #55000000" />
     </Style>
@@ -25,14 +25,14 @@
       <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="CornerRadius" Value="6" />
     </Style>
     <Style Selector="Button.editor-navigation-button, ToggleButton.editor-navigation-button">
       <Setter Property="Width" Value="28" />
       <Setter Property="Height" Value="28" />
       <Setter Property="MinHeight" Value="28" />
       <Setter Property="Padding" Value="4" />
-      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
@@ -49,7 +49,7 @@
       <Setter Property="Height" Value="28" />
       <Setter Property="MinHeight" Value="28" />
       <Setter Property="Padding" Value="9,3" />
-      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />

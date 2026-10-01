@@ -10,15 +10,19 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Padding" Value="6,3" />
-      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
       <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     </Style>
-    <Style Selector="ToggleButton.problem-filter:pointerover">
+    <Style Selector="ToggleButton.problem-filter:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
     </Style>
-    <Style Selector="ToggleButton.problem-filter:checked">
+    <Style Selector="ToggleButton.problem-filter:checked /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.problem-filter:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
     </Style>
   </UserControl.Styles>
 

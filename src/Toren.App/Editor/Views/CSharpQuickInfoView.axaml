@@ -8,7 +8,7 @@
           Background="{DynamicResource TorenSurfaceRaisedBrush}"
           BorderBrush="{DynamicResource TorenBorderStrongBrush}"
           BorderThickness="1"
-          CornerRadius="4"
+          CornerRadius="{StaticResource TorenControlRadius}"
           BoxShadow="0 4 14 0 #55000000">
     <StackPanel Spacing="5">
       <TextBlock x:Name="DisplayText"
@@ -19,7 +19,7 @@
       <StackPanel Orientation="Horizontal" Spacing="7">
         <Border Padding="5,1"
                 Background="{DynamicResource TorenAccentMutedBrush}"
-                CornerRadius="3">
+                CornerRadius="6">
           <TextBlock x:Name="KindText"
                      FontSize="9.5"
                      FontWeight="SemiBold"

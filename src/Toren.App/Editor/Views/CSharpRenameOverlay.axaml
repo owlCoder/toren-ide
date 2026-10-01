@@ -11,7 +11,7 @@
           Background="{DynamicResource TorenSurfaceRaisedBrush}"
           BorderBrush="{DynamicResource TorenBorderStrongBrush}"
           BorderThickness="1"
-          CornerRadius="6"
+          CornerRadius="{StaticResource TorenCardRadius}"
           BoxShadow="0 7 22 0 #66000000">
     <StackPanel Spacing="8">
       <TextBlock Text="Rename Symbol"
@@ -28,7 +28,7 @@
                Foreground="{DynamicResource TorenTextBrush}"
                BorderBrush="{DynamicResource TorenAccentBrush}"
                BorderThickness="1"
-               CornerRadius="4"
+               CornerRadius="{StaticResource TorenControlRadius}"
                KeyDown="NameBox_OnKeyDown" />
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7">
         <TextBlock x:Name="HintText"

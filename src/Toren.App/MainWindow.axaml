@@ -32,7 +32,7 @@
         <Border Grid.Column="0" Padding="12,0,10,0" Background="Transparent"
                 PointerPressed="TitleBar_OnPointerPressed">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <Border Width="28" Height="28" CornerRadius="7"
+            <Border Width="28" Height="28" CornerRadius="9"
                     Background="{DynamicResource TorenAccentMutedBrush}"
                     BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="1">
               <TextBlock Text="T" FontSize="14" FontWeight="Bold"
@@ -120,7 +120,7 @@
           </Button>
           <Border Width="1" Height="18" Margin="5,0"
                   Background="{DynamicResource TorenBorderBrush}" />
-          <Button x:Name="BuildSolutionButton" Classes="toolbar-button" Content="Build"
+          <Button x:Name="BuildSolutionButton" Classes="toolbar-button build-action" Content="Build"
                   ToolTip.Tip="Build Solution (Ctrl/Cmd+Shift+B)" AutomationProperties.Name="Build Solution" IsEnabled="False" />
           <Button x:Name="RebuildSolutionButton" Classes="toolbar-button" Content="Rebuild"
                   ToolTip.Tip="Rebuild Solution" AutomationProperties.Name="Rebuild Solution" IsEnabled="False" />
@@ -156,7 +156,7 @@
       </Grid>
     </Border>
 
-    <!-- Activity bar: keyboard reachable 48 px targets with runtime-wired tools. -->
+    <!-- Inset activity controls keep a compact, keyboard-reachable tool rail. -->
     <Border Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
             Width="{StaticResource TorenActivityWidth}" Classes="shell-surface activity-rail"
             BorderThickness="0,0,1,0">
@@ -263,7 +263,7 @@
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <StackPanel Orientation="Horizontal">
             <Border IsVisible="{Binding IsWelcomeOpen}" MinWidth="156"
-                    Background="{DynamicResource TorenBackgroundBrush}"
+                    Classes="document-tab" Classes.active="{Binding IsWelcomeSelected}"
                     PointerPressed="WelcomeTab_OnPointerPressed">
               <Grid RowDefinitions="*,2">
                 <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="7" Margin="12,0,6,0">
@@ -277,7 +277,7 @@
                     <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
                   </Button>
                 </Grid>
-                <Border Grid.Row="1" Height="2" Background="{DynamicResource TorenAccentBrush}"
+                <Border Grid.Row="1" Height="2" Margin="10,0" CornerRadius="1" Background="{DynamicResource TorenAccentBrush}"
                         IsVisible="{Binding IsWelcomeSelected}" />
               </Grid>
             </Border>
@@ -290,8 +290,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:OpenDocumentViewModel">
                   <Border MinWidth="130" MaxWidth="240"
-                          Background="{DynamicResource TorenSurfaceBrush}"
-                          BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1,0,0,0"
+                          Classes="document-tab" Classes.active="{Binding IsActive}"
                           PointerPressed="DocumentTab_OnPointerPressed" ToolTip.Tip="{Binding Path}">
                     <Grid RowDefinitions="*,2">
                       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
@@ -305,7 +304,7 @@
                           <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
                         </Button>
                       </Grid>
-                      <Border Grid.Row="1" Height="2" Background="{DynamicResource TorenAccentBrush}"
+                      <Border Grid.Row="1" Height="2" Margin="10,0" CornerRadius="1" Background="{DynamicResource TorenAccentBrush}"
                               IsVisible="{Binding IsActive}" />
                     </Grid>
                   </Border>

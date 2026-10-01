@@ -16,7 +16,7 @@ Source-build review performed on macOS arm64 on 2026-09-30 and 2026-10-01. This 
 
 ## Automated coverage
 
-`tests/Toren.UnitTests/Ui` contains 30 UI cases: eight shell configurations, six editor-overlay interaction cases, one theme synchronization case, two document-editor theme cases, eight Settings/Packages window configurations, one terminal lifecycle case, three solution-command/progress cases and one problem-click navigation case. Rendering uses Skia with isolated temporary application profiles, without launching workspace commands or changing the user's saved preferences/session.
+`tests/Toren.UnitTests/Ui` contains 36 UI cases: eight shell configurations, six editor-overlay interaction cases, one theme synchronization case, two document-editor theme cases, eight Settings/Packages window configurations, one terminal lifecycle case, three solution-command/progress cases one problem-click navigation case and six panel visibility/expansion cases. Rendering uses Skia with isolated temporary application profiles, without launching workspace commands or changing the user's saved preferences/session.
 
 | Window size | Theme | Sidebar width |
 | --- | --- | --- |
@@ -25,11 +25,15 @@ Source-build review performed on macOS arm64 on 2026-09-30 and 2026-10-01. This 
 
 Each shell configuration checks the five bottom panels, every sidebar tool and its nested views, populated diagnostics, Welcome with long recent-workspace paths, and three search/navigation popovers with thirty results. Geometry assertions verify usable tool height, visible selected headers, contained toolbar buttons and bounded result lists. The editor cases exercise selection/activation through keyboard input as well as initialized Find/Replace, Go to Line, rename, code-action and hover fields.
 
-## Dark theme refinement
+## Modern palette and rounded controls
 
-The surface hierarchy uses the [VS Code 2026 dark theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/2026-dark.json) as a reference, verified against the locally installed VS Code 1.140.0. The editor uses `#121314`, sidebar/panels/chrome use `#191A1B`, raised surfaces use `#202122`, and dividers use `#2A2B2C`. Text, icons and blue focus/selection accents are restrained to reduce glare while keeping secondary text readable.
+The dark theme uses cool graphite surfaces: `#101218` for the editor, `#181C25` for sidebars and panels, `#141820` for chrome, and `#202633` for raised controls. Muted indigo selections and `#A2AEFF` focus accents separate active tools without bright full-width bars. Primary text uses `#E1E7F0`; secondary text and borders keep a clear hierarchy. The light theme uses cool off-white surfaces and a darker `#5262B8` accent.
 
-Fluent's dark palette and button/input/dropdown states share the shell tokens, including disabled and popup states. Control-fill accents use `#297AA0` so white labels remain legible; focus/link accents use the lighter `#48A0C7`. TextMate retains syntax highlighting but consumes Toren's dark editor background, foreground, line-number, selection and current-line brushes instead of restoring its lighter Dark+ surfaces. An explicit current-line pen prevents AvaloniaEdit's green fallback outline. The two editor cases open a C# fixture, change themes with that document open, select text and verify palette consistency before capturing the rendered editor.
+Shared radii are 8 px for inputs, buttons and tabs, 12 px for cards/popovers, and 6 px for result rows. The activity rail uses inset 40 px controls in 48 px slots. Document and tool tabs have rounded active backgrounds; keyboard focus remains visible. Settings groups and Packages result/installed regions use aligned cards, while dialog headers keep compact close controls. The command bar keeps its existing height and gives Build a distinct primary treatment.
+
+Fluent control states, selected list rows, problem filters and disabled commands consume the shell palette. TextMate retains syntax highlighting but consumes Toren's editor background, foreground, line-number, selection and current-line brushes in both themes. An explicit current-line pen prevents AvaloniaEdit's fallback outline. The existing editor cases verify palette consistency with a C# document open after theme changes.
+
+The modern UI pass passed all 465 Release tests with warnings treated as errors and produced 239 Skia screenshots across the supported geometry matrix. Native macOS review covered Settings and Packages, dark/light switching, a C# document opened through Go to File, and successful Build with command disabling and status-bar progress on the isolated ParcelBox QA solution.
 
 Run all quality checks:
 

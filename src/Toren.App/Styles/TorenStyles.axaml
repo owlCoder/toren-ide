@@ -1,39 +1,39 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Styles.Resources>
-    <SolidColorBrush x:Key="TorenBackgroundBrush">#11151A</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceBrush">#191E25</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#202732</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#293340</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#18394B</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenChromeBrush">#171C23</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenBorderBrush">#303945</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenBorderStrongBrush">#475567</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenTextBrush">#E9EEF4</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenTextMutedBrush">#A5B3C3</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenTextSubtleBrush">#8494A7</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenAccentBrush">#53C8FB</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenAccentHoverBrush">#83D9FF</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenAccentMutedBrush">#153649</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenSuccessBrush">#70D9A1</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenWarningBrush">#EBC078</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenErrorBrush">#F28B91</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenDangerHoverBrush">#B93E4C</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconFolderBrush">#DDB770</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#F1C987</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconSolutionBrush">#B39AF2</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconProjectBrush">#79B9EA</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconTestBrush">#93D5A5</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconReferenceBrush">#9BCBB6</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconCodeBrush">#9FA5F5</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconDataBrush">#E8BD77</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconMarkupBrush">#E9A2B8</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconDocumentBrush">#88C7D9</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconConfigBrush">#9AABC1</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconContainerBrush">#70BDEB</SolidColorBrush>
-    <SolidColorBrush x:Key="TorenIconImageBrush">#D6A8E8</SolidColorBrush>
-    <CornerRadius x:Key="TorenControlRadius">6</CornerRadius>
-    <CornerRadius x:Key="TorenCardRadius">8</CornerRadius>
+    <SolidColorBrush x:Key="TorenBackgroundBrush">#101218</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceBrush">#181C25</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceRaisedBrush">#202633</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceHoverBrush">#2A3242</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSurfaceSelectedBrush">#293451</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenChromeBrush">#141820</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenBorderBrush">#2B3342</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenBorderStrongBrush">#45516A</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextBrush">#E1E7F0</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextMutedBrush">#A6B2C7</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenTextSubtleBrush">#8795AD</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenAccentBrush">#A2AEFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenAccentHoverBrush">#C0C9FF</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenAccentMutedBrush">#262F4D</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenSuccessBrush">#8DD6AC</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenWarningBrush">#ECC38D</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenErrorBrush">#F29AA9</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenDangerHoverBrush">#A63D54</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconFolderBrush">#D9B883</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconFolderOpenBrush">#ECCC98</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconSolutionBrush">#B6A6EF</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconProjectBrush">#8CBCEC</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconTestBrush">#97CEAB</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconReferenceBrush">#8BCABD</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconCodeBrush">#B0B9F5</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconDataBrush">#E1BE8C</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconMarkupBrush">#DEABBC</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconDocumentBrush">#97C1D8</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconConfigBrush">#A6B2C7</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconContainerBrush">#8CBCEC</SolidColorBrush>
+    <SolidColorBrush x:Key="TorenIconImageBrush">#CAB0E5</SolidColorBrush>
+    <CornerRadius x:Key="TorenControlRadius">8</CornerRadius>
+    <CornerRadius x:Key="TorenCardRadius">12</CornerRadius>
     <x:Double x:Key="TorenTitleBarHeight">46</x:Double>
     <x:Double x:Key="TorenActivityWidth">50</x:Double>
     <x:Double x:Key="TorenPanelHeaderHeight">38</x:Double>
@@ -174,6 +174,24 @@
   </Style>
   <Style Selector="Button">
     <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+  </Style>
+  <Style Selector="TextBox, ComboBox">
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+  </Style>
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBoxItem">
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
   </Style>
   <Style Selector="Button.toolbar-button, Button.link-button, Button.primary-action, Button.tab-close">
     <Setter Property="BorderThickness" Value="1" />
@@ -254,6 +272,11 @@
   <Style Selector="Button:disabled">
     <Setter Property="Opacity" Value="0.57" />
   </Style>
+  <Style Selector="Button.toolbar-button:disabled /template/ ContentPresenter, Button.command-button:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
+  </Style>
   <Style Selector="Button.planned-action:disabled">
     <Setter Property="Opacity" Value="1" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextSubtleBrush}" />
@@ -272,9 +295,10 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Width" Value="44" />
-    <Setter Property="Height" Value="46" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Margin" Value="2,6" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -291,16 +315,18 @@
   <Style Selector="Button.activity-button">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="2,0,0,0" />
-    <Setter Property="Width" Value="50" />
-    <Setter Property="Height" Value="48" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Margin" Value="4,4" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.activity-button.active">
-    <Setter Property="Background" Value="{DynamicResource TorenSurfaceSelectedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
   </Style>
   <Style Selector="Button.activity-button.active Path.shell-icon">
     <Setter Property="Fill" Value="{DynamicResource TorenAccentBrush}" />
@@ -399,16 +425,18 @@
     <Setter Property="Foreground" Value="{DynamicResource TorenTextMutedBrush}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="2,0,0,0" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Padding" Value="10,7" />
-    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
+    <Setter Property="Padding" Value="9,5" />
+    <Setter Property="Margin" Value="3,3,0,3" />
+    <Setter Property="MinHeight" Value="30" />
     <Setter Property="Template">
       <ControlTemplate>
         <Border Name="TabHeaderRoot"
                 Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
                 Padding="{TemplateBinding Padding}">
           <ContentPresenter Content="{TemplateBinding Header}"
                             HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -421,7 +449,8 @@
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem:selected">
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />

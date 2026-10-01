@@ -269,7 +269,8 @@ internal sealed partial class MainWindow : Window
         string resourceKey,
         Action<IBrush> apply)
     {
-        if (_isDarkTheme && this.TryFindResource(resourceKey, ThemeVariant.Dark, out var resource) && resource is IBrush brush)
+        var variant = _isDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+        if (this.TryFindResource(resourceKey, variant, out var resource) && resource is IBrush brush)
         {
             apply(brush);
             return true;

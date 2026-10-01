@@ -14,13 +14,20 @@
   <Application.Styles>
     <FluentTheme>
       <FluentTheme.Palettes>
-        <ColorPaletteResources x:Key="Dark" Accent="#297AA0"
-                               BaseHigh="#BFBFBF" BaseMedium="#8C8C8C"
-                               BaseMediumHigh="#A5A8AB" BaseMediumLow="#707477"
-                               ChromeAltLow="#191A1B" ChromeLow="#121314"
-                               ChromeMedium="#2A2B2C" ChromeMediumLow="#141516"
-                               ChromeHigh="#202122" RegionColor="#191A1B"
-                               ErrorText="#F48771" />
+        <ColorPaletteResources x:Key="Dark" Accent="#8293EF"
+                               BaseHigh="#E1E7F0" BaseMedium="#A6B2C7"
+                               BaseMediumHigh="#BAC5D7" BaseMediumLow="#8795AD"
+                               ChromeAltLow="#181C25" ChromeLow="#101218"
+                               ChromeMedium="#2B3342" ChromeMediumLow="#141820"
+                               ChromeHigh="#202633" RegionColor="#181C25"
+                               ErrorText="#F29AA9" />
+        <ColorPaletteResources x:Key="Light" Accent="#5262B8"
+                               BaseHigh="#253047" BaseMedium="#56647C"
+                               BaseMediumHigh="#40506B" BaseMediumLow="#64748B"
+                               ChromeAltLow="#F4F6FB" ChromeLow="#FCFDFF"
+                               ChromeMedium="#DBE1ED" ChromeMediumLow="#F0F3F9"
+                               ChromeHigh="#E9EDF6" RegionColor="#F4F6FB"
+                               ErrorText="#B33C53" />
       </FluentTheme.Palettes>
     </FluentTheme>
     <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />

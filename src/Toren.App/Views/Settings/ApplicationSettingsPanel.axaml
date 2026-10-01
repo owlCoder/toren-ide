@@ -5,9 +5,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:settingsvm="clr-namespace:Toren.App.Settings.ViewModels"
              AutomationProperties.Name="Application settings">
-  <Grid RowDefinitions="Auto,*" RowSpacing="10" Margin="12,10">
+  <Grid RowDefinitions="Auto,*" RowSpacing="10" Margin="16,12">
     <StackPanel Grid.Row="0" Spacing="6">
-      <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" />
+      <TextBlock Text="Preferences" FontSize="16" FontWeight="SemiBold" />
       <TextBox x:Name="SettingsSearchBox"
                Text="{Binding SearchText, Mode=TwoWay}" PlaceholderText="Search settings"
                AutomationProperties.Name="Search settings"
@@ -18,11 +18,10 @@
 
     <ScrollViewer Grid.Row="1" AutomationProperties.Name="Settings categories">
       <StackPanel Spacing="10">
-        <Border IsVisible="{Binding ShowAppearanceSection}" Padding="10"
-                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+        <Border Classes="card" IsVisible="{Binding ShowAppearanceSection}" Padding="14,12">
           <Grid RowDefinitions="Auto,Auto" RowSpacing="7">
             <StackPanel Grid.Row="0" Spacing="2">
-              <TextBlock Text="Appearance" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Text="Appearance" FontSize="13" FontWeight="SemiBold" />
               <TextBlock Classes="muted" Text="Theme changes apply immediately and are persisted locally." FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">
@@ -37,11 +36,10 @@
           </Grid>
         </Border>
 
-        <Border IsVisible="{Binding ShowEditorSection}" Padding="10"
-                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+        <Border Classes="card" IsVisible="{Binding ShowEditorSection}" Padding="14,12">
           <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
             <StackPanel Grid.Row="0" Spacing="2">
-              <TextBlock Text="Editor" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Text="Editor" FontSize="13" FontWeight="SemiBold" />
               <TextBlock Classes="muted" Text="Changes apply to the active editor immediately." FontSize="11" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,260,Auto" ColumnSpacing="10" HorizontalAlignment="Left">
@@ -62,11 +60,10 @@
           </Grid>
         </Border>
 
-        <Border IsVisible="{Binding ShowKeyboardSection}" Padding="10"
-                BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="1">
+        <Border Classes="card" IsVisible="{Binding ShowKeyboardSection}" Padding="14,12">
           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
             <StackPanel Grid.Row="0" Spacing="2">
-              <TextBlock Text="Keyboard" FontSize="11" FontWeight="SemiBold" />
+              <TextBlock Text="Keyboard" FontSize="13" FontWeight="SemiBold" />
               <TextBlock Classes="muted" Text="Core shell shortcuts can be changed without restarting Toren IDE." FontSize="11" TextWrapping="Wrap" />
             </StackPanel>
             <Grid Grid.Row="1" ColumnDefinitions="150,260" ColumnSpacing="10" HorizontalAlignment="Left">

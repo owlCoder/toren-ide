@@ -14,7 +14,7 @@
       <Setter Property="Background" Value="{DynamicResource TorenSurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="CornerRadius" Value="{StaticResource TorenCardRadius}" />
       <Setter Property="Padding" Value="8" />
       <Setter Property="BoxShadow" Value="0 7 22 0 #66000000" />
     </Style>
@@ -27,7 +27,7 @@
       <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TorenAccentBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
     </Style>
     <Style Selector="ListBox.quick-open-results">
       <Setter Property="Background" Value="Transparent" />
@@ -36,7 +36,7 @@
     </Style>
     <Style Selector="ListBox.quick-open-results > ListBoxItem">
       <Setter Property="Padding" Value="8,6" />
-      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="CornerRadius" Value="6" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
   </UserControl.Styles>
@@ -64,7 +64,7 @@
               <Border Grid.RowSpan="2" Width="22" Height="22"
                       VerticalAlignment="Center"
                       Background="{DynamicResource TorenSurfaceHoverBrush}"
-                      CornerRadius="3">
+                      CornerRadius="6">
                 <Path Width="12" Height="12" Stretch="Uniform"
                       HorizontalAlignment="Center" VerticalAlignment="Center"
                       Stroke="{DynamicResource TorenTextMutedBrush}" StrokeThickness="1.4"
