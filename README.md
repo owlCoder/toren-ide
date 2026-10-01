@@ -67,7 +67,7 @@ Docker Compose and `dotnet ef` are optional; install them when you need the corr
 
 The macOS development review includes native interaction checks and dark/light UI captures. Final hands-on Windows/macOS/Linux smoke, visual, accessibility and performance checks must still run against the exact promoted release archives. Passing source tests or packaging does not certify those gates.
 
-Large workspaces remain an area of active work. In the 220-project Orchard Core review, file indexing and quick open were fast, while project evaluation and startup-project preparation still took minutes. See the [performance report](docs/design/performance-review.md) for measurements, hardware and limits.
+Large workspaces remain an area of active work. In the 220-project Orchard Core review, service-level measurements put file indexing and quick open in the millisecond range and a cold project evaluation at about seven seconds; the native application has not been re-measured since project evaluation was reworked, and C# analysis still recompiles a project on each request. See the [performance report](docs/design/performance-review.md) for measurements, hardware and limits.
 
 ## Build from source
 
