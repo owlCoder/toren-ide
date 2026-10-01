@@ -32,8 +32,16 @@ Options:
 - `--per-project` evaluates with one SDK process per project, the fallback path, instead of one MSBuild invocation per stage.
 - `--nodes <count>` sets the MSBuild node count of the shared invocation; the application uses up to four.
 - `--compare-evaluation` adds an `evaluation_equivalence` phase that evaluates the solution both ways and fails if any project differs.
+- `--compare-diagnostics` adds a `diagnostics_equivalence` phase that analyzes every document alone and fails if the result differs from whole-project analysis.
 - `--active-document <file name>` selects the document for the editor phases; the default is `ContentItem.cs`.
 
 The semantic and diagnostics phases need built project references. On a solution that is restored but not built they report the missing references, as the application does, and measure only the work up to that point.
+
+Opening a workspace through the application itself is measured by `WorkspaceOpeningProbe` in tests/Toren.UnitTests/Ui, an explicit test that runs the real main window headless:
+
+```sh
+TOREN_PROBE_WORKSPACE=/absolute/path/Target.sln TOREN_PROBE_OUTPUT=/absolute/path/open.json \
+  dotnet test tests/Toren.UnitTests -c Release --filter "FullyQualifiedName~WorkspaceOpeningProbe"
+```
 
 The JSON also records the path-string payload of the loaded graph. RSS is sampled every 100 ms for the probe process only, excluding child SDK processes; sample the process tree externally when that matters. Native UI timing, full compilation and build/run throughput require separate measurements. OS disk caches are not flushed. See docs/design/performance-review.md for the Orchard Core trials and their limits.

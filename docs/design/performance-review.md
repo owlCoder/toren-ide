@@ -2,7 +2,7 @@
 
 Measured on macOS arm64 on 1 October 2026, using a Mac mini with an Apple M4 (10 cores), 16 GB RAM and .NET SDK 10.0.100.
 
-This document records two passes on the same machine and checkout. The [first review](#first-review) found that project evaluation dominated workspace opening. The [second pass](#second-pass-shared-snapshot-and-batch-evaluation) removed most of that cost; its design is recorded in [ADR-0011](../decisions/0011-shared-project-snapshot-and-batch-evaluation.md).
+This document records three passes on the same machine and checkout. The [first review](#first-review) found that project evaluation dominated workspace opening. The [second pass](#second-pass-shared-snapshot-and-batch-evaluation) removed most of that cost; its design is recorded in [ADR-0011](../decisions/0011-shared-project-snapshot-and-batch-evaluation.md). The [third pass](#third-pass-editor-analysis-and-application-level-opening) measured workspace opening through the application itself and reduced the cost of C# analysis per editor request.
 
 ## Workload and method
 
@@ -111,9 +111,66 @@ The Roslyn rows reflect sharing metadata references between compilations. In two
 
 ### Limits
 
-- The native application was not re-measured. The first review's observation that startup-project preparation was pending after 363 seconds corresponds to the service paths above, but end-to-end UI timing, and responsiveness while the batch invocation runs, still need a native pass.
+- These are service measurements. The third pass adds application-level measurements of workspace opening.
 - One machine and one operating system; Windows and Linux were not measured.
 - Timings with a single sample are indicative. The overlap figure and the Toren graph "before" figure are single samples.
 - A snapshot is re-evaluated whenever a file is added to or removed from the workspace, or a project or MSBuild import changes. On this workload that is one seven-second background evaluation; it is not incremental per project.
-- Each Roslyn diagnostics pass still parses and binds its project from scratch. That is now the largest remaining cost of an editor request.
+- Each Roslyn diagnostics pass in this pass still parsed and analyzed its whole project. The third pass addresses that.
+
+## Third pass: editor analysis and application-level opening
+
+### Opening a workspace through the application
+
+`WorkspaceOpeningProbe` (tests/Toren.UnitTests/Ui) opens a workspace through the real composition — main window, view models, controllers and services — running headless. It reports when the Explorer tree, the startup-project selector and the first workspace diagnostics are ready, and every interval over 100 ms in which the UI thread could not run a 15 ms timer. It does not measure rendering or input latency in a native window. "Before" is commit 4dfb621 with the same probe.
+
+Orchard Core, 220 projects (one run before, three after):
+
+| | Before | After |
+| --- | ---: | ---: |
+| Explorer tree fully populated | 0.40 s | 1.09–1.30 s, filling from 0.2 s |
+| Startup-project selector populated | 344.6 s | 1.71–1.83 s |
+| First workspace diagnostics shown | 527.0 s | 12.0–12.8 s |
+| Longest UI-thread stall | 1,205 ms | 0–128 ms |
+| Peak working set of the application process | 718 MiB | 546–557 MiB |
+
+The 344.6 seconds before the change agree with the first review's native observation that startup-project preparation was still pending at 363 seconds. Both versions reported the same 4 startup projects and 148 problems.
+
+The stall was not caused by evaluation. The Explorer tree creates a visual container per node and is not virtualized; adding all 220 project nodes at once blocked the UI thread for about a second in both versions. Nodes are now added eight at a time, handing control back to the UI between steps, so the tree takes longer to complete but input is never blocked for long.
+
+Toren solution, 10 projects (three alternating runs each, 1,133 problems in both):
+
+| | Before | After |
+| --- | ---: | ---: |
+| Startup-project selector populated | 10.4–10.7 s | 0.72–0.73 s |
+| First workspace diagnostics shown | 25.6–26.0 s | 11.8–12.0 s |
+| Longest UI-thread stall | 164–323 ms | 106–109 ms |
+| Peak working set | 748–868 MiB | 700–752 MiB |
+
+### C# analysis per editor request
+
+Profiling one diagnostics pass for the active document showed where the time went. In a 58-file project: parsing 9 ms, creating the compilation 11 ms, compiler diagnostics for the whole project about 45 ms, and 300–360 ms running 383 analyzers over the whole project to report on one file. In the 154-file application project the same pass spent about 0.4 s in source generators, which restarted from scratch on every request, and 2.2 s in analyzers.
+
+Three changes follow from that:
+
+- Diagnostics for the active document bind and analyze that document only. Analyzers that declare a compilation-end diagnostic still run over the project, concurrently, because their results for the document cannot be produced otherwise.
+- Parsed syntax trees of unchanged documents and the incremental state of source generators are reused between requests for the same project, for the few most recently used projects. Every reused piece is checked against the current text or file state.
+- Workspace-wide diagnostics are unchanged and do not use or fill that cache.
+
+| Diagnostics pass for the active document (median of four warm samples) | Before | After |
+| --- | ---: | ---: |
+| `WorkspaceTreeService.cs`, 58-file project, 383 analyzers | 472 ms, 173 MB allocated | 147 ms, 48 MB |
+| `MainWindowViewModel.cs`, 154-file project, 431 analyzers and 16 generators | 2.77 s, about 1.0 GB | 0.77 s, about 0.28 GB |
+
+The probe's `--compare-diagnostics` option analyzes every document of a solution alone and compares the result with whole-project analysis. On the Toren solution all 527 documents were identical, covering 1,114 diagnostics.
+
+### Decisions taken from measurements
+
+- **Per-project re-evaluation was not built.** A change to a project or to the set of files re-evaluates the whole graph, which costs 7.4 s in the background on Orchard and 1.2 s on the Toren solution. Re-evaluating only affected projects cannot be made sound for added or removed files without knowing each project's glob patterns, which the MSBuild command line does not expose.
+- **The per-request directory listing stays.** Validating the snapshot lists the workspace on each request, 46 ms on Orchard and 3 ms on the Toren solution. Replacing it with a file watcher would make detection of added files depend on event delivery, for a saving that is small next to analysis.
+
+### Limits
+
+- The application-level probe is headless. Rendering, input latency and responsiveness in a native window were not re-measured.
+- One machine and one operating system. The test suite, including the tests that run the real SDK, passes on Windows, macOS and Linux in CI, but performance was measured on macOS only.
+- The Explorer tree is still not virtualized; a node with thousands of children takes proportionally longer to complete.
 
