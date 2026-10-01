@@ -61,7 +61,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IDocumentSessionStore documentSessionStore,
         IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator,
         DocumentHostViewModel documents,
-        IWorkspaceDiagnosticsCoordinator? workspaceDiagnosticsCoordinator = null)
+        IWorkspaceDiagnosticsCoordinator? workspaceDiagnosticsCoordinator = null,
+        Func<Task>? yieldToUserInterface = null)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
@@ -72,7 +73,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             ?? throw new ArgumentNullException(nameof(documentDiagnosticsCoordinator));
         _workspaceDiagnosticsCoordinator = workspaceDiagnosticsCoordinator;
         Documents = documents ?? throw new ArgumentNullException(nameof(documents));
-        Explorer = new ExplorerViewModel(workspaceTreeService);
+        Explorer = new ExplorerViewModel(workspaceTreeService, yieldToUserInterface);
         Problems = new ProblemsViewModel();
     }
 

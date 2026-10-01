@@ -19,6 +19,8 @@ public sealed partial class WorkspaceNodeViewModel : ObservableObject
         "_Tests",
     ];
 
+    private const int ChildrenPerYield = 8;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFolderClosed))]
     [NotifyPropertyChangedFor(nameof(IsFolderOpen))]
@@ -88,12 +90,22 @@ public sealed partial class WorkspaceNodeViewModel : ObservableObject
         Children.Add(CreateMessage("Loading…"));
     }
 
-    internal void SetChildren(IReadOnlyList<WorkspaceNode> children)
+    /// <summary>
+    /// Replaces the children. The tree creates a visual container for every node, so a large
+    /// folder or solution is added a few nodes at a time, handing control back to the user
+    /// interface in between; otherwise input would be blocked until all of them exist.
+    /// </summary>
+    internal async Task SetChildrenAsync(IReadOnlyList<WorkspaceNode> children, Func<Task>? yieldToUserInterface)
     {
         Children.Clear();
-        foreach (var child in children)
+        for (var index = 0; index < children.Count; index++)
         {
-            Children.Add(new WorkspaceNodeViewModel(child));
+            if (yieldToUserInterface is not null && index > 0 && index % ChildrenPerYield == 0)
+            {
+                await yieldToUserInterface().ConfigureAwait(true);
+            }
+
+            Children.Add(new WorkspaceNodeViewModel(children[index]));
         }
 
         IsLoaded = true;

@@ -6,10 +6,18 @@ using Toren.Workspaces.Models;
 
 namespace Toren.App.ViewModels;
 
-public sealed partial class ExplorerViewModel(IWorkspaceTreeService workspaceTreeService) : ObservableObject
+/// <param name="workspaceTreeService">Provides the nodes of the workspace tree.</param>
+/// <param name="yieldToUserInterface">
+/// Lets pending input and rendering run before continuing. Supplied by the desktop shell;
+/// without it nodes are added in one go.
+/// </param>
+public sealed partial class ExplorerViewModel(
+    IWorkspaceTreeService workspaceTreeService,
+    Func<Task>? yieldToUserInterface = null) : ObservableObject
 {
     private readonly IWorkspaceTreeService _workspaceTreeService = workspaceTreeService
         ?? throw new ArgumentNullException(nameof(workspaceTreeService));
+    private readonly Func<Task>? _yieldToUserInterface = yieldToUserInterface;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -54,7 +62,7 @@ public sealed partial class ExplorerViewModel(IWorkspaceTreeService workspaceTre
 
             if (result.IsSuccess)
             {
-                node.SetChildren(result.Value);
+                await node.SetChildrenAsync(result.Value, _yieldToUserInterface).ConfigureAwait(true);
             }
             else
             {

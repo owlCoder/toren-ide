@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Toren.App.AspNetCore.Services;
 using Toren.App.AspNetCore.ViewModels;
 using Toren.App.DataTools.Services;
@@ -275,7 +276,9 @@ public sealed partial class App : Application
             documentSessionStore,
             documentDiagnosticsCoordinator,
             documentHost,
-            workspaceDiagnosticsCoordinator);
+            workspaceDiagnosticsCoordinator,
+            // Background priority runs after pending input and rendering.
+            static () => Dispatcher.UIThread.InvokeAsync(static () => { }, DispatcherPriority.Background).GetTask());
         var mainWindow = new MainWindow(
             viewModel,
             new FileApplicationSettingsStore(Path.Combine(applicationDataDirectory, "settings.json")),
