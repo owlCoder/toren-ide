@@ -195,6 +195,41 @@ public sealed class MsBuildEvaluationToolchainTests
     }
 
     [Test]
+    public async Task ProjectDeclaringItsOwnInitialTargetsMatchesPlainEvaluation()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var project = WriteProject("OwnInitialTargets", "OwnInitialTargets.csproj", $"""
+            <Project Sdk="Microsoft.NET.Sdk" InitialTargets="AddEarly">
+              <PropertyGroup>
+                <TargetFramework>{TargetFramework}</TargetFramework>
+              </PropertyGroup>
+              <Target Name="AddEarly">
+                <ItemGroup>
+                  <Compile Include="$(MSBuildThisFileDirectory)../Shared/AddedByProjectTarget.cs" />
+                </ItemGroup>
+              </Target>
+            </Project>
+            """, "Type.cs", "public sealed class OwnType { }");
+        var perProject = new MsBuildProjectEvaluationProvider(new SystemProcessRunner());
+        var fallbackRunner = new CountingRunner();
+        var batch = new MsBuildBatchProjectEvaluationProvider(
+            new SystemProcessRunner(), new MsBuildProjectEvaluationProvider(fallbackRunner));
+
+        var expected = await perProject.EvaluateAsync([_library, project], timeout.Token);
+        var actual = await batch.EvaluateAsync([_library, project], timeout.Token);
+
+        Assert.That(expected.IsSuccess, Is.True, expected.Error.Message);
+        Assert.That(actual.IsSuccess, Is.True, actual.Error.Message);
+        Assert.Multiple(() =>
+        {
+            Assert.That(JsonSerializer.Serialize(actual.Value), Is.EqualTo(JsonSerializer.Serialize(expected.Value)));
+            Assert.That(actual.Value![1].Metadata.SourcePaths.Select(Path.GetFileName),
+                Has.None.EqualTo("AddedByProjectTarget.cs"));
+            Assert.That(fallbackRunner.Calls, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task ProjectThatCannotBeLoadedFailsWithThePerProjectError()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));

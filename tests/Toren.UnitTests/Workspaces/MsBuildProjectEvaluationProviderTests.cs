@@ -413,6 +413,34 @@ public sealed class MsBuildProjectEvaluationProviderTests
     }
 
     [Test]
+    public async Task EvaluationRunsNextToTheProjectSoItsGlobalJsonSelectsTheSdk()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"toren-sdk-directory-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var existing = Path.Combine(directory, "App.csproj");
+            var missing = Path.Combine(directory, "Missing", "Gone.csproj");
+            var runner = new FakeProcessRunner("{\"Properties\":{\"TargetFramework\":\"net10.0\"},\"Items\":{\"ReferencePath\":[]}}");
+            var provider = new MsBuildProjectEvaluationProvider(runner, maxConcurrency: 1);
+
+            await provider.EvaluateAsync([existing, missing]);
+            await provider.ResolveCompilerInputsAsync([new WorkspaceProject(existing, "App", CreateEvaluatedMetadata("net10.0"), [])]);
+            await new MsBuildProjectReferenceProvider(runner).GetReferencesAsync(existing);
+            await new DotNetSolutionProjectProvider(runner).GetProjectPathsAsync(Path.Combine(directory, "App.sln"));
+
+            Assert.That(
+                runner.Requests.Select(request => request.WorkingDirectory),
+                // A directory that does not exist is left to MSBuild to report.
+                Is.EqualTo(new[] { directory, null, directory, directory, directory }));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task EmptyProjectListNeedsNoProcess()
     {
         var runner = new FakeProcessRunner("{}");

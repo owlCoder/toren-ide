@@ -114,6 +114,78 @@ public sealed partial class MsBuildBatchProjectEvaluationProviderTests
     }
 
     [Test]
+    public async Task InvocationRunsNextToTheFirstProjectSoItsGlobalJsonSelectsTheSdk()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"toren-batch-directory-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(directory, "First"));
+        try
+        {
+            var first = Path.Combine(directory, "First", "First.csproj");
+            var runner = BatchRunner.Completing(_ => new ProcessResult(0, string.Empty, string.Empty));
+            var provider = new MsBuildBatchProjectEvaluationProvider(runner, new RecordingFallbackProvider());
+
+            await provider.EvaluateAsync([first, App]);
+            await provider.EvaluateAsync([App, first]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(runner.Invocations[0].WorkingDirectory, Is.EqualTo(Path.Combine(directory, "First")));
+                Assert.That(runner.Invocations[1].WorkingDirectory, Is.Null);
+            });
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task ProjectsDeclaringInitialTargetsAreEvaluatedWithoutRunningTargets()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"toren-initial-targets-{Guid.NewGuid():N}");
+        var plain = Path.Combine(directory, "Plain", "Plain.csproj");
+        var own = Path.Combine(directory, "Own", "Own.csproj");
+        var inherited = Path.Combine(directory, "Inherited", "Inherited.csproj");
+        var props = Path.Combine(directory, "Inherited", "Directory.Build.props");
+        foreach (var project in new[] { plain, own, inherited })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(project)!);
+        }
+
+        await File.WriteAllTextAsync(plain, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        await File.WriteAllTextAsync(own, "<!-- comment -->\n<Project Sdk=\"Microsoft.NET.Sdk\" InitialTargets=\"Prepare\" />");
+        await File.WriteAllTextAsync(inherited, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        await File.WriteAllTextAsync(props, "<Project InitialTargets=\"Prepare\"><PropertyGroup /></Project>");
+        try
+        {
+            var runner = BatchRunner.Completing(invocation =>
+            {
+                invocation.WriteProject(plain, "Property\tAssemblyName\tPlain");
+                invocation.WriteProject(own, "Property\tAssemblyName\tOwn");
+                invocation.WriteProject(inherited, "Property\tAssemblyName\tInherited", "Property\tDirectoryBuildPropsPath\t" + props);
+                return new ProcessResult(0, string.Empty, string.Empty);
+            });
+            var fallback = new RecordingFallbackProvider();
+            var provider = new MsBuildBatchProjectEvaluationProvider(runner, fallback);
+
+            var result = await provider.EvaluateAsync([plain, own, inherited]);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    string.Join("|", result.Value!.Select(evaluation => evaluation.Metadata.AssemblyName)),
+                    Is.EqualTo("Plain|fallback:Own|fallback:Inherited"));
+                Assert.That(fallback.EvaluatedProjects, Is.EqualTo(new[] { own, inherited }));
+            });
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task FailureOfAnIndividuallyEvaluatedProjectIsReported()
     {
         var error = OperationError.Create("workspace.project.metadata.evaluate.failed", "Library is malformed.");
@@ -394,6 +466,7 @@ public sealed partial class MsBuildBatchProjectEvaluationProviderTests
         public BatchInvocation(ProcessRequest request)
         {
             Arguments = request.Arguments;
+            WorkingDirectory = request.WorkingDirectory;
             TraversalPath = request.Arguments[1];
             var traversal = XDocument.Load(TraversalPath).Root!;
             var task = traversal.Element("Target")!.Element("MSBuild")!;
@@ -415,6 +488,8 @@ public sealed partial class MsBuildBatchProjectEvaluationProviderTests
         }
 
         public IReadOnlyList<string> Arguments { get; }
+
+        public string? WorkingDirectory { get; }
 
         public string TraversalPath { get; }
 

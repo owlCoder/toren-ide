@@ -21,8 +21,8 @@ public sealed class MsBuildProjectReferenceProvider(IProcessRunner processRunner
         cancellationToken.ThrowIfCancellationRequested();
 
         var execution = await _processRunner.RunAsync(
-            ProcessRequest.Create(
-                "dotnet",
+            MsBuildEvaluationRequest.Create(
+                projectPath,
                 "msbuild",
                 projectPath,
                 "-nologo",

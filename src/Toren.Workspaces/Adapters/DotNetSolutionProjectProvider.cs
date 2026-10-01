@@ -19,7 +19,7 @@ public sealed class DotNetSolutionProjectProvider(IProcessRunner processRunner) 
         cancellationToken.ThrowIfCancellationRequested();
 
         var execution = await _processRunner.RunAsync(
-            ProcessRequest.Create("dotnet", "sln", solutionPath, "list"),
+            MsBuildEvaluationRequest.Create(solutionPath, "sln", solutionPath, "list"),
             cancellationToken).ConfigureAwait(false);
 
         if (!execution.IsSuccess)

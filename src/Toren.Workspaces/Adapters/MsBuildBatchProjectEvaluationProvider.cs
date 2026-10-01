@@ -1,5 +1,6 @@
 using System.Security;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using Toren.Core.Execution.Contracts;
 using Toren.Core.Execution.Models;
@@ -67,19 +68,27 @@ public sealed class MsBuildBatchProjectEvaluationProvider : IProjectEvaluationPr
 
         var evaluations = new ProjectEvaluation?[projectPaths.Count];
         var unresolved = new List<int>();
+        var initialTargets = new Dictionary<string, bool>(FileSystemPath.Comparer);
         for (var index = 0; index < evaluations.Length; index++)
         {
             if (batch.Value.Projects.TryGetValue(Path.GetFullPath(projectPaths[index]), out var data))
             {
                 var projectDirectory = MsBuildEvaluationData.GetProjectDirectory(projectPaths[index]);
-                evaluations[index] = new ProjectEvaluation(
+                var evaluation = new ProjectEvaluation(
                     data.CreateMetadata(projectDirectory),
                     data.CreateReferences(projectDirectory));
+                // The records are written from an initial target. Initial targets that the project
+                // or its Directory.Build.props declare run before that one and may already have
+                // changed the project, so such a project is evaluated without running targets.
+                if (!await DeclaresInitialTargetsAsync(projectPaths[index], initialTargets, cancellationToken).ConfigureAwait(false)
+                    && !await DeclaresInitialTargetsAsync(evaluation.Metadata.DirectoryBuildPropsPath, initialTargets, cancellationToken).ConfigureAwait(false))
+                {
+                    evaluations[index] = evaluation;
+                    continue;
+                }
             }
-            else
-            {
-                unresolved.Add(index);
-            }
+
+            unresolved.Add(index);
         }
 
         if (unresolved.Count > 0)
@@ -214,9 +223,10 @@ public sealed class MsBuildBatchProjectEvaluationProvider : IProjectEvaluationPr
                     cancellationToken)
                 .ConfigureAwait(false);
 
+            // Projects of a workspace share its global.json; the first one locates it.
             var execution = await _processRunner.RunAsync(
-                ProcessRequest.Create(
-                    "dotnet",
+                MsBuildEvaluationRequest.Create(
+                    projects[0].Path,
                     "msbuild",
                     traversalPath,
                     "-nologo",
@@ -290,6 +300,46 @@ public sealed class MsBuildBatchProjectEvaluationProvider : IProjectEvaluationPr
                     new XAttribute("BuildInParallel", "true"),
                     // One project failing must not stop the evaluation of the others.
                     new XAttribute("ContinueOnError", "true")))).ToString();
+    }
+
+    private static async Task<bool> DeclaresInitialTargetsAsync(
+        string? path,
+        Dictionary<string, bool> known,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        if (known.TryGetValue(path, out var declares))
+        {
+            return declares;
+        }
+
+        try
+        {
+            // Only the root element is read; MSBuild has already evaluated the file itself.
+            await using var stream = new FileStream(
+                path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, useAsync: true);
+            using var reader = XmlReader.Create(stream, new XmlReaderSettings
+            {
+                Async = true,
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+            });
+            cancellationToken.ThrowIfCancellationRequested();
+            await reader.MoveToContentAsync().ConfigureAwait(false);
+            declares = !string.IsNullOrWhiteSpace(reader.GetAttribute("InitialTargets"));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException or XmlException)
+        {
+            // An unreadable file gives no evidence of initial targets; the batch result stands.
+            declares = false;
+        }
+
+        known[path] = declares;
+        return declares;
     }
 
     /// <summary>

@@ -82,8 +82,8 @@ public sealed class MsBuildProjectEvaluationProvider : IProjectEvaluationProvide
 
         // One evaluation serves both the metadata and the declared references of a project.
         var execution = await _processRunner.RunAsync(
-            ProcessRequest.Create(
-                "dotnet",
+            MsBuildEvaluationRequest.Create(
+                projectPath,
                 "msbuild",
                 projectPath,
                 "-nologo",
@@ -144,7 +144,7 @@ public sealed class MsBuildProjectEvaluationProvider : IProjectEvaluationProvide
         arguments.Add("-getItem:Analyzer,Compile,Using,AdditionalFiles,EditorConfigFiles,ReferencePath");
 
         var execution = await _processRunner
-            .RunAsync(ProcessRequest.Create("dotnet", arguments.ToArray()), cancellationToken)
+            .RunAsync(MsBuildEvaluationRequest.Create(project.Path, arguments.ToArray()), cancellationToken)
             .ConfigureAwait(false);
         if (!execution.IsSuccess)
         {
