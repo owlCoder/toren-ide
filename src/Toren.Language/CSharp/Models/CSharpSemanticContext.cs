@@ -4,6 +4,12 @@ public sealed record CSharpSemanticContext(
     string ActiveDocumentPath,
     IReadOnlyList<CSharpSourceDocument> Documents)
 {
+    /// <summary>
+    /// The project the documents belong to, when known. Requests for the same project reuse
+    /// analysis state that is still valid for the current documents.
+    /// </summary>
+    public string? ProjectPath { get; init; }
+
     public IReadOnlyList<string> DefineConstants { get; init; } = [];
 
     public string? Nullable { get; init; }

@@ -345,6 +345,7 @@ public sealed class CSharpSemanticContextProvider(
     private static CSharpSemanticContext CreateProjectContext(string activePath, IReadOnlyList<CSharpSourceDocument> documents,
         WorkspaceProject project, IReadOnlyList<string> references) => new(activePath, documents)
     {
+        ProjectPath = project.Path,
         AnalyzerPaths = project.Metadata.AnalyzerPaths,
         AdditionalFilePaths = project.Metadata.AdditionalFilePaths,
         AnalyzerConfigPaths = project.Metadata.AnalyzerConfigPaths,

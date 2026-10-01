@@ -18,7 +18,7 @@ using Toren.Workspaces.Services;
 
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("Usage: PerformanceProbe <solution> <output.json> [--skip-graph] [--skip-overlap] [--per-project] [--nodes <count>] [--compare-evaluation] [--active-document <file name>]");
+    Console.Error.WriteLine("Usage: PerformanceProbe <solution> <output.json> [--skip-graph] [--skip-overlap] [--per-project] [--nodes <count>] [--compare-evaluation] [--compare-diagnostics] [--active-document <file name>]");
     return;
 }
 
@@ -245,6 +245,34 @@ for (var i = 0; i < 2; i++) await Measure("diagnostics_workspace", async () =>
         count += (await diagnostics.AnalyzeDocumentsAsync(project.SemanticContext, project.DocumentPaths, timeout.Token)).Sum(static document => document.Diagnostics.Count);
     return (result.ProjectSystemError.IsNone, count, result.ProjectSystemError.IsNone ? null : result.ProjectSystemError.Message);
 });
+
+if (args.Contains("--compare-diagnostics"))
+{
+    // Verifies that analyzing one document alone reports what whole-project analysis reports for it.
+    await Measure("diagnostics_equivalence", async () =>
+    {
+        var result = await contexts.CreateWorkspaceProjectContextsAsync(solution, [], timeout.Token);
+        if (result is null) return (false, 0, "No contexts");
+        var compared = 0;
+        var different = new List<string>();
+        foreach (var project in result.ProjectContexts)
+        {
+            var whole = await diagnostics.AnalyzeDocumentsAsync(project.SemanticContext, project.DocumentPaths, timeout.Token);
+            foreach (var document in whole)
+            {
+                var alone = await diagnostics.AnalyzeAsync(project.SemanticContext with { ActiveDocumentPath = document.FilePath }, timeout.Token);
+                compared++;
+                if (JsonSerializer.Serialize(alone) != JsonSerializer.Serialize(document.Diagnostics))
+                {
+                    different.Add($"{document.FilePath}: whole [{string.Join(",", document.Diagnostics.Select(static d => $"{d.Id}@{d.StartLine}"))}] alone [{string.Join(",", alone.Select(static d => $"{d.Id}@{d.StartLine}"))}]");
+                }
+            }
+        }
+        Console.WriteLine($"Documents compared: {compared}; differing: {different.Count}");
+        foreach (var line in different.Take(12)) Console.WriteLine($"  {line}");
+        return (different.Count == 0, compared, different.Count == 0 ? null : $"{different.Count} documents differ");
+    });
+}
 
 Save();
 

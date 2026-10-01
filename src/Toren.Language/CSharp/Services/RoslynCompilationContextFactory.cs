@@ -12,9 +12,17 @@ internal static class RoslynCompilationContextFactory
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
+    /// <param name="context">The documents and compiler inputs to analyze.</param>
+    /// <param name="cancellationToken">Cancels parsing and generator execution.</param>
+    /// <param name="reuseProjectState">
+    /// Whether to reuse and update the project's cached trees and generator state. Passes over
+    /// a whole workspace turn this off so they neither retain every project nor displace the
+    /// projects being edited.
+    /// </param>
     public static RoslynCompilationContext? Create(
         CSharpSemanticContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool reuseProjectState = true)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentException.ThrowIfNullOrWhiteSpace(context.ActiveDocumentPath);
@@ -41,13 +49,16 @@ internal static class RoslynCompilationContextFactory
             "winexe" => OutputKind.WindowsApplication,
             _ => OutputKind.DynamicallyLinkedLibrary,
         };
-        var syntaxTrees = context.Documents
-            .Select(document => CSharpSyntaxTree.ParseText(
-                document.Text,
-                options: parseOptions,
-                path: document.Path,
-                cancellationToken: cancellationToken))
-            .ToArray();
+        var projectState = reuseProjectState ? RoslynProjectState.For(context.ProjectPath) : null;
+        var syntaxTrees = projectState is not null
+            ? projectState.GetSyntaxTrees(context.Documents, parseOptions, cancellationToken)
+            : context.Documents
+                .Select(document => CSharpSyntaxTree.ParseText(
+                    document.Text,
+                    options: parseOptions,
+                    path: document.Path,
+                    cancellationToken: cancellationToken))
+                .ToArray();
         var activeTree = syntaxTrees.FirstOrDefault(tree =>
             tree.FilePath.Equals(context.ActiveDocumentPath, PathComparison));
         if (activeTree is null)
@@ -60,8 +71,11 @@ internal static class RoslynCompilationContextFactory
             syntaxTrees,
             RoslynMetadataReferenceProvider.GetReferences(context.MetadataReferencePaths),
             new CSharpCompilationOptions(outputKind, allowUnsafe: context.AllowUnsafe, nullableContextOptions: nullable));
-        var generators = RoslynAnalyzerLoader.LoadGenerators(context.AnalyzerPaths);
-        if (!generators.IsDefaultOrEmpty)
+        if (projectState is not null)
+        {
+            compilation = projectState.RunGenerators(compilation, context, parseOptions, cancellationToken);
+        }
+        else if (RoslynAnalyzerLoader.LoadGenerators(context.AnalyzerPaths) is { IsDefaultOrEmpty: false } generators)
         {
             var additionalTexts = context.AdditionalFilePaths.Where(File.Exists)
                 .Select(static path => (AdditionalText)new ProjectAdditionalText(path)).ToArray();
