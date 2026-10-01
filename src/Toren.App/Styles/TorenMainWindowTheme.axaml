@@ -127,6 +127,56 @@
           <SolidColorBrush x:Key="TorenEditorSelectionBrush">#D9DFFF</SolidColorBrush>
           <SolidColorBrush x:Key="TorenEditorLineHighlightBrush">#F0F3F9</SolidColorBrush>
           <SolidColorBrush x:Key="TorenEditorLineNumberBrush">#64748B</SolidColorBrush>
+
+          <!-- Theme-native control states use the same surfaces as the shell. -->
+          <StaticResource x:Key="ButtonBackground" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="TorenSurfaceHoverBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="TorenSurfaceSelectedBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="TextControlBackground" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TorenTextSubtleBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TorenTextSubtleBrush" />
+          <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="TorenSurfaceHoverBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="TorenSurfaceSelectedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="TorenSurfaceBrush" />
+          <StaticResource x:Key="ComboBoxForeground" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TorenTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundBorderBrushFocused" ResourceKey="TorenAccentBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundBorderBrushUnfocused" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="TorenBorderBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="TorenSurfaceRaisedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="TorenBorderStrongBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TorenTextSubtleBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TorenTextMutedBrush" />
+          <StaticResource x:Key="ComboBoxPlaceHolderForeground" ResourceKey="TorenTextSubtleBrush" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>

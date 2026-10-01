@@ -7,12 +7,11 @@
              xmlns:secrets="clr-namespace:Toren.DotNet.UserSecrets.Models;assembly=Toren.DotNet"
              xmlns:asp="clr-namespace:Toren.DotNet.AspNetCore.Models;assembly=Toren.DotNet">
   <Grid RowDefinitions="Auto,*,Auto">
-    <Border Grid.Row="0" Padding="10,7"
+    <Border Grid.Row="0" Padding="10,8"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBlock Grid.Column="0" Classes="muted" Text="{Binding StatusText}"
-                   FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="toolbar-button" Content="Refresh"
+        <StackPanel Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" Data="{StaticResource TorenIconCodeFile}" /><TextBlock Classes="panel-heading" Text="ASP.NET" /></StackPanel><TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusText}" /></StackPanel>
+        <Button Grid.Column="1" Classes="toolbar-button compact-action icon-refresh icon-only" Content="Refresh" ToolTip.Tip="Refresh ASP.NET tools" AutomationProperties.Name="Refresh ASP.NET tools"
                 Click="Refresh_OnClick" IsEnabled="{Binding CanManageSecrets}" />
       </Grid>
     </Border>
@@ -22,11 +21,10 @@
               BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,1,0">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
           <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBlock Grid.Column="0" Text="User Secrets" FontSize="11" FontWeight="SemiBold"
-                       VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="toolbar-button" Content="Initialize"
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"><Path Classes="shell-icon" Width="14" Height="14" Data="{StaticResource TorenIconSettings}" /><TextBlock Classes="field-label" Text="User Secrets" /></StackPanel>
+            <Button Grid.Column="1" Classes="toolbar-button compact-action icon-add" Content="Initialize" ToolTip.Tip="Initialize" AutomationProperties.Name="Initialize"
                     Click="InitializeSecrets_OnClick" IsEnabled="{Binding CanManageSecrets}" />
-            <Button Grid.Column="2" Classes="toolbar-button" Content="Clear All"
+            <Button Grid.Column="2" Classes="toolbar-button compact-action icon-delete icon-only" Content="Clear All" ToolTip.Tip="Clear all secrets" AutomationProperties.Name="Clear all secrets"
                     Click="ClearSecrets_OnClick" IsEnabled="{Binding CanManageSecrets}" />
           </Grid>
 
@@ -35,7 +33,7 @@
                      PlaceholderText="Secret key" />
             <TextBox Grid.Column="1" Text="{Binding NewSecretValue, Mode=TwoWay}"
                      PasswordChar="●" PlaceholderText="Secret value" />
-            <Button Grid.Column="2" Classes="toolbar-button" Content="Set"
+            <Button Grid.Column="2" Classes="primary-action compact-action icon-check" Content="Set" ToolTip.Tip="Set" AutomationProperties.Name="Set"
                     Click="SaveSecret_OnClick" IsEnabled="{Binding CanSaveSecret}" />
           </Grid>
 
@@ -49,17 +47,17 @@
             </ListBox.ItemTemplate>
           </ListBox>
 
-          <Button Grid.Row="3" Margin="0,8,0,0" Classes="toolbar-button" Content="Remove Selected"
+          <Button Grid.Row="3" Margin="0,8,0,0" Classes="toolbar-button compact-action icon-delete" Content="Remove Selected" ToolTip.Tip="Remove Selected" AutomationProperties.Name="Remove Selected"
                   HorizontalAlignment="Right" Click="RemoveSecret_OnClick"
                   IsEnabled="{Binding CanRemoveSecret}" />
         </Grid>
       </Border>
 
-      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="10,8">
+      <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="12,10">
         <StackPanel Grid.Row="0" Spacing="6">
           <TextBlock Text="HTTPS development certificate" FontSize="11" FontWeight="SemiBold" />
           <TextBlock Classes="muted" Text="{Binding HttpsStatusText}" FontSize="11" TextWrapping="Wrap" />
-          <Button Classes="toolbar-button" Content="Trust Certificate" HorizontalAlignment="Left"
+          <Button Classes="toolbar-button compact-action icon-check" Content="Trust Certificate" ToolTip.Tip="Trust Certificate" AutomationProperties.Name="Trust Certificate" HorizontalAlignment="Left"
                   Click="TrustHttps_OnClick" IsEnabled="{Binding CanTrustHttps}" />
         </StackPanel>
 
@@ -82,6 +80,6 @@
     </Grid>
 
     <TextBlock Grid.Row="2" Classes="subtle" Margin="9,5" FontSize="11" TextWrapping="Wrap"
-               Text="Secret values are never displayed. User Secrets and HTTPS actions use the standard .NET CLI." />
+               Text="Secret values stay hidden. Select an ASP.NET project to manage its development tools." />
   </Grid>
 </UserControl>

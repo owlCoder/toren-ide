@@ -35,17 +35,35 @@ public sealed class WorkspaceProjectGraphService(
         var displayNames = ProjectDisplayNameFormatter.Format(projectPaths.Value);
         var projects = new List<WorkspaceProject>(projectPaths.Value.Count);
 
-        for (var index = 0; index < projectPaths.Value.Count; index++)
+        // Bound SDK processes so large solutions load concurrently without exhausting the host.
+        var batchSize = Math.Clamp(Environment.ProcessorCount, 1, 4);
+        for (var offset = 0; offset < projectPaths.Value.Count; offset += batchSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var count = Math.Min(batchSize, projectPaths.Value.Count - offset);
+            var evaluations = Enumerable.Range(offset, count).Select(LoadProjectAsync).ToArray();
+            var results = await Task.WhenAll(evaluations).ConfigureAwait(false);
+            foreach (var result in results)
+            {
+                if (!result.IsSuccess)
+                {
+                    return Result.Failure<WorkspaceProjectGraph>(result.Error);
+                }
+
+                projects.Add(result.Value);
+            }
+        }
+
+        async Task<Result<WorkspaceProject>> LoadProjectAsync(int index)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var projectPath = projectPaths.Value[index];
-
             var metadata = await _projectMetadataProvider
                 .GetMetadataAsync(projectPath, cancellationToken)
                 .ConfigureAwait(false);
             if (!metadata.IsSuccess)
             {
-                return Result.Failure<WorkspaceProjectGraph>(metadata.Error);
+                return Result.Failure<WorkspaceProject>(metadata.Error);
             }
 
             var references = await _projectReferenceProvider
@@ -53,14 +71,11 @@ public sealed class WorkspaceProjectGraphService(
                 .ConfigureAwait(false);
             if (!references.IsSuccess)
             {
-                return Result.Failure<WorkspaceProjectGraph>(references.Error);
+                return Result.Failure<WorkspaceProject>(references.Error);
             }
 
-            projects.Add(new WorkspaceProject(
-                projectPath,
-                displayNames[index],
-                metadata.Value,
-                references.Value));
+            return Result.Success(new WorkspaceProject(
+                projectPath, displayNames[index], metadata.Value, references.Value));
         }
 
         return Result.Success(new WorkspaceProjectGraph(projects));

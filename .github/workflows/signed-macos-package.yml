@@ -125,6 +125,8 @@ jobs:
           cp -R "$PUBLISH_DIR"/. "$MACOS_DIR"/
           chmod +x "$MACOS_DIR/Toren.App"
 
+          cp "$MACOS_DIR/Assets/Brand/Toren.icns" "$RESOURCES_DIR/Toren.icns"
+
           cat > "$APP_DIR/Contents/Info.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -138,6 +140,8 @@ jobs:
             <string>Toren IDE</string>
             <key>CFBundleDisplayName</key>
             <string>Toren IDE</string>
+            <key>CFBundleIconFile</key>
+            <string>Toren.icns</string>
             <key>CFBundlePackageType</key>
             <string>APPL</string>
             <key>CFBundleShortVersionString</key>

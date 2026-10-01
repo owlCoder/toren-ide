@@ -129,6 +129,65 @@ public sealed class WorkspaceProjectGraphServiceTests
         });
     }
 
+    [Test]
+    public async Task LargeSolutionOverlapsEvaluationWithinABoundAndKeepsSolutionOrder()
+    {
+        var paths = Enumerable.Range(0, 12).Select(index => Path.Combine(Path.GetTempPath(), $"Project{index}.csproj")).ToArray();
+        var batchSize = Math.Clamp(Environment.ProcessorCount, 1, 4);
+        var metadata = new GatedMetadataProvider(batchSize);
+        var graph = new WorkspaceProjectGraphService(new FakeFolderProjectProvider([]),
+            new FakeSolutionProjectProvider(paths), metadata, new FakeProjectReferenceProvider("", ""));
+        var pending = graph.LoadAsync(new WorkspaceDescriptor("/work/Large.sln", "Large", WorkspaceKind.Solution));
+        await metadata.BatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.That(metadata.Started, Is.EqualTo(batchSize));
+        metadata.Release.SetResult();
+        var result = await pending;
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Value!.Projects.Select(project => project.Path), Is.EqualTo(paths));
+        Assert.That(metadata.MaximumActive, Is.EqualTo(batchSize));
+        Assert.That(metadata.Active, Is.Zero);
+    }
+
+    [Test]
+    public async Task CancellingParallelGraphEvaluationDrainsAllStartedWork()
+    {
+        var paths = Enumerable.Range(0, 12).Select(index => Path.Combine(Path.GetTempPath(), $"Project{index}.csproj")).ToArray();
+        var metadata = new GatedMetadataProvider(Math.Clamp(Environment.ProcessorCount, 1, 4));
+        var graph = new WorkspaceProjectGraphService(new FakeFolderProjectProvider([]),
+            new FakeSolutionProjectProvider(paths), metadata, new FakeProjectReferenceProvider("", ""));
+        using var cancellation = new CancellationTokenSource();
+        var pending = graph.LoadAsync(new WorkspaceDescriptor("/work/Large.sln", "Large", WorkspaceKind.Solution), cancellation.Token);
+        await metadata.BatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await pending);
+        Assert.That(metadata.Active, Is.Zero);
+    }
+
+    private sealed class GatedMetadataProvider(int batchSize) : IProjectMetadataProvider
+    {
+        private int _started;
+        private int _active;
+        private int _maximum;
+        public TaskCompletionSource BatchStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int Started => Volatile.Read(ref _started);
+        public int Active => Volatile.Read(ref _active);
+        public int MaximumActive => Volatile.Read(ref _maximum);
+        public async Task<Result<ProjectMetadata>> GetMetadataAsync(string projectPath, CancellationToken cancellationToken = default)
+        {
+            var active = Interlocked.Increment(ref _active);
+            int previous;
+            do { previous = _maximum; } while (active > previous && Interlocked.CompareExchange(ref _maximum, active, previous) != previous);
+            if (Interlocked.Increment(ref _started) == batchSize) BatchStarted.TrySetResult();
+            try
+            {
+                await Release.Task.WaitAsync(cancellationToken);
+                return Result.Success(CreateMetadata(projectPath));
+            }
+            finally { Interlocked.Decrement(ref _active); }
+        }
+    }
+
     private static ProjectMetadata CreateMetadata(string projectPath) =>
         new(
             DefaultTargetFrameworks,

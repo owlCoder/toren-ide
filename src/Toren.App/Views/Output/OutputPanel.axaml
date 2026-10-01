@@ -10,8 +10,8 @@
     <Border Grid.Row="0"
             BorderBrush="{DynamicResource TorenBorderBrush}"
             BorderThickness="0,0,0,1"
-            Padding="10,5">
-      <StackPanel Spacing="2">
+            Padding="10,8">
+      <StackPanel Spacing="6">
         <WrapPanel Classes="tool-actions">
           <ComboBox Width="92"
                     SelectedIndex="{Binding ConfigurationIndex}"
@@ -52,21 +52,21 @@
           </ComboBox>
         </WrapPanel>
         <WrapPanel Classes="tool-actions">
-          <Button Classes="toolbar-button" Content="Restore" Click="Restore_OnClick"
+          <Button Classes="toolbar-button compact-action icon-fetch" Content="Restore" ToolTip.Tip="Restore" AutomationProperties.Name="Restore" Click="Restore_OnClick"
                   IsEnabled="{Binding CanExecute}" />
-          <Button Classes="toolbar-button" Content="Build" Click="Build_OnClick"
+          <Button Classes="primary-action compact-action icon-package" Content="Build" ToolTip.Tip="Build" AutomationProperties.Name="Build" Click="Build_OnClick"
                   IsEnabled="{Binding CanExecute}" />
-          <Button Classes="toolbar-button" Content="Rebuild" Click="Rebuild_OnClick"
+          <Button Classes="toolbar-button compact-action icon-refresh icon-only" Content="Rebuild" ToolTip.Tip="Rebuild solution" AutomationProperties.Name="Rebuild solution" Click="Rebuild_OnClick"
                   IsEnabled="{Binding CanExecute}" />
-          <Button Classes="toolbar-button" Content="Clean" Click="Clean_OnClick"
+          <Button Classes="toolbar-button compact-action icon-delete icon-only" Content="Clean" ToolTip.Tip="Clean solution" AutomationProperties.Name="Clean solution" Click="Clean_OnClick"
                   IsEnabled="{Binding CanExecute}" />
-          <Button Classes="toolbar-button" Content="Publish" Click="Publish_OnClick"
+          <Button Classes="toolbar-button compact-action icon-push" Content="Publish" ToolTip.Tip="Publish" AutomationProperties.Name="Publish" Click="Publish_OnClick"
                   IsEnabled="{Binding CanExecute}" />
-          <Button Classes="toolbar-button" Content="Run" Click="Run_OnClick"
+          <Button Classes="primary-action compact-action icon-run" Content="Run" ToolTip.Tip="Run" AutomationProperties.Name="Run" Click="Run_OnClick"
                   IsEnabled="{Binding CanRun}" />
-          <Button Classes="toolbar-button" Content="Cancel" Click="Cancel_OnClick"
+          <Button Classes="toolbar-button compact-action icon-stop icon-only" Content="Cancel" ToolTip.Tip="Cancel current command" AutomationProperties.Name="Cancel current command" Click="Cancel_OnClick"
                   IsEnabled="{Binding CanCancel}" />
-          <Button Classes="toolbar-button" Content="Clear" Click="Clear_OnClick"
+          <Button Classes="toolbar-button compact-action icon-delete icon-only" Content="Clear" ToolTip.Tip="Clear output" AutomationProperties.Name="Clear output" Click="Clear_OnClick"
                   IsEnabled="{Binding HasOutput}" />
         </WrapPanel>
       </StackPanel>
@@ -75,7 +75,7 @@
     <Grid Grid.Row="1">
       <StackPanel Margin="17,14" Spacing="6" IsVisible="{Binding IsOutputEmpty}">
         <TextBlock Text="No output yet" FontWeight="SemiBold" FontSize="12" />
-        <TextBlock Classes="muted" Text="Run a .NET command to see live CLI output. F5 runs the selected startup project; Shift+F5 cancels."
+        <TextBlock Classes="muted" Text="Build or run your workspace to see output. F5 runs the startup project; Shift+F5 stops it."
                    FontSize="11" TextWrapping="Wrap" />
       </StackPanel>
 

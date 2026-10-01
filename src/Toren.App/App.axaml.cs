@@ -126,10 +126,11 @@ public sealed partial class App : Application
         IWorkspaceClassifier workspaceClassifier = new WorkspaceClassifier();
         ISolutionProjectProvider solutionProjectProvider = new DotNetSolutionProjectProvider(processRunner);
         IFolderProjectProvider folderProjectProvider = new FileSystemFolderProjectProvider();
-        IProjectMetadataProvider projectMetadataProvider = new MsBuildProjectMetadataProvider(processRunner);
-        IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(processRunner);
+        var evaluationRunner = new MsBuildEvaluationProcessRunner(processRunner);
+        IProjectMetadataProvider projectMetadataProvider = new MsBuildProjectMetadataProvider(evaluationRunner);
+        IProjectReferenceProvider projectReferenceProvider = new MsBuildProjectReferenceProvider(evaluationRunner);
         IProjectCompilationReferenceProvider projectCompilationReferenceProvider =
-            new MsBuildProjectCompilationReferenceProvider(processRunner);
+            new MsBuildProjectCompilationReferenceProvider(evaluationRunner);
         IWorkspaceTreeService workspaceTreeService = new WorkspaceTreeService(
             solutionProjectProvider,
             projectReferenceProvider);

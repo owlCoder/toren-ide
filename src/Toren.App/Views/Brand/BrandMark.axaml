@@ -1,0 +1,16 @@
+<UserControl x:Class="Toren.App.Views.Brand.BrandMark"
+             x:ClassModifier="internal"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             AutomationProperties.Name="Toren IDE logo" IsHitTestVisible="False">
+  <Viewbox Stretch="Uniform">
+    <Canvas Width="64" Height="64">
+      <Border Canvas.Left="6" Canvas.Top="6" Width="52" Height="52" CornerRadius="15"
+              BorderBrush="#6273A6" BorderThickness="0.6">
+        <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%"><GradientStop Offset="0" Color="#303F78" /><GradientStop Offset="1" Color="#141B32" /></LinearGradientBrush></Border.Background>
+      </Border>
+      <Path Data="M17 18H29L25 26H17Z" Fill="#85DCEE" />
+      <Path Data="M32 18H47V26H37V47L29 51V26H28Z" Fill="#CDD7FF" />
+    </Canvas>
+  </Viewbox>
+</UserControl>

@@ -4,10 +4,11 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
+        xmlns:brand="clr-namespace:Toren.App.Views.Brand"
         xmlns:icons="clr-namespace:Toren.App.Views.Explorer"
         xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         Width="1440" Height="900" MinWidth="1080" MinHeight="700"
-        CanResize="True" WindowDecorations="None" Title="Toren IDE">
+        CanResize="True" WindowDecorations="None" Title="Toren IDE" Icon="avares://Toren.App/Assets/Brand/toren-icon-256.png">
   <Window.Styles>
     <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />
   </Window.Styles>
@@ -32,13 +33,7 @@
         <Border Grid.Column="0" Padding="12,0,10,0" Background="Transparent"
                 PointerPressed="TitleBar_OnPointerPressed">
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <Border Width="28" Height="28" CornerRadius="9"
-                    Background="{DynamicResource TorenAccentMutedBrush}"
-                    BorderBrush="{DynamicResource TorenAccentBrush}" BorderThickness="1">
-              <TextBlock Text="T" FontSize="14" FontWeight="Bold"
-                         Foreground="{DynamicResource TorenAccentBrush}"
-                         HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
+            <brand:BrandMark Width="32" Height="32" />
             <TextBlock Classes="chrome-label" Text="Toren IDE" FontSize="14"
                        FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
@@ -317,11 +312,13 @@
         <ScrollViewer IsVisible="{Binding IsWelcomeContentVisible}" HorizontalScrollBarVisibility="Disabled">
           <Grid MaxWidth="860" HorizontalAlignment="Stretch" Margin="32,24,32,16"
                 RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="20">
-            <StackPanel Grid.Row="0" Spacing="8">
-              <TextBlock Text="Toren IDE" FontSize="30" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" FontSize="14"
-                         Text="Modern .NET development without project lock-in." TextWrapping="Wrap" />
-            </StackPanel>
+            <Grid Grid.Row="0" ColumnDefinitions="56,*" ColumnSpacing="16">
+              <brand:BrandMark Width="56" Height="56" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                <TextBlock Text="Toren IDE" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Classes="muted" FontSize="13" Text="Your workspace for modern .NET." TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
             <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="28">
               <StackPanel Grid.Column="0" Spacing="9">
                 <TextBlock Text="Start" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,7" />

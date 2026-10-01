@@ -8,20 +8,19 @@
     <Border Grid.Row="0" Padding="10,6"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-        <TextBlock Grid.Column="0" Text="TERMINAL" FontSize="11" FontWeight="SemiBold"
-                   VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="toolbar-button" Content="New"
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" Data="{StaticResource TorenIconTerminal}" /><TextBlock Classes="panel-heading" Text="Terminal" /></StackPanel>
+        <Button Grid.Column="1" Classes="toolbar-button compact-action icon-add" Content="New" ToolTip.Tip="New terminal session"
                 Click="NewSession_OnClick" />
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Close"
+        <Button Grid.Column="2" Classes="toolbar-button compact-action icon-delete icon-only" Content="Close" ToolTip.Tip="Close selected terminal session" AutomationProperties.Name="Close terminal session"
                 IsEnabled="{Binding CanCloseSession}" Click="CloseSession_OnClick" />
       </Grid>
     </Border>
 
     <Border Grid.Row="1" Padding="10,6"
             BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="180,*,Auto,Auto,Auto" ColumnSpacing="6">
+      <Grid ColumnDefinitions="160,*,Auto,Auto,Auto" ColumnSpacing="6">
         <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" ItemsSource="{Binding Sessions}"
-                  SelectedIndex="{Binding SelectedSessionIndex, Mode=TwoWay}">
+                  SelectedIndex="{Binding SelectedSessionIndex, Mode=TwoWay}" AutomationProperties.Name="Terminal session">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="terminalvm:TerminalViewModel">
               <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
@@ -34,13 +33,13 @@
           <TextBlock Classes="muted" Text="{Binding SelectedSession.WorkingDirectory}" FontSize="11"
                      TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SelectedSession.WorkingDirectory}" />
         </StackPanel>
-        <Button Grid.Column="2" Classes="toolbar-button" Content="Start"
+        <Button Grid.Column="2" Classes="toolbar-button compact-action icon-run icon-only" Content="Start" ToolTip.Tip="Start terminal process" AutomationProperties.Name="Start terminal process"
                 IsEnabled="{Binding SelectedSession.CanStart}" Click="Start_OnClick" />
-        <Button Grid.Column="3" Classes="toolbar-button" Content="Kill"
+        <Button Grid.Column="3" Classes="toolbar-button compact-action icon-stop" Content="Kill"
                 ToolTip.Tip="Kill the terminal process and its children"
                 AutomationProperties.Name="Kill terminal process"
                 IsEnabled="{Binding SelectedSession.CanStop}" Click="Stop_OnClick" />
-        <Button Grid.Column="4" Classes="toolbar-button" Content="Clear"
+        <Button Grid.Column="4" Classes="toolbar-button compact-action icon-delete icon-only" Content="Clear" ToolTip.Tip="Clear terminal output" AutomationProperties.Name="Clear terminal output"
                 IsEnabled="{Binding SelectedSession.HasOutput}" Click="Clear_OnClick" />
       </Grid>
     </Border>
@@ -56,14 +55,14 @@
     </ListBox>
 
     <Grid Grid.Row="3" Margin="10,7" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
-      <TextBlock Grid.Column="0" Text=">" FontSize="11"
+      <TextBlock Grid.Column="0" Text="$" FontSize="12" Foreground="{DynamicResource TorenAccentBrush}"
                  FontFamily="Cascadia Code, Menlo, Consolas, monospace"
                  VerticalAlignment="Center" />
       <TextBox x:Name="TerminalInput" Grid.Column="1" PlaceholderText="Enter command"
                Text="{Binding SelectedSession.InputText, Mode=TwoWay}"
                IsEnabled="{Binding SelectedSession.IsRunning}" KeyDown="Command_OnKeyDown"
                FontFamily="Cascadia Code, Menlo, Consolas, monospace" />
-      <Button Grid.Column="2" Classes="toolbar-button" Content="Run"
+      <Button Grid.Column="2" Classes="primary-action compact-action icon-run" Content="Run"
               IsEnabled="{Binding SelectedSession.CanSubmit}" Click="Submit_OnClick" />
     </Grid>
   </Grid>
