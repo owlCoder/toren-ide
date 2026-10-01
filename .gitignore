@@ -16,7 +16,8 @@
 *.sln.docstates
 *.nupkg
 *.snupkg
-packages/
+# Legacy NuGet restore folder; anchored so source folders named Packages are not ignored.
+/packages/
 TestResults/
 coverage/
 coverage.*
