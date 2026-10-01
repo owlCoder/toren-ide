@@ -33,6 +33,62 @@ public sealed class RoslynCSharpDiagnosticServiceTests
     }
 
     [Test]
+    public async Task RebuiltReferenceAssemblyIsReadAgainAndUnchangedOnesAreShared()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"toren-reference-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var library = Path.Combine(directory, "Library.dll");
+            var platform = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            string[] references = [.. platform, library];
+            var service = new RoslynCSharpDiagnosticService();
+
+            Task<IReadOnlyList<CSharpDiagnostic>> AnalyzeAsync(string member) => service.AnalyzeAsync(
+                new CSharpSemanticContext(
+                    "Program.cs",
+                    [new CSharpSourceDocument("Program.cs", $"public static class Program {{ public static int Get() => Library.Api.{member}; }}")])
+                {
+                    MetadataReferencePaths = references,
+                });
+
+            EmitLibrary(library, platform, "Original");
+            var beforeRebuild = await AnalyzeAsync("Original");
+            var sameReferencesAgain = await AnalyzeAsync("Original");
+
+            EmitLibrary(library, platform, "Renamed");
+            File.SetLastWriteTimeUtc(library, File.GetLastWriteTimeUtc(library).AddSeconds(2));
+            var staleMember = await AnalyzeAsync("Original");
+            var newMember = await AnalyzeAsync("Renamed");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(beforeRebuild, Is.Empty);
+                Assert.That(sameReferencesAgain, Is.Empty);
+                Assert.That(staleMember.Select(diagnostic => diagnostic.Id), Does.Contain("CS0117"));
+                Assert.That(newMember, Is.Empty);
+            });
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static void EmitLibrary(string path, IEnumerable<string> platformReferences, string member)
+    {
+        var compilation = CSharpCompilation.Create(
+            "Library",
+            [CSharpSyntaxTree.ParseText($"namespace Library; public static class Api {{ public static int {member} => 1; }}")],
+            platformReferences.Select(reference => MetadataReference.CreateFromFile(reference)),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        using var stream = File.Create(path);
+        var result = compilation.Emit(stream);
+        Assert.That(result.Success, Is.True, string.Join(Environment.NewLine, result.Diagnostics));
+    }
+
+    [Test]
     public async Task SemanticCompilerErrorIsReturnedForActiveDocument()
     {
         var service = new RoslynCSharpDiagnosticService();
