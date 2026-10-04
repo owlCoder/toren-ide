@@ -270,7 +270,7 @@ jobs:
             Set-Content -LiteralPath $attestationPath -Encoding utf8NoBOM
 
       - name: Upload signed package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Toren-IDE-${{ inputs.rid }}-signed
           path: |

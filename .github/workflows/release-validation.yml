@@ -131,7 +131,7 @@ jobs:
             -OutputPath artifacts/validation/Toren-IDE-release-validation.json
 
       - name: Upload release validation record
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Toren-IDE-release-validation
           path: artifacts/validation/Toren-IDE-release-validation.json
