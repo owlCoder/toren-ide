@@ -288,18 +288,18 @@ public sealed class MsBuildProjectEvaluationProviderTests
     }
 
     [Test]
-    public void CancellationIsObservedBeforeStartingAProcess()
+    public async Task CancellationIsObservedBeforeStartingAProcess()
     {
         var runner = new FakeProcessRunner("{}");
         var provider = new MsBuildProjectEvaluationProvider(runner);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.Multiple(() =>
+        await Assert.MultipleAsync(async () =>
         {
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 async () => await EvaluateAsync(provider, "/repo/App.csproj", cancellation.Token));
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 async () => await ResolveAsync(provider, 
                     "/repo/App.csproj", CreateEvaluatedMetadata("net10.0"), cancellation.Token));
             Assert.That(runner.Requests, Is.Empty);
@@ -343,7 +343,7 @@ public sealed class MsBuildProjectEvaluationProviderTests
         await runner.BoundReached.Task.WaitAsync(TimeSpan.FromSeconds(5));
         cancellation.Cancel();
 
-        Assert.CatchAsync<OperationCanceledException>(async () => await pending);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await pending);
         Assert.Multiple(() =>
         {
             Assert.That(runner.Active, Is.Zero);
@@ -396,7 +396,7 @@ public sealed class MsBuildProjectEvaluationProviderTests
     }
 
     [Test]
-    public void UnexpectedRunnerFaultPropagatesAfterStartedWorkStops()
+    public async Task UnexpectedRunnerFaultPropagatesAfterStartedWorkStops()
     {
         var paths = Enumerable.Range(0, 12).Select(index => Path.Combine(Path.GetTempPath(), $"Project{index}.csproj")).ToArray();
         // The first project faults before any other worker has claimed one.
@@ -404,7 +404,7 @@ public sealed class MsBuildProjectEvaluationProviderTests
         runner.Release.SetResult();
         var provider = new MsBuildProjectEvaluationProvider(runner, maxConcurrency: 4);
 
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.EvaluateAsync(paths));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.EvaluateAsync(paths));
         Assert.Multiple(() =>
         {
             Assert.That(runner.Active, Is.Zero);

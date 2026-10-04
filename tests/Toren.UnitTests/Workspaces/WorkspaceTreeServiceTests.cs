@@ -144,13 +144,13 @@ public sealed class WorkspaceTreeServiceTests
     }
 
     [Test]
-    public void CancelledExpansionPropagatesCancellation()
+    public async Task CancelledExpansionPropagatesCancellation()
     {
         var service = CreateService();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await service.GetChildrenAsync(
                 new WorkspaceNode(Path.GetTempPath(), "Temp", WorkspaceNodeKind.Folder),
                 cancellation.Token));

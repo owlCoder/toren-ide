@@ -398,7 +398,7 @@ public sealed partial class MsBuildBatchProjectEvaluationProviderTests
     }
 
     [Test]
-    public void CancellationPropagatesAndLeavesNoTemporaryFiles()
+    public async Task CancellationPropagatesAndLeavesNoTemporaryFiles()
     {
         string? directory = null;
         var runner = BatchRunner.Completing(invocation =>
@@ -409,9 +409,9 @@ public sealed partial class MsBuildBatchProjectEvaluationProviderTests
         var provider = new MsBuildBatchProjectEvaluationProvider(runner, new RecordingFallbackProvider());
         using var cancellation = new CancellationTokenSource();
 
-        Assert.CatchAsync<OperationCanceledException>(async () => await provider.EvaluateAsync([App], cancellation.Token));
+        await Assert.CatchAsync<OperationCanceledException>(async () => await provider.EvaluateAsync([App], cancellation.Token));
         cancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await provider.EvaluateAsync([App], cancellation.Token));
+        await Assert.CatchAsync<OperationCanceledException>(async () => await provider.EvaluateAsync([App], cancellation.Token));
         Assert.Multiple(() =>
         {
             Assert.That(directory, Is.Not.Null);

@@ -242,7 +242,7 @@ public sealed class WorkspaceProjectGraphServiceTests
             : Task.CompletedTask;
         using var service = CreateService(provider);
 
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.LoadAsync(App));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.LoadAsync(App));
         var recovered = await service.LoadAsync(App);
 
         Assert.Multiple(() =>
@@ -264,7 +264,7 @@ public sealed class WorkspaceProjectGraphServiceTests
         var remaining = service.LoadAsync(App);
         await provider.EvaluationStarted.Task.WaitAsync(Timeout);
         cancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
         var evaluationCancelled = provider.EvaluationTokens.Single().IsCancellationRequested;
         gate.SetResult();
         var result = await remaining.WaitAsync(Timeout);
@@ -288,7 +288,7 @@ public sealed class WorkspaceProjectGraphServiceTests
         var cancelled = service.LoadAsync(App, cancellation.Token);
         await provider.EvaluationStarted.Task.WaitAsync(Timeout);
         cancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await cancelled);
         var next = service.LoadAsync(App);
         gate.SetResult();
         var result = await next.WaitAsync(Timeout);
@@ -302,14 +302,14 @@ public sealed class WorkspaceProjectGraphServiceTests
     }
 
     [Test]
-    public void AlreadyCancelledRequestDoesNotStartEvaluation()
+    public async Task AlreadyCancelledRequestDoesNotStartEvaluation()
     {
         var provider = new ControlledEvaluationProvider();
         using var service = CreateService(provider);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.CatchAsync<OperationCanceledException>(async () => await service.LoadAsync(App, cancellation.Token));
+        await Assert.CatchAsync<OperationCanceledException>(async () => await service.LoadAsync(App, cancellation.Token));
         Assert.That(provider.EvaluationCount, Is.Zero);
     }
 
@@ -331,7 +331,7 @@ public sealed class WorkspaceProjectGraphServiceTests
         var abandoned = service.LoadAsync(App, cancellation.Token);
         await provider.EvaluationStarted.Task.WaitAsync(Timeout);
         cancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await abandoned);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await abandoned);
         var other = await service.LoadAsync(Other).WaitAsync(Timeout);
 
         Assert.Multiple(() =>

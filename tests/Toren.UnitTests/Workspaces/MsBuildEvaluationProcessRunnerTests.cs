@@ -55,9 +55,9 @@ public sealed class MsBuildEvaluationProcessRunnerTests
         await inner.BatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var waiting = runner.RunAsync(request, waitingCancellation.Token);
         waitingCancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await waiting);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await waiting);
         runningCancellation.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(async () => await running);
+        await Assert.CatchAsync<OperationCanceledException>(async () => await running);
         Assert.That(inner.Evaluations, Has.Count.EqualTo(1));
         Assert.That(inner.Active, Is.Zero);
 
