@@ -142,7 +142,7 @@ jobs:
 
       - name: Download candidate packages and manifest
         if: ${{ inputs.dry_run }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.package_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -151,7 +151,7 @@ jobs:
 
       - name: Download signed macOS x64 package
         if: ${{ inputs.dry_run }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.macos_x64_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -160,7 +160,7 @@ jobs:
 
       - name: Download signed macOS arm64 package
         if: ${{ inputs.dry_run }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.macos_arm64_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -221,7 +221,7 @@ jobs:
 
       - name: Download release validation record
         if: ${{ !inputs.dry_run }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.validation_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -261,7 +261,7 @@ jobs:
 
       - name: Download exact hands-on-validated promotion artifact
         if: ${{ !inputs.dry_run }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ steps.validation.outputs.promotion_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

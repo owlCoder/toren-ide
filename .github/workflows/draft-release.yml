@@ -52,7 +52,7 @@ jobs:
           "RELEASE_COMMIT=$commit" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Download candidate archives and manifest
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.package_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

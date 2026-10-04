@@ -94,7 +94,7 @@ jobs:
             -GitHubToken $env:GITHUB_TOKEN
 
       - name: Download promoted release candidates
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.promotion_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
