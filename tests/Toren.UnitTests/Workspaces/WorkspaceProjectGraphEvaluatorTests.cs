@@ -182,7 +182,7 @@ public sealed class WorkspaceProjectGraphEvaluatorTests
     }
 
     [Test]
-    public void CancellationIsObservedBeforeDiscovery()
+    public async Task CancellationIsObservedBeforeDiscovery()
     {
         var solutionProvider = new FakeSolutionProjectProvider([]);
         var evaluator = new WorkspaceProjectGraphEvaluator(
@@ -192,7 +192,7 @@ public sealed class WorkspaceProjectGraphEvaluatorTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.CatchAsync<OperationCanceledException>(async () => await evaluator.EvaluateAsync(
+        await Assert.CatchAsync<OperationCanceledException>(async () => await evaluator.EvaluateAsync(
             new WorkspaceDescriptor("/work/App.sln", "App", WorkspaceKind.Solution), cancellation.Token));
         Assert.That(solutionProvider.CallCount, Is.Zero);
     }

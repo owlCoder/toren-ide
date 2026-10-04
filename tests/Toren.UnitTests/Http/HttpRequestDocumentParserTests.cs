@@ -189,7 +189,7 @@ public sealed class HttpRequestRunnerTests
     }
 
     [Test]
-    public void ExecutePropagatesCallerCancellation()
+    public async Task ExecutePropagatesCallerCancellation()
     {
         var handler = new RecordingHandler(static async (_, cancellationToken) =>
         {
@@ -201,7 +201,7 @@ public sealed class HttpRequestRunnerTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.CatchAsync<OperationCanceledException>(async () =>
+        await Assert.CatchAsync<OperationCanceledException>(async () =>
             await runner.ExecuteAsync(CreateGetRequest(), cancellation.Token));
     }
 

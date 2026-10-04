@@ -198,16 +198,16 @@ public sealed class FileSystemProjectEvaluationInputStampProviderTests
     }
 
     [Test]
-    public void CancellationIsObserved()
+    public async Task CancellationIsObserved()
     {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.Multiple(() =>
+        await Assert.MultipleAsync(async () =>
         {
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 async () => await _provider.GetWorkspaceStampAsync(_workspace, cancellation.Token));
-            Assert.CatchAsync<OperationCanceledException>(
+            await Assert.CatchAsync<OperationCanceledException>(
                 async () => await _provider.GetProjectStampAsync([], cancellation.Token));
         });
     }
