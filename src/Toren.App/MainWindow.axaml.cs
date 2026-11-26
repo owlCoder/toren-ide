@@ -8,14 +8,19 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using AvaloniaEdit;
 using AvaloniaEdit.Editing;
-using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
 using Toren.App.Diagnostics.ViewModels;
+using Toren.App.Documents.Models;
+using Toren.App.Layout.Contracts;
+using Toren.App.Layout.Models;
 using Toren.App.Settings.Contracts;
 using Toren.App.Settings.Models;
 using Toren.App.Shell;
 using Toren.App.ViewModels;
+using Toren.App.Views.Editing;
 using Toren.App.Views.Problems;
 using Toren.App.Views.Theme;
 using Toren.Workspaces.Models;
@@ -23,7 +28,7 @@ using TextMateInstallation = AvaloniaEdit.TextMate.TextMate.Installation;
 
 namespace Toren.App;
 
-internal sealed partial class MainWindow : Window
+internal sealed partial class MainWindow : Window, IPanelLayoutHost
 {
     private static readonly IReadOnlyList<string> SupportedWorkspacePatterns =
         new[] { "*.sln", "*.slnx", "*.csproj" };
@@ -40,9 +45,10 @@ internal sealed partial class MainWindow : Window
     private readonly MainWindowViewModel _viewModel;
     private readonly IApplicationSettingsStore _applicationSettingsStore;
     private readonly RegistryOptions _registryOptions;
-    private readonly TextMateInstallation _textMateInstallation;
+    private readonly EditorPane _primaryPane;
+    private readonly EditorPane _secondaryPane;
     private readonly ThemeToggleIcon _themeToggleIcon;
-    private bool _synchronizingEditorText;
+    private EditorPane _focusedPane;
     private bool _sessionCloseInProgress;
     private bool _sessionPersistedForClose;
     private bool _isDarkTheme = true;
@@ -66,15 +72,17 @@ internal sealed partial class MainWindow : Window
         ThemeToggleButton.Content = _themeToggleIcon;
 
         _registryOptions = new RegistryOptions(ThemeName.DarkPlus);
-        _textMateInstallation = DocumentEditor.InstallTextMate(_registryOptions);
-        _textMateInstallation.AppliedTheme += TextMateInstallation_OnAppliedTheme;
-        ConfigureEditor();
+        _primaryPane = CreatePane(DocumentEditor);
+        _secondaryPane = CreatePane(SecondaryEditor);
+        _focusedPane = _primaryPane;
         ApplyTheme(isDark: true);
 
         WorkspaceTree.AddHandler(TreeViewItem.ExpandedEvent, WorkspaceNode_OnExpanded);
+        WorkspaceTree.Tapped += WorkspaceTree_OnTapped;
         WorkspaceTree.DoubleTapped += WorkspaceTree_OnDoubleTapped;
-        DocumentEditor.TextChanged += DocumentEditor_OnTextChanged;
         _viewModel.Documents.PropertyChanged += Documents_OnPropertyChanged;
+        _viewModel.Explorer.NodeRevealed += Explorer_OnNodeRevealed;
+        _viewModel.PanelHost = this;
         KeyDown += MainWindow_OnKeyDown;
         Closing += MainWindow_OnClosing;
         Opened += OnOpened;
@@ -82,8 +90,11 @@ internal sealed partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs eventArgs)
     {
-        _textMateInstallation.AppliedTheme -= TextMateInstallation_OnAppliedTheme;
-        _textMateInstallation.Dispose();
+        _viewModel.PanelHost = null;
+        _viewModel.Documents.PropertyChanged -= Documents_OnPropertyChanged;
+        _viewModel.Explorer.NodeRevealed -= Explorer_OnNodeRevealed;
+        _primaryPane.Dispose();
+        _secondaryPane.Dispose();
         _viewModel.Dispose();
         base.OnClosed(eventArgs);
     }
@@ -113,17 +124,52 @@ internal sealed partial class MainWindow : Window
         }
     }
 
-    private void ConfigureEditor()
+    private EditorPane CreatePane(TextEditor editor)
     {
-        DocumentEditor.Options.HighlightCurrentLine = true;
-        DocumentEditor.Options.EnableTextDragDrop = true;
-        DocumentEditor.TextArea.RightClickMovesCaret = true;
-        DocumentEditor.LineNumbersMargin = new Thickness(10, 0, 12, 0);
+        ConfigureEditor(editor);
+        var pane = new EditorPane(editor, _registryOptions);
+        pane.Installation.AppliedTheme += (_, installation) => ApplyEditorTheme(pane.Editor, installation);
+        pane.TextEdited += Pane_OnTextEdited;
+        editor.TextArea.GotFocus += (_, _) => Pane_OnGotFocus(pane);
+        return pane;
+    }
 
-        foreach (var margin in DocumentEditor.TextArea.LeftMargins.OfType<LineNumberMargin>())
+    private static void ConfigureEditor(TextEditor editor)
+    {
+        editor.Options.HighlightCurrentLine = true;
+        editor.Options.EnableTextDragDrop = true;
+        editor.TextArea.RightClickMovesCaret = true;
+        editor.LineNumbersMargin = new Thickness(10, 0, 12, 0);
+
+        foreach (var margin in editor.TextArea.LeftMargins.OfType<LineNumberMargin>())
         {
             margin.MinWidthInDigits = 3;
         }
+    }
+
+    private IEnumerable<EditorPane> Panes => [_primaryPane, _secondaryPane];
+
+    private async void Pane_OnGotFocus(EditorPane pane)
+    {
+        if (ReferenceEquals(_focusedPane, pane))
+        {
+            return;
+        }
+
+        _focusedPane = pane;
+        await _viewModel.FocusEditorPaneAsync(ReferenceEquals(pane, _secondaryPane)).ConfigureAwait(true);
+    }
+
+    private async void Pane_OnTextEdited(object? sender, EventArgs eventArgs)
+    {
+        // The document text is shared with the view model, so only diagnostics need a nudge.
+        // Both panes raise the event for a shared document; the focused one is the editing one.
+        if (!ReferenceEquals(sender, _focusedPane))
+        {
+            return;
+        }
+
+        await _viewModel.RefreshActiveDiagnosticsAsync(debounce: true).ConfigureAwait(true);
     }
 
     private async void OnOpened(object? sender, EventArgs eventArgs)
@@ -170,66 +216,130 @@ internal sealed partial class MainWindow : Window
 
     private void Documents_OnPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        if (eventArgs.PropertyName == nameof(DocumentHostViewModel.ActiveDocument))
+        var documents = _viewModel.Documents;
+        switch (eventArgs.PropertyName)
         {
-            SynchronizeEditorFromActiveDocument();
+            case nameof(DocumentHostViewModel.PrimaryDocument):
+                _primaryPane.Show(documents.PrimaryDocument);
+                break;
+            case nameof(DocumentHostViewModel.SecondaryDocument):
+                _secondaryPane.Show(documents.SecondaryDocument);
+                break;
+            case nameof(DocumentHostViewModel.SplitOrientation):
+                if (documents.SplitOrientation == EditorSplitOrientation.None)
+                {
+                    _focusedPane = _primaryPane;
+                }
+
+                ApplySplitLayout(0.5);
+                break;
         }
     }
 
-    private void SynchronizeEditorFromActiveDocument()
+    /// <summary>
+    /// Lays out the editor area: one editor, or two separated by a splitter. Horizontal stacks
+    /// them, vertical puts them side by side. <paramref name="ratio"/> is the first editor's share.
+    /// </summary>
+    private void ApplySplitLayout(double ratio)
     {
-        var document = _viewModel.Documents.ActiveDocument;
-        ApplyGrammar(document?.Path);
+        var orientation = _viewModel.Documents.SplitOrientation;
+        var isSplit = orientation != EditorSplitOrientation.None;
 
-        var text = document?.Text ?? string.Empty;
-        if (DocumentEditor.Text.Equals(text, StringComparison.Ordinal))
+        EditorArea.RowDefinitions.Clear();
+        EditorArea.ColumnDefinitions.Clear();
+        SecondaryEditorHost.IsVisible = isSplit;
+        EditorSplitter.IsVisible = isSplit;
+
+        Grid.SetRow(PrimaryEditorHost, 0);
+        Grid.SetColumn(PrimaryEditorHost, 0);
+
+        if (!isSplit)
         {
+            // Hidden children must not point at rows/columns that no longer exist.
+            Grid.SetRow(EditorSplitter, 0);
+            Grid.SetColumn(EditorSplitter, 0);
+            Grid.SetRow(SecondaryEditorHost, 0);
+            Grid.SetColumn(SecondaryEditorHost, 0);
+            EditorArea.RowDefinitions.Add(new RowDefinition(1, GridUnitType.Star));
+            EditorArea.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
             return;
         }
 
-        _synchronizingEditorText = true;
-        try
+        ratio = Math.Clamp(ratio, 0.15, 0.85);
+        if (orientation == EditorSplitOrientation.Horizontal)
         {
-            DocumentEditor.Text = text;
+            EditorArea.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+            EditorArea.RowDefinitions.Add(new RowDefinition(ratio, GridUnitType.Star) { MinHeight = 80 });
+            EditorArea.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            EditorArea.RowDefinitions.Add(new RowDefinition(1 - ratio, GridUnitType.Star) { MinHeight = 80 });
+
+            Grid.SetRow(EditorSplitter, 1);
+            Grid.SetColumn(EditorSplitter, 0);
+            Grid.SetRow(SecondaryEditorHost, 2);
+            Grid.SetColumn(SecondaryEditorHost, 0);
+            EditorSplitter.ResizeDirection = GridResizeDirection.Rows;
+            EditorSplitter.Height = 5;
+            EditorSplitter.Width = double.NaN;
         }
-        finally
+        else
         {
-            _synchronizingEditorText = false;
+            EditorArea.RowDefinitions.Add(new RowDefinition(1, GridUnitType.Star));
+            EditorArea.ColumnDefinitions.Add(new ColumnDefinition(ratio, GridUnitType.Star) { MinWidth = 160 });
+            EditorArea.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            EditorArea.ColumnDefinitions.Add(new ColumnDefinition(1 - ratio, GridUnitType.Star) { MinWidth = 160 });
+
+            Grid.SetRow(EditorSplitter, 0);
+            Grid.SetColumn(EditorSplitter, 1);
+            Grid.SetRow(SecondaryEditorHost, 0);
+            Grid.SetColumn(SecondaryEditorHost, 2);
+            EditorSplitter.ResizeDirection = GridResizeDirection.Columns;
+            EditorSplitter.Width = 5;
+            EditorSplitter.Height = double.NaN;
         }
     }
 
-    private void ApplyGrammar(string? path)
+    public PanelLayout CapturePanelLayout()
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            _textMateInstallation.SetGrammar(null);
-            return;
-        }
+        var sidebar = ShellGrid.ColumnDefinitions[1].ActualWidth;
+        var toolPanel = ToolPanel.IsVisible ? ShellGrid.RowDefinitions[3].ActualHeight : 0d;
 
-        var language = _registryOptions.GetLanguageByExtension(Path.GetExtension(path));
-        var scopeName = language is null
-            ? null
-            : _registryOptions.GetScopeByLanguageId(language.Id);
-        _textMateInstallation.SetGrammar(scopeName);
+        double? ratio = _viewModel.Documents.SplitOrientation switch
+        {
+            EditorSplitOrientation.Horizontal => Share(PrimaryEditorHost.Bounds.Height, SecondaryEditorHost.Bounds.Height),
+            EditorSplitOrientation.Vertical => Share(PrimaryEditorHost.Bounds.Width, SecondaryEditorHost.Bounds.Width),
+            _ => null,
+        };
+
+        return new PanelLayout(
+            sidebar > 0 ? sidebar : null,
+            toolPanel > 0 ? toolPanel : null,
+            ratio);
     }
 
-    private async void DocumentEditor_OnTextChanged(object? sender, EventArgs eventArgs)
+    public void ApplyPanelLayout(PanelLayout layout)
     {
-        if (_synchronizingEditorText || _viewModel.Documents.ActiveDocument is not { } document)
+        ArgumentNullException.ThrowIfNull(layout);
+
+        if (layout.SidebarWidth is { } sidebarWidth)
         {
-            return;
+            var column = ShellGrid.ColumnDefinitions[1];
+            column.Width = new GridLength(Math.Clamp(sidebarWidth, column.MinWidth, column.MaxWidth));
         }
 
-        if (document.Text.Equals(DocumentEditor.Text, StringComparison.Ordinal))
+        if (layout.ToolPanelHeight is { } toolPanelHeight && ToolPanel.IsVisible)
         {
-            return;
+            var row = ShellGrid.RowDefinitions[3];
+            var maximum = Math.Max(row.MinHeight, Bounds.Height * 0.6);
+            row.Height = new GridLength(Math.Clamp(toolPanelHeight, row.MinHeight, maximum));
         }
 
-        document.Text = DocumentEditor.Text;
-        await _viewModel.RefreshActiveDiagnosticsAsync(debounce: true).ConfigureAwait(true);
+        ApplySplitLayout(layout.SplitRatio ?? 0.5);
     }
 
-    private void TextMateInstallation_OnAppliedTheme(object? sender, TextMateInstallation installation)
+    private static double? Share(double first, double second) =>
+        first + second > 0 ? first / (first + second) : null;
+
+    private void ApplyEditorTheme(TextEditor editor, TextMateInstallation installation)
     {
         ApplyEditorThemeBrush(
             installation,
@@ -237,30 +347,38 @@ internal sealed partial class MainWindow : Window
             "TorenBackgroundBrush",
             brush =>
             {
-                DocumentEditor.Background = brush;
-                DocumentEditor.TextArea.Background = brush;
+                editor.Background = brush;
+                editor.TextArea.Background = brush;
             });
-        ApplyEditorThemeBrush(installation, "editor.foreground", "TorenEditorForegroundBrush", brush => DocumentEditor.Foreground = brush);
+        ApplyEditorThemeBrush(installation, "editor.foreground", "TorenEditorForegroundBrush", brush => editor.Foreground = brush);
         ApplyEditorThemeBrush(
             installation,
             "editor.selectionBackground",
             "TorenEditorSelectionBrush",
-            brush => DocumentEditor.TextArea.SelectionBrush = brush);
+            brush => editor.TextArea.SelectionBrush = brush);
         ApplyEditorThemeBrush(
             installation,
             "editor.lineHighlightBackground",
             "TorenEditorLineHighlightBrush",
             brush =>
             {
-                DocumentEditor.TextArea.TextView.CurrentLineBackground = brush;
+                editor.TextArea.TextView.CurrentLineBackground = brush;
                 // A null pen falls back to AvaloniaEdit's default green outline.
-                DocumentEditor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
+                editor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
             });
         ApplyEditorThemeBrush(
             installation,
             "editorLineNumber.foreground",
             "TorenEditorLineNumberBrush",
-            brush => DocumentEditor.LineNumbersForeground = brush);
+            brush => editor.LineNumbersForeground = brush);
+    }
+
+    private IBrush? FindThemeBrush(string resourceKey)
+    {
+        var variant = _isDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+        return this.TryFindResource(resourceKey, variant, out var resource) && resource is IBrush brush
+            ? brush
+            : null;
     }
 
     private bool ApplyEditorThemeBrush(
@@ -304,9 +422,17 @@ internal sealed partial class MainWindow : Window
                 : ThemeVariant.Light;
         }
 
-        _textMateInstallation.SetTheme(
-            _registryOptions.LoadTheme(isDark ? ThemeName.DarkPlus : ThemeName.LightPlus));
-        TextMateInstallation_OnAppliedTheme(this, _textMateInstallation);
+        var theme = _registryOptions.LoadTheme(isDark ? ThemeName.DarkPlus : ThemeName.LightPlus);
+        foreach (var pane in Panes)
+        {
+            pane.SetTheme(theme);
+            ApplyEditorTheme(pane.Editor, pane.Installation);
+            pane.SetFoldingBrushes(
+                FindThemeBrush("TorenTextSubtleBrush"),
+                FindThemeBrush("TorenBackgroundBrush"),
+                FindThemeBrush("TorenAccentBrush"));
+        }
+
         _themeToggleIcon.SetDarkMode(isDark);
         ToolTip.SetTip(
             ThemeToggleButton,
@@ -333,14 +459,34 @@ internal sealed partial class MainWindow : Window
 
     private void Undo_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        DocumentEditor.Undo();
-        DocumentEditor.Focus();
+        _focusedPane.Editor.Undo();
+        _focusedPane.Editor.Focus();
     }
 
     private void Redo_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        DocumentEditor.Redo();
-        DocumentEditor.Focus();
+        _focusedPane.Editor.Redo();
+        _focusedPane.Editor.Focus();
+    }
+
+    private void SplitVertical_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        _viewModel.ToggleSplit(EditorSplitOrientation.Vertical);
+
+    private void SplitHorizontal_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        _viewModel.ToggleSplit(EditorSplitOrientation.Horizontal);
+
+    private void CloseSplit_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        _viewModel.Documents.CloseSplit();
+
+    private void ToggleExplorerSync_OnClick(object? sender, RoutedEventArgs eventArgs) =>
+        _viewModel.Explorer.SyncWithActiveDocument = !_viewModel.Explorer.SyncWithActiveDocument;
+
+    private async void Breadcrumb_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { Tag: string path })
+        {
+            await _viewModel.RevealInExplorerAsync(path).ConfigureAwait(true);
+        }
     }
 
     private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs eventArgs)
@@ -435,6 +581,42 @@ internal sealed partial class MainWindow : Window
         }
     }
 
+    private async void WorkspaceTree_OnTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        // A single click previews a file in the reusable preview tab.
+        if (eventArgs.Source is Visual visual
+            && visual.FindAncestorOfType<TreeViewItem>() is { DataContext: WorkspaceNodeViewModel node })
+        {
+            await _viewModel.OpenDocumentAsync(node, preview: true).ConfigureAwait(true);
+        }
+    }
+
+    private void Explorer_OnNodeRevealed(object? sender, WorkspaceNodeViewModel node)
+    {
+        // The tree creates containers for freshly expanded nodes a moment later, so retry once.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!TryBringIntoView(node))
+            {
+                DispatcherTimer.RunOnce(() => TryBringIntoView(node), TimeSpan.FromMilliseconds(150));
+            }
+        }, DispatcherPriority.Background);
+    }
+
+    private bool TryBringIntoView(WorkspaceNodeViewModel node)
+    {
+        var item = WorkspaceTree.GetLogicalDescendants()
+            .OfType<TreeViewItem>()
+            .FirstOrDefault(candidate => ReferenceEquals(candidate.DataContext, node));
+        if (item is null)
+        {
+            return false;
+        }
+
+        item.BringIntoView();
+        return true;
+    }
+
     private async void WorkspaceTree_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
     {
         if (WorkspaceTree.SelectedItem is WorkspaceNodeViewModel node)
@@ -483,9 +665,28 @@ internal sealed partial class MainWindow : Window
         }
     }
 
+    private void DocumentTab_OnDoubleTapped(object? sender, TappedEventArgs eventArgs)
+    {
+        // Double-clicking a preview tab keeps it open.
+        if (sender is Control { DataContext: OpenDocumentViewModel document })
+        {
+            document.IsPreview = false;
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void TogglePinTab_OnClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Control { DataContext: OpenDocumentViewModel document })
+        {
+            _viewModel.Documents.TogglePin(document);
+            eventArgs.Handled = true;
+        }
+    }
+
     private async void CloseDocument_OnClick(object? sender, RoutedEventArgs eventArgs)
     {
-        if (sender is Button { DataContext: OpenDocumentViewModel document })
+        if (sender is Control { DataContext: OpenDocumentViewModel document })
         {
             await _viewModel.CloseDocumentAsync(document).ConfigureAwait(true);
             eventArgs.Handled = true;
@@ -507,13 +708,15 @@ internal sealed partial class MainWindow : Window
             return;
         }
 
+        // Activating shows the document in the focused editor before the first await.
         var diagnosticsRefresh = _viewModel.ActivateDocumentAsync(opened.Value);
-        var line = Math.Clamp(problem.StartLine, 1, DocumentEditor.Document.LineCount);
-        var documentLine = DocumentEditor.Document.GetLineByNumber(line);
+        var editor = _focusedPane.Editor;
+        var line = Math.Clamp(problem.StartLine, 1, editor.Document.LineCount);
+        var documentLine = editor.Document.GetLineByNumber(line);
         var column = Math.Clamp(problem.StartColumn, 1, documentLine.Length + 1);
-        DocumentEditor.CaretOffset = documentLine.Offset + column - 1;
-        DocumentEditor.ScrollTo(line, column);
-        DocumentEditor.Focus();
+        editor.CaretOffset = documentLine.Offset + column - 1;
+        editor.ScrollTo(line, column);
+        editor.Focus();
         _viewModel.SetStatus($"Opened {opened.Value.Title}:{line}");
         await diagnosticsRefresh.ConfigureAwait(true);
     }

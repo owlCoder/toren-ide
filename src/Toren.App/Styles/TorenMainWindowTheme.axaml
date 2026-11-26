@@ -232,6 +232,16 @@
     <Setter Property="Background" Value="{DynamicResource TorenAccentMutedBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderStrongBrush}" />
   </Style>
+  <Style Selector="Border.document-tab.preview TextBlock.tab-title">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector="Border.breadcrumb-bar">
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="Background" Value="{DynamicResource TorenSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TorenBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
 
   <Style Selector="ComboBox.command-select">
     <Setter Property="Height" Value="28" />
