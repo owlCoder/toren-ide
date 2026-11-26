@@ -4,6 +4,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Toren.App.Diagnostics.Contracts;
 using Toren.App.Diagnostics.ViewModels;
 using Toren.App.Documents.Contracts;
+using Toren.App.Documents.Models;
+using Toren.App.Layout.Contracts;
+using Toren.App.Layout.Models;
 using Toren.DotNet.Environment.Contracts;
 using Toren.DotNet.Environment.Models;
 using Toren.Language.CSharp.Models;
@@ -21,11 +24,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IDocumentSessionStore _documentSessionStore;
     private readonly IDocumentDiagnosticsCoordinator _documentDiagnosticsCoordinator;
     private readonly IWorkspaceDiagnosticsCoordinator? _workspaceDiagnosticsCoordinator;
+    private readonly IWorkspaceLayoutStore? _workspaceLayoutStore;
     private readonly string _platformSummary = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows"
         : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux"
         : RuntimeInformation.OSDescription;
     private bool _disposed;
+    private string? _layoutWorkspacePath;
+    private CancellationTokenSource? _revealCancellation;
 
     [ObservableProperty]
     private string _workspaceTitle = "No workspace open";
@@ -62,7 +68,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IDocumentDiagnosticsCoordinator documentDiagnosticsCoordinator,
         DocumentHostViewModel documents,
         IWorkspaceDiagnosticsCoordinator? workspaceDiagnosticsCoordinator = null,
-        Func<Task>? yieldToUserInterface = null)
+        Func<Task>? yieldToUserInterface = null,
+        IWorkspaceLayoutStore? workspaceLayoutStore = null)
     {
         _dotNetEnvironmentService = dotNetEnvironmentService ?? throw new ArgumentNullException(nameof(dotNetEnvironmentService));
         _dotNetSdkResolver = dotNetSdkResolver ?? throw new ArgumentNullException(nameof(dotNetSdkResolver));
@@ -72,9 +79,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         _documentDiagnosticsCoordinator = documentDiagnosticsCoordinator
             ?? throw new ArgumentNullException(nameof(documentDiagnosticsCoordinator));
         _workspaceDiagnosticsCoordinator = workspaceDiagnosticsCoordinator;
+        _workspaceLayoutStore = workspaceLayoutStore;
         Documents = documents ?? throw new ArgumentNullException(nameof(documents));
         Explorer = new ExplorerViewModel(workspaceTreeService, yieldToUserInterface);
         Problems = new ProblemsViewModel();
+        Documents.PropertyChanged += Documents_OnPropertyChanged;
+        Explorer.PropertyChanged += Explorer_OnPropertyChanged;
     }
 
     public ObservableCollection<DotNetSdkInfo> InstalledSdks { get; } = new();
@@ -86,6 +96,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public DocumentHostViewModel Documents { get; }
 
     public ProblemsViewModel Problems { get; }
+
+    /// <summary>Set by the window so panel sizes can be saved and restored with the layout.</summary>
+    public IPanelLayoutHost? PanelHost { get; set; }
 
     public bool IsWelcomeClosed => !IsWelcomeOpen;
 
@@ -162,6 +175,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         await RestoreDocumentSessionAsync(cancellationToken).ConfigureAwait(true);
+        await LoadWorkspaceLayoutAsync(cancellationToken).ConfigureAwait(true);
         await RefreshWorkspaceDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
         await RefreshActiveDiagnosticsAsync(debounce: false, cancellationToken).ConfigureAwait(true);
     }
@@ -202,17 +216,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <param name="preview">
+    /// Opens the file in the reusable preview tab (single click in Explorer); false opens a regular tab.
+    /// </param>
     public async Task OpenDocumentAsync(
         WorkspaceNodeViewModel node,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool preview = false)
     {
         ArgumentNullException.ThrowIfNull(node);
-        if (node.Node.Kind is not WorkspaceNodeKind.File and not WorkspaceNodeKind.SymbolicLink)
+        if (node.IsPlaceholder
+            || node.Node.Kind is not WorkspaceNodeKind.File and not WorkspaceNodeKind.SymbolicLink)
         {
             return;
         }
 
-        var opened = await Documents.OpenAsync(node.Node.Path, cancellationToken).ConfigureAwait(true);
+        var opened = await Documents.OpenAsync(node.Node.Path, cancellationToken, preview).ConfigureAwait(true);
         if (!opened.IsSuccess)
         {
             StatusText = opened.Error.Message;
@@ -242,7 +261,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             StatusText = document.IsDirty
                 ? $"Save changes to {document.Title} before closing it."
-                : $"Could not close {document.Title}.";
+                : document.IsPinned
+                    ? $"Unpin {document.Title} before closing it."
+                    : $"Could not close {document.Title}.";
             return;
         }
 
@@ -327,6 +348,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public async Task<bool> PersistDocumentSessionAsync(CancellationToken cancellationToken = default)
     {
+        await SaveWorkspaceLayoutAsync(cancellationToken).ConfigureAwait(true);
         var saved = await _documentSessionStore
             .SaveAsync(Documents.CaptureSession(), cancellationToken)
             .ConfigureAwait(true);
@@ -338,6 +360,55 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return saved.IsSuccess;
     }
 
+    /// <summary>Opens the second editor (or closes it when it already has this orientation).</summary>
+    public void ToggleSplit(EditorSplitOrientation orientation) =>
+        Documents.SetSplit(Documents.SplitOrientation == orientation ? EditorSplitOrientation.None : orientation);
+
+    public async Task FocusEditorPaneAsync(bool secondary, CancellationToken cancellationToken = default)
+    {
+        var before = Documents.ActiveDocument;
+        Documents.FocusPane(secondary);
+        if (!ReferenceEquals(before, Documents.ActiveDocument))
+        {
+            await RefreshActiveDiagnosticsAsync(debounce: false, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    /// <summary>Selects a file or folder in the Explorer, expanding the tree as needed.</summary>
+    public async Task RevealInExplorerAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (!await Explorer.RevealAsync(path, cancellationToken).ConfigureAwait(true))
+        {
+            StatusText = "That item is not part of the Explorer tree.";
+        }
+    }
+
+    public async Task SaveWorkspaceLayoutAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workspaceLayoutStore is null || _layoutWorkspacePath is null)
+        {
+            return;
+        }
+
+        var panels = PanelHost?.CapturePanelLayout() ?? new PanelLayout(null, null, null);
+        var layout = new WorkspaceLayoutState(
+            panels.SidebarWidth,
+            panels.ToolPanelHeight,
+            Documents.SplitOrientation,
+            panels.SplitRatio,
+            Documents.SecondaryDocument?.Path,
+            Documents.OpenDocuments.Where(document => document.IsPinned).Select(document => document.Path).ToArray(),
+            Explorer.SyncWithActiveDocument);
+
+        var saved = await _workspaceLayoutStore
+            .SaveAsync(_layoutWorkspacePath, layout, cancellationToken)
+            .ConfigureAwait(true);
+        if (!saved.IsSuccess)
+        {
+            StatusText = saved.Error.Message;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -346,18 +417,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
+        _revealCancellation?.Cancel();
+        _revealCancellation?.Dispose();
         _documentDiagnosticsCoordinator.Dispose();
         _workspaceDiagnosticsCoordinator?.Dispose();
     }
 
     private async Task<bool> OpenWorkspaceAsync(WorkspaceDescriptor workspace, CancellationToken cancellationToken)
     {
+        await SaveWorkspaceLayoutAsync(cancellationToken).ConfigureAwait(true);
         if (!ActivateWorkspace(workspace, closeWelcome: true))
         {
             return false;
         }
 
         await ExpandRootAsync(cancellationToken).ConfigureAwait(true);
+        await LoadWorkspaceLayoutAsync(cancellationToken).ConfigureAwait(true);
         await RefreshWorkspaceSdkAsync(workspace, cancellationToken).ConfigureAwait(true);
         await RefreshWorkspaceDiagnosticsAsync(cancellationToken).ConfigureAwait(true);
 
@@ -388,6 +463,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Problems.Clear();
         WorkspaceTitle = workspace.DisplayName;
         WorkspacePath = workspace.Path;
+        Documents.WorkspaceRoot = GetWorkspaceDirectory(workspace);
         if (closeWelcome)
         {
             IsWelcomeOpen = false;
@@ -451,6 +527,67 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         HasRecentWorkspaces = RecentWorkspaces.Count > 0;
+    }
+
+    private async Task LoadWorkspaceLayoutAsync(CancellationToken cancellationToken)
+    {
+        if (_workspaceLayoutStore is null || !Explorer.IsWorkspaceOpen)
+        {
+            return;
+        }
+
+        _layoutWorkspacePath = WorkspacePath;
+        var loaded = await _workspaceLayoutStore
+            .LoadAsync(WorkspacePath, cancellationToken)
+            .ConfigureAwait(true);
+        if (!loaded.IsSuccess)
+        {
+            StatusText = loaded.Error.Message;
+            return;
+        }
+
+        var layout = loaded.Value!;
+        Explorer.SyncWithActiveDocument = layout.SyncWithActiveDocument;
+        Documents.ApplyLayout(layout);
+        PanelHost?.ApplyPanelLayout(new PanelLayout(layout.SidebarWidth, layout.ToolPanelHeight, layout.SplitRatio));
+    }
+
+    private async void Documents_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(DocumentHostViewModel.ActiveDocument))
+        {
+            await RevealActiveDocumentAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async void Explorer_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(ExplorerViewModel.SyncWithActiveDocument))
+        {
+            await RevealActiveDocumentAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async Task RevealActiveDocumentAsync()
+    {
+        if (!Explorer.SyncWithActiveDocument || Documents.ActiveDocument is not { } document)
+        {
+            return;
+        }
+
+        // A newer reveal (for example a quick tab switch) replaces the one still running.
+        _revealCancellation?.Cancel();
+        _revealCancellation?.Dispose();
+        var cancellation = _revealCancellation = new CancellationTokenSource();
+
+        try
+        {
+            await Explorer.RevealAsync(document.Path, cancellation.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer reveal or a workspace switch replaced this one.
+        }
     }
 
     private async Task ExpandRootAsync(CancellationToken cancellationToken)

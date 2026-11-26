@@ -6,12 +6,26 @@
         xmlns:vm="clr-namespace:Toren.App.ViewModels"
         xmlns:brand="clr-namespace:Toren.App.Views.Brand"
         xmlns:icons="clr-namespace:Toren.App.Views.Explorer"
+        xmlns:utilities="using:Toren.App.ViewModels.Utilities"
         xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
         Width="1440" Height="900" MinWidth="1080" MinHeight="700"
         CanResize="True" WindowDecorations="None" Title="Toren IDE" Icon="avares://Toren.App/Assets/Brand/toren-icon-256.png">
   <Window.Styles>
     <StyleInclude Source="avares://Toren.App/Styles/TorenMainWindowTheme.axaml" />
   </Window.Styles>
+
+  <Window.Resources>
+    <!-- One clickable breadcrumb part; clicking selects it in the Explorer. -->
+    <DataTemplate x:Key="BreadcrumbTemplate" x:DataType="utilities:BreadcrumbSegment">
+      <StackPanel Orientation="Horizontal" Spacing="1">
+        <Button Classes="link-button" Padding="5,0" MinHeight="0" Height="22" FontSize="11"
+                Content="{Binding Name}" Tag="{Binding Path}" Click="Breadcrumb_OnClick"
+                ToolTip.Tip="{Binding Path}" />
+        <TextBlock Classes="subtle" Text="›" FontSize="11" VerticalAlignment="Center"
+                   IsVisible="{Binding HasNext}" />
+      </StackPanel>
+    </DataTemplate>
+  </Window.Resources>
 
   <Grid x:Name="ShellGrid">
     <Grid.RowDefinitions>
@@ -115,6 +129,24 @@
           </Button>
           <Border Width="1" Height="18" Margin="5,0"
                   Background="{DynamicResource TorenBorderBrush}" />
+          <Button Classes="command-button" Click="SplitVertical_OnClick"
+                  IsEnabled="{Binding Documents.HasActiveDocument}"
+                  ToolTip.Tip="Split editor vertically (side by side)"
+                  AutomationProperties.Name="Split editor vertically">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M3,4H21V20H3Z M5,6V18H11V6Z M13,6V18H19V6Z" />
+          </Button>
+          <Button Classes="command-button" Click="SplitHorizontal_OnClick"
+                  IsEnabled="{Binding Documents.HasActiveDocument}"
+                  ToolTip.Tip="Split editor horizontally (one above the other)"
+                  AutomationProperties.Name="Split editor horizontally">
+            <Path Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TorenTextMutedBrush}"
+                  Data="M3,4H21V20H3Z M5,6V11H19V6Z M5,13V18H19V13Z" />
+          </Button>
+          <Border Width="1" Height="18" Margin="5,0"
+                  Background="{DynamicResource TorenBorderBrush}" />
           <Button x:Name="BuildSolutionButton" Classes="toolbar-button build-action" Content="Build"
                   ToolTip.Tip="Build Solution (Ctrl/Cmd+Shift+B)" AutomationProperties.Name="Build Solution" IsEnabled="False" />
           <Button x:Name="RebuildSolutionButton" Classes="toolbar-button" Content="Rebuild"
@@ -200,7 +232,16 @@
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <Border Height="{StaticResource TorenPanelHeaderHeight}" Padding="14,0"
                 BorderBrush="{DynamicResource TorenBorderBrush}" BorderThickness="0,0,0,1">
-          <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconExplorer}" /><TextBlock Classes="panel-heading" Text="Explorer" /></StackPanel>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8"><Path Classes="shell-icon" Width="16" Height="16" Fill="{DynamicResource TorenAccentBrush}" VerticalAlignment="Center" Data="{StaticResource TorenIconExplorer}" /><TextBlock Classes="panel-heading" Text="Explorer" /></StackPanel>
+            <Button Grid.Column="1" Classes="panel-control" Classes.synced="{Binding Explorer.SyncWithActiveDocument}"
+                    Click="ToggleExplorerSync_OnClick" VerticalAlignment="Center"
+                    ToolTip.Tip="Sync Explorer with the active document"
+                    AutomationProperties.Name="Sync Explorer with the active document">
+              <Path Classes="shell-icon" Width="14" Height="14"
+                    Data="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M3.05,13H1V11H3.05C3.5,6.83 6.83,3.5 11,3.05V1H13V3.05C17.17,3.5 20.5,6.83 20.95,11H23V13H20.95C20.5,17.17 17.17,20.5 13,20.95V23H11V20.95C6.83,20.5 3.5,17.17 3.05,13M12,5A7,7 0 0,0 5,12A7,7 0 0,0 12,19A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z" />
+            </Button>
+          </Grid>
         </Border>
         <Border Grid.Row="1" Classes="panel-card" Margin="10,10,10,8"><StackPanel Spacing="5">
           <TextBlock Text="{Binding WorkspaceTitle}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -285,15 +326,30 @@
                 <DataTemplate x:DataType="vm:OpenDocumentViewModel">
                   <Border MinWidth="130" MaxWidth="240"
                           Classes="document-tab" Classes.active="{Binding IsActive}"
-                          PointerPressed="DocumentTab_OnPointerPressed" ToolTip.Tip="{Binding Path}">
+                          Classes.preview="{Binding IsPreview}" Classes.pinned="{Binding IsPinned}"
+                          PointerPressed="DocumentTab_OnPointerPressed" DoubleTapped="DocumentTab_OnDoubleTapped"
+                          ToolTip.Tip="{Binding Path}">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Pin Tab" Click="TogglePinTab_OnClick" IsVisible="{Binding !IsPinned}" />
+                        <MenuItem Header="Unpin Tab" Click="TogglePinTab_OnClick" IsVisible="{Binding IsPinned}" />
+                        <MenuItem Header="Close" Click="CloseDocument_OnClick" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
                     <Grid RowDefinitions="*,2">
                       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7" Margin="12,0,6,0">
-                        <TextBlock Grid.Column="0" Text="{Binding Title}" FontSize="12"
-                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                          <Path Classes="shell-icon" Width="11" Height="11" IsVisible="{Binding IsPinned}"
+                                VerticalAlignment="Center"
+                                Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                          <TextBlock Classes="tab-title" Text="{Binding Title}" FontSize="12"
+                                     VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
                         <Ellipse Grid.Column="1" Width="6" Height="6" IsVisible="{Binding IsDirty}"
                                  Fill="{DynamicResource TorenTextMutedBrush}" VerticalAlignment="Center" />
                         <Button Grid.Column="2" Classes="tab-close" Width="26" Height="26" MinHeight="26"
                                 Padding="0" Click="CloseDocument_OnClick" ToolTip.Tip="Close document"
+                                IsVisible="{Binding !IsPinned}"
                                 AutomationProperties.Name="Close document tab">
                           <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="12" Height="12" />
                         </Button>
@@ -438,16 +494,62 @@
           <TextBlock Classes="muted" Text="Double-click a file in Explorer to open it."
                      FontSize="12" HorizontalAlignment="Center" />
         </StackPanel>
-        <ae:TextEditor x:Name="DocumentEditor"
-                       IsVisible="{Binding Documents.HasActiveDocument}"
-                       ShowLineNumbers="True"
-                       FontFamily="Cascadia Code, Menlo, Consolas, monospace"
-                       FontSize="13.5"
-                       Background="{DynamicResource TorenBackgroundBrush}"
-                       Foreground="{DynamicResource TorenTextBrush}"
-                       LineNumbersForeground="{DynamicResource TorenTextSubtleBrush}"
-                       HorizontalScrollBarVisibility="Auto"
-                       VerticalScrollBarVisibility="Auto" />
+        <!-- Up to two editors; the code-behind arranges them for the current split orientation. -->
+        <Grid x:Name="EditorArea" IsVisible="{Binding Documents.HasActiveDocument}">
+          <Grid x:Name="PrimaryEditorHost" RowDefinitions="Auto,*">
+            <Border Grid.Row="0" Classes="breadcrumb-bar">
+              <ItemsControl ItemsSource="{Binding Documents.PrimaryDocument.Breadcrumbs}"
+                            ItemTemplate="{StaticResource BreadcrumbTemplate}" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+              </ItemsControl>
+            </Border>
+            <ae:TextEditor x:Name="DocumentEditor" Grid.Row="1"
+                           ShowLineNumbers="True"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           FontSize="13.5"
+                           Background="{DynamicResource TorenBackgroundBrush}"
+                           Foreground="{DynamicResource TorenTextBrush}"
+                           LineNumbersForeground="{DynamicResource TorenTextSubtleBrush}"
+                           HorizontalScrollBarVisibility="Auto"
+                           VerticalScrollBarVisibility="Auto" />
+          </Grid>
+          <GridSplitter x:Name="EditorSplitter" IsVisible="False" Classes="shell-splitter"
+                        ResizeBehavior="PreviousAndNext"
+                        AutomationProperties.Name="Resize split editor"
+                        ToolTip.Tip="Drag or use arrow keys to resize the editors" />
+          <Grid x:Name="SecondaryEditorHost" IsVisible="False" RowDefinitions="Auto,*">
+            <Border Grid.Row="0" Classes="breadcrumb-bar">
+              <Grid ColumnDefinitions="*,Auto">
+                <ItemsControl ItemsSource="{Binding Documents.SecondaryDocument.Breadcrumbs}"
+                              ItemTemplate="{StaticResource BreadcrumbTemplate}" VerticalAlignment="Center">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Button Grid.Column="1" Classes="tab-close" Width="22" Height="22" MinHeight="22" Padding="0"
+                        Click="CloseSplit_OnClick" ToolTip.Tip="Close split editor"
+                        AutomationProperties.Name="Close split editor">
+                  <Path Classes="shell-icon" Data="{StaticResource TorenIconClose}" Width="10" Height="10" />
+                </Button>
+              </Grid>
+            </Border>
+            <ae:TextEditor x:Name="SecondaryEditor" Grid.Row="1"
+                           ShowLineNumbers="True"
+                           FontFamily="Cascadia Code, Menlo, Consolas, monospace"
+                           FontSize="13.5"
+                           Background="{DynamicResource TorenBackgroundBrush}"
+                           Foreground="{DynamicResource TorenTextBrush}"
+                           LineNumbersForeground="{DynamicResource TorenTextSubtleBrush}"
+                           HorizontalScrollBarVisibility="Auto"
+                           VerticalScrollBarVisibility="Auto" />
+          </Grid>
+        </Grid>
       </Grid>
     </Grid>
 

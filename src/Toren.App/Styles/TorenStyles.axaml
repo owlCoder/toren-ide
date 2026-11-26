@@ -255,6 +255,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TorenTextBrush}" />
     <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+    <Setter Property="IsSelected" Value="{ReflectionBinding IsSelected, Mode=TwoWay}" />
     <Setter Property="MinHeight" Value="28" />
     <Setter Property="CornerRadius" Value="{StaticResource TorenControlRadius}" />
   </Style>
@@ -435,6 +436,9 @@
   </Style>
   <Style Selector="Button.panel-control:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource TorenSurfaceHoverBrush}" />
+  </Style>
+  <Style Selector="Button.panel-control.synced Path.shell-icon">
+    <Setter Property="Fill" Value="{DynamicResource TorenAccentBrush}" />
   </Style>
   <Style Selector="TabControl.tool-tabs TabItem">
     <Setter Property="FontSize" Value="12" />

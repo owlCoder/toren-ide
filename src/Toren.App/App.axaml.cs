@@ -19,6 +19,8 @@ using Toren.App.Execution.Services;
 using Toren.App.Execution.ViewModels;
 using Toren.App.Http.Services;
 using Toren.App.Http.ViewModels;
+using Toren.App.Layout.Adapters;
+using Toren.App.Layout.Contracts;
 using Toren.App.Packages.Services;
 using Toren.App.Packages.ViewModels;
 using Toren.App.Search.Contracts;
@@ -190,6 +192,10 @@ public sealed partial class App : Application
             cSharpSemanticContextProvider,
             cSharpWorkspaceDiagnosticService,
             cSharpSyntaxService);
+
+        IWorkspaceLayoutStore workspaceLayoutStore = new FileWorkspaceLayoutStore(
+            Path.Combine(applicationDataDirectory, "layouts"));
+
         MainWindowViewModel? viewModel = null;
 
         string? GetWorkspacePath() =>
@@ -278,7 +284,7 @@ public sealed partial class App : Application
             documentHost,
             workspaceDiagnosticsCoordinator,
             // Background priority runs after pending input and rendering.
-            static () => Dispatcher.UIThread.InvokeAsync(static () => { }, DispatcherPriority.Background).GetTask());
+            static () => Dispatcher.UIThread.InvokeAsync(static () => { }, DispatcherPriority.Background).GetTask(), workspaceLayoutStore);
         var mainWindow = new MainWindow(
             viewModel,
             new FileApplicationSettingsStore(Path.Combine(applicationDataDirectory, "settings.json")),

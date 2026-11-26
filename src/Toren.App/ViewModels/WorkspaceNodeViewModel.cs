@@ -26,6 +26,9 @@ public sealed partial class WorkspaceNodeViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsFolderOpen))]
     private bool _isExpanded;
 
+    [ObservableProperty]
+    private bool _isSelected;
+
     public WorkspaceNodeViewModel(WorkspaceNode node, bool isExpanded = false, bool isPlaceholder = false)
     {
         Node = node ?? throw new ArgumentNullException(nameof(node));
