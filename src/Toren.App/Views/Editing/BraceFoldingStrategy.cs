@@ -71,7 +71,6 @@ internal static class BraceFoldingStrategy
 
     private static int SkipString(string text, int start)
     {
-        // Raw string literal: """ ... """
         if (start + 2 < text.Length && text[start + 1] == '"' && text[start + 2] == '"')
         {
             var rawEnd = text.IndexOf("\"\"\"", start + 3, StringComparison.Ordinal);
@@ -111,7 +110,6 @@ internal static class BraceFoldingStrategy
 
                 if (current == '\n')
                 {
-                    // Unterminated string: stop at the end of the line instead of swallowing the file.
                     return index + 1;
                 }
             }
